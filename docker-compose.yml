@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # MongoDB for document storage
+  mongodb:
+    image: mongo:6.0
+    container_name: doom_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    environment:
+      MONGO_INITDB_DATABASE: doom_index
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Neo4j for graph storage
+  neo4j:
+    image: neo4j:5.14-community
+    container_name: doom_neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-password123}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_heap_initial__size: "512m"
+      NEO4J_dbms_memory_heap_max__size: "2G"
+    restart: unless-stopped
+    healthcheck:
+      test: wget http://localhost:7474 || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: doom_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  mongodb_data:
+  mongodb_config:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  redis_data:

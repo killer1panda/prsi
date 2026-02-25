@@ -1,0 +1,81 @@
+# Project Configuration
+project:
+  name: "doom-index"
+  version: "0.1.0"
+  description: "Predictive Social Doom Index + Shadowban Simulator"
+
+# API Configuration
+api:
+  twitter:
+    enabled: true
+    rate_limit_delay: 1.0  # seconds between requests
+    batch_size: 100
+  reddit:
+    enabled: true
+    rate_limit_delay: 0.5
+  instagram:
+    enabled: true
+    rate_limit_delay: 2.0
+
+# Database Configuration
+database:
+  mongodb:
+    host: "localhost"
+    port: 27017
+    database: "doom_index"
+    collections:
+      posts: "posts"
+      users: "users"
+      comments: "comments"
+  neo4j:
+    uri: "bolt://localhost:7687"
+    user: "neo4j"
+    # Password should be set via NEO4J_PASSWORD environment variable
+    database: "neo4j"
+
+# Data Collection
+collection:
+  target_samples: 50000
+  languages: ["en"]
+  date_range:
+    start: "2020-01-01"
+    end: "2026-02-28"
+  
+# Logging
+logging:
+  level: "INFO"
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
+  file: "logs/doom_index.log"
+  rotation: "10 MB"
+
+# Model Configuration
+model:
+  nlp:
+    model_name: "distilbert-base-uncased"
+    max_length: 512
+    batch_size: 32
+  gnn:
+    hidden_dim: 128
+    num_layers: 2
+    dropout: 0.1
+  fusion:
+    output_dim: 256
+
+# Training Configuration
+training:
+  epochs: 10
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  early_stopping_patience: 3
+  checkpoint_dir: "data/models/checkpoints"
+
+# Privacy Configuration
+privacy:
+  differential_privacy:
+    enabled: false
+    epsilon: 1.0
+    delta: 1e-5
+  federated_learning:
+    enabled: false
+    num_clients: 5
+    rounds: 10

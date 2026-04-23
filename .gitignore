@@ -37,12 +37,6 @@ env/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Data (gitignored due to size)
-data/raw/
-data/processed/
-data/models/
-data/exports/
-
 # Secrets
 .env
 *.pem
@@ -60,14 +54,6 @@ Thumbs.db
 
 # Docker
 docker/*.log
-
-# Model files
-*.pt
-*.pth
-*.onnx
-*.h5
-*.pkl
-*.pickle
 
 # Large files
 *.zip
@@ -89,3 +75,4 @@ coverage.xml
 
 # Project specific
 untitled folder/
+doom index/data/twitter_dataset/scraped_data/reddit

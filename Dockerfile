@@ -26,4 +26,4 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Default command
-CMD ["python", "-m", "src.api.main"]
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

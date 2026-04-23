@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Doom Index – Cancellation Risk Analyzer</title>
+    <style>
+        body {font-family: Arial, sans-serif; margin: 2rem; background:#f9f9f9; color:#333;}
+        h1 {color:#2c3e50;}
+        .container {max-width: 800px; margin:auto; background:#fff; padding:2rem; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+        textarea {width:100%; height:120px; padding:0.8rem; font-size:1rem; margin-bottom:1rem; border:1px solid #ccc; border-radius:4px;}
+        button {background:#2980b9; color:#fff; border:none; padding:0.8rem 1.5rem; font-size:1rem; border-radius:4px; cursor:pointer;}
+        button:hover {background:#3498db;}
+        .result {margin-top:1.5rem; padding:1rem; background:#ecf0f1; border-radius:4px;}
+        .section {margin-bottom:1rem;}
+        .section h2 {color:#2c3e50; border-bottom:1px solid #bdc3c7; padding-bottom:0.3rem;}
+        .score {display:inline-block; margin:0.2rem 0.5rem; padding:0.3rem 0.6rem; border-radius:3px; font-weight:bold;}
+        .score.low   {background:#2ecc71; color:#fff;}
+        .score.medium{background:#f1c40f; color:#000;}
+        .score.high  {background:#e74c3c; color:#fff;}
+        .label {font-weight:600; margin-right:0.5rem;}
+        .small {font-size:0.9rem; color:#555;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Doom Index – Cancellation Risk Analyzer</h1>
+    <p class="small">Enter any text (social‑media post, comment, news headline, etc.) to get a multimodal analysis: sentiment (VADER, DistilBERT, RoBERTa), toxicity (Perspective API), and a machine‑learning prediction of cancellation risk.</p>
+
+    <textarea id="inputText" placeholder="Paste or type text here…"></textarea><br>
+    <button id="analyzeBtn">Analyze</button>
+
+    <div id="output" class="result" style="display:none;">
+        <div class="section">
+            <h2>🔎 Prediction</h2>
+            <div class="label">Cancellation Risk:</div>
+            <div id="prediction" class="score"></div>
+            <div class="small">Probability: <span id="probability"></span></div>
+        </div>
+
+        <div class="section">
+            <h2>💬 Sentiment Analysis</h2>
+            <div><span class="label">VADER:</span> <span id="vader"></span></div>
+            <div><span class="label">DistilBERT:</span> <span id="distilbert"></span></div>
+            <div><span class="label">RoBERTa:</span> <span id="roberta"></span></div>
+            <div><span class="label">Overall:</span> <span id="overallSentiment"></span></div>
+        </div>
+
+        <div class="section">
+            <h2>☠️ Toxicity (Perspective API)</h2>
+            <div id="toxicityContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = window.location.origin; // assumes frontend and backend on same origin
+
+    document.getElementById('analyzeBtn').addEventListener('click', async () => {
+        const text = document.getElementById('inputText').value.trim();
+        if (!text) {
+            alert('Please enter some text to analyze.');
+            return;
+        }
+
+        // Show loading state
+        const btn = document.getElementById('analyzeBtn');
+        btn.disabled = true;
+        btn.textContent = 'Analyzing…';
+        document.getElementById('output').style.display = 'none';
+
+        try {
+            const response = await fetch(`${API_URL}/analyze`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text})
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error ${response.status}`);
+            }
+
+            const data = await response.json();
+            renderResult(data);
+        } catch (err) {
+            alert('Analysis failed: ' + err.message);
+            console.error(err);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Analyze';
+        }
+    });
+
+    function renderResult(data) {
+        const out = document.getElementById('output');
+        out.style.display = 'block';
+
+        // Prediction
+        const predEl = document.getElementById('prediction');
+        const probEl = document.getElementById('probability');
+        const risk = data.prediction === 1 ? 'HIGH' : 'LOW';
+        const prob = (data.probability * 100).toFixed(1);
+        predEl.textContent = risk;
+        predEl.className = 'score ' + (risk === 'HIGH' ? 'high' : 'low');
+        probEl.textContent = prob + '%';
+
+        // Sentiment
+        const sentiment = data.sentiment || {};
+        document.getElementById('vader').textContent = formatVader(sentiment.vader);
+        document.getElementById('distilbert').textContent = formatDistilbert(sentiment.distilbert);
+        document.getElementById('roberta').textContent = formatRoBerta(sentiment.transformer);
+        document.getElementById('overallSentiment').textContent = sentiment.overall_sentiment || 'unknown';
+
+        // Toxicity
+        const toxContainer = document.getElementById('toxicityContainer');
+        if (data.toxicity && Object.keys(data.toxicity).length) {
+            toxContainer.innerHTML = ''; // clear
+            const tox = data.toxicity;
+            const keys = ['toxicity','severe_toxicity','identity_attack','insult','profanity','threat'];
+            keys.forEach(k => {
+                const val = tox[k] ?? 0;
+                const pct = (val * 100).toFixed(1);
+                const div = document.createElement('div');
+                div.className = 'score ' + (val > 0.7 ? 'high' : val > 0.4 ? 'medium' : 'low');
+                div.textContent = `${k.replace(/_/g,' ').toUpperCase()}: ${pct}%`;
+                toxContainer.appendChild(div);
+            });
+        } else {
+            toxContainer.innerHTML = '<div class="small">No toxicity data available (Perspective API key may be missing or request failed).</div>';
+        }
+    }
+
+    function formatVader(v) {
+        if (!v) return 'N/A';
+        return `neg:${(v.neg*100).toFixed(0)}% neu:${(v.neu*100).toFixed(0)}% pos:${(v.pos*100).toFixed(0)}% compound:${v.compound.toFixed(2)}`;
+    }
+    function formatDistilbert(d) {
+        if (!d) return 'N/A';
+        return `neg:${(d.LABEL_0*100).toFixed(1)}% pos:${(d.LABEL_1*100).toFixed(1)}%`;
+    }
+    function formatRoBerta(r) {
+        if (!r) return 'N/A';
+        // RoBERTa may return dict with labels like LABEL_0, LABEL_1, LABEL_2 or 'negative', 'neutral', 'positive'
+        if (typeof r === 'object') {
+            const entries = Object.entries(r).map(([k, v]) => `${k}: ${(v*100).toFixed(1)}%`);
+            return entries.join(' ');
+        }
+        return String(r);
+    }
+</script>
+</body>
+</html>

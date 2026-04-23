@@ -1,0 +1,8 @@
+#PBS -N doom_train
+#PBS -l nodes=1:ppn=4
+#PBS -l walltime=10:00:00
+#PBS -o doom_train.out
+#PBS -e doom_train.err
+
+cd $PBS_O_WORKDIR
+python train_model_full.py

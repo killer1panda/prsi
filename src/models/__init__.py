@@ -1,3 +1,5 @@
-"""ML model modules."""
+"""Machine learning models."""
 
-# Placeholder for Phase 3 implementation
+from .predictor import CancellationPredictor, train_cancellation_model
+
+__all__ = ['CancellationPredictor', 'train_cancellation_model']

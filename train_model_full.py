@@ -155,7 +155,37 @@ def create_feature_matrix(df):
     X = df[available_cols].fillna(0).values
 
     # Target: has cancellation keywords
-    y = df[[f'has_{kw}' for kw in ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']]].any(axis=1).astype(int).values
+        # PROPER WEAK SUPERVISION LABELS (not just keyword matching)
+    def create_proper_labels(df):
+        scores = np.zeros(len(df))
+
+        # High engagement = more visibility for backlash
+        if 'likes' in df.columns:
+            scores += (df['likes'] > df['likes'].quantile(0.9)).astype(int)
+
+        # Very negative sentiment
+        if 'sentiment_polarity' in df.columns:
+            scores += (df['sentiment_polarity'] < -0.3).astype(int)
+
+        # Strong action keywords (weighted higher)
+        action_kw = ['boycott', 'petition', 'fired', 'removed', 'banned', 'apologized', 'resigned']
+        has_action = df['text'].str.lower().apply(lambda t: any(kw in t for kw in action_kw))
+        scores += has_action.astype(int) * 2
+
+        # Controversy keywords
+        controversy_kw = ['cancel', 'backlash', 'outrage', 'controversy', 'under fire']
+        has_controversy = df['text'].str.lower().apply(lambda t: any(kw in t for kw in controversy_kw))
+        scores += has_controversy.astype(int)
+
+        # High reply ratio (engagement storm indicator)
+        if 'replies' in df.columns and 'likes' in df.columns:
+            reply_ratio = df['replies'] / (df['likes'] + 1)
+            scores += (reply_ratio > reply_ratio.quantile(0.95)).astype(int)
+
+        # Threshold: score >= 3 is a cancellation event
+        return (scores >= 3).astype(int)
+
+    y = create_proper_labels(df)
 
     return X, y
 

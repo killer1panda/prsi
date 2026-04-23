@@ -1,3 +1,7 @@
+# NOTE: This is the v1 API using RandomForest.
+# The v2 multimodal API is in api_v2.py.
+# Use api_v2.py for production - it supports GraphSAGE + DistilBERT.
+
 """FastAPI application for doom-index predictions."""
 
 from fastapi import FastAPI, HTTPException

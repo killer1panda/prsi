@@ -4,13 +4,13 @@ Run with: pytest tests/test_multimodal.py -v
 """
 
 import pytest
-import torch
 import numpy as np
 import pandas as pd
-from torch_geometric.data import Data
 
 # Skip tests if dependencies not installed
 try:
+    import torch
+    from torch_geometric.data import Data
     from src.models.gnn_model import GraphSAGEEncoder, TextEncoder, FusionMLP, MultimodalDoomPredictor
     from src.features.graph_extractor import GraphExtractor
     from src.attacks.adversarial_generator import AdversarialGenerator, AttackResult
@@ -19,6 +19,8 @@ try:
 except ImportError as e:
     DEPS_AVAILABLE = False
     IMPORT_ERROR = str(e)
+    # Define stubs to prevent NameError in decorator expressions
+    Data = None
 
 
 @pytest.mark.skipif(not DEPS_AVAILABLE, reason=f"Dependencies missing: {IMPORT_ERROR}")

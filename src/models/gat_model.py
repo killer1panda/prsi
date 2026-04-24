@@ -34,28 +34,28 @@ class GraphAttentionNetwork(nn.Module):
     Production GAT for user-user interaction graphs.
     Supports edge features, residual connections, and layer normalization.
     """
-    
+
     def __init__(self, config: GATConfig):
         super().__init__()
         self.config = config
         self.device = torch.device(config.device)
-        
+
         # Input projection if needed
         self.input_proj = nn.Linear(config.in_channels, config.hidden_channels).to(self.device)
-        
+
         # GAT layers
         self.convs = nn.ModuleList()
         self.bns = nn.ModuleList()
         self.residuals = nn.ModuleList()
-        
+
         for i in range(config.num_layers):
             in_ch = config.hidden_channels if i > 0 else config.hidden_channels
             out_ch = config.hidden_channels if i < config.num_layers - 1 else config.out_channels
-            
+
             # Last layer uses single head for stability
             heads = 1 if i == config.num_layers - 1 else config.num_heads
             concat = False if i == config.num_layers - 1 else config.concat
-            
+
             self.convs.append(
                 GATConv(
                     in_channels=in_ch,
@@ -68,20 +68,20 @@ class GraphAttentionNetwork(nn.Module):
                     bias=True
                 ).to(self.device)
             )
-            
+
             self.bns.append(BatchNorm(out_ch).to(self.device))
-            
+
             # Residual projection if dimensions change
             if in_ch != out_ch:
                 self.residuals.append(nn.Linear(in_ch, out_ch).to(self.device))
             else:
                 self.residuals.append(nn.Identity())
-        
+
         self.dropout = nn.Dropout(config.dropout)
         self.activation = getattr(F, config.activation) if hasattr(F, config.activation) else F.elu
-        
+
         logger.info(f"GAT initialized: {config.num_layers} layers, {config.num_heads} heads")
-    
+
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
                 edge_attr: Optional[torch.Tensor] = None,
                 batch: Optional[torch.Tensor] = None) -> torch.Tensor:
@@ -95,20 +95,20 @@ class GraphAttentionNetwork(nn.Module):
             (N, out_channels) node embeddings
         """
         x = self.input_proj(x)
-        
+
         for i, (conv, bn, res) in enumerate(zip(self.convs, self.bns, self.residuals)):
             x_res = res(x)
-            
+
             x = conv(x, edge_index, edge_attr=edge_attr)
             x = bn(x)
             x = self.activation(x)
             x = self.dropout(x)
-            
+
             # Residual connection
             x = x + x_res
-        
+
         return x
-    
+
     def predict_node_risk(self, x: torch.Tensor, edge_index: torch.Tensor,
                           node_ids: torch.Tensor) -> torch.Tensor:
         """Predict cancellation risk for specific nodes."""
@@ -117,7 +117,7 @@ class GraphAttentionNetwork(nn.Module):
         # Simple MLP head for risk scoring
         risk_score = torch.sigmoid(node_emb.mean(dim=-1))
         return risk_score
-    
+
     def get_attention_weights(self, x: torch.Tensor, edge_index: torch.Tensor,
                               edge_attr: Optional[torch.Tensor] = None,
                               layer: int = 0) -> torch.Tensor:
@@ -127,18 +127,18 @@ class GraphAttentionNetwork(nn.Module):
             x = self.convs[i](x, edge_index, edge_attr=edge_attr)
             x = self.bns[i](x)
             x = self.activation(x)
-        
+
         # Get attention from target layer
         with torch.no_grad():
             # GATConv stores attention weights after forward
             _ = self.convs[layer](x, edge_index, edge_attr=edge_attr)
             attn = self.convs[layer]._alpha  # (E, heads)
         return attn
-    
+
     def save(self, path: str):
         torch.save({"state_dict": self.state_dict(), "config": self.config}, path)
         logger.info(f"GAT saved to {path}")
-    
+
     def load(self, path: str):
         checkpoint = torch.load(path, map_location=self.device)
         self.load_state_dict(checkpoint["state_dict"])

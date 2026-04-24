@@ -1,0 +1,47 @@
+# =============================================================================
+# Doom Index Dashboard Dockerfile
+# Streamlit frontend with optimized build
+# =============================================================================
+
+FROM python:3.10-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install build deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY requirements-dashboard.txt .
+RUN pip install --no-cache-dir --user -r requirements-dashboard.txt
+
+# ---------------------------------------------------------------------------
+FROM python:3.10-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV PATH=/root/.local/bin:$PATH
+
+# Copy installed packages
+COPY --from=builder /root/.local /root/.local
+
+WORKDIR /app
+
+# Copy dashboard code
+COPY src/dashboard/app_production.py /app/dashboard.py
+
+# Streamlit config
+RUN mkdir -p /root/.streamlit && \
+    echo "[server]\nheadless = true\nport = 8501\nenableCORS = false\nenableXsrfProtection = true\n" > /root/.streamlit/config.toml && \
+    echo "[browser]\ngatherUsageStats = false\n" >> /root/.streamlit/config.toml
+
+EXPOSE 8501
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+CMD ["streamlit", "run", "dashboard.py", "--server.address=0.0.0.0"]

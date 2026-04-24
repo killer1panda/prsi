@@ -1,0 +1,43 @@
+# =============================================================================
+# Multimodal Fusion Model Configuration
+# =============================================================================
+
+# Text encoder
+text_encoder: "distilbert-base-uncased"
+text_dim: 768
+
+# Graph encoder
+graph_encoder: "graphsage"
+graph_dim: 128
+graph_hidden: 256
+graph_layers: 3
+
+# Vision encoder (optional)
+vision_encoder: "clip-vit-base-patch32"
+vision_dim: 512
+use_vision: false
+
+# Fusion
+fusion_type: "cross_attention"
+fusion_dim: 512
+fusion_dropout: 0.2
+num_fusion_heads: 8
+
+# Temporal
+temporal_dim: 64
+use_temporal: true
+
+# Training
+num_epochs: 5
+batch_size: 16
+learning_rate: 1.0e-4
+weight_decay: 0.01
+warmup_steps: 1000
+
+# Data
+train_data: "data/processed/train_multimodal.csv"
+val_data: "data/processed/val_multimodal.csv"
+
+# Output
+output_dir: "models/multimodal"
+checkpoint_dir: "models/multimodal/checkpoints"

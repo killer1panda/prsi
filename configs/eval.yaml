@@ -1,0 +1,25 @@
+# =============================================================================
+# Evaluation Configuration
+# =============================================================================
+
+model_path: "models/robust/best_model.pt"
+test_data_path: "data/processed/test.csv"
+output_dir: "reports/evaluation"
+model_version: "2.0.0"
+
+compute_fairness: true
+compute_calibration: true
+compute_interpretability: true
+compute_drift: true
+
+high_risk_threshold: 0.7
+
+# Fairness groups
+protected_attributes:
+  - language
+  - user_type
+  - region
+
+# Drift detection
+drift_reference_window: 1000
+drift_detection_window: 500

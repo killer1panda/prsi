@@ -1,0 +1,208 @@
+stages:
+  prepare:
+    cmd: python src/data/prepare.py --config configs/data.yaml
+    deps:
+      - src/data/prepare.py
+      - src/data/preprocessing.py
+      - data/raw/
+    params:
+      - data.raw_path
+      - data.test_size
+      - data.validation_size
+      - data.random_seed
+    outs:
+      - data/processed/train.csv:
+          cache: true
+          persist: false
+      - data/processed/val.csv:
+          cache: true
+          persist: false
+      - data/processed/test.csv:
+          cache: true
+          persist: false
+      - data/processed/label_distribution.json:
+          cache: true
+
+  build_graph:
+    cmd: python src/data/build_neo4j_graph.py --data_path data/processed/train.csv
+    deps:
+      - src/data/build_neo4j_graph.py
+      - data/processed/train.csv
+    outs:
+      - data/graph/edge_list.csv:
+          cache: true
+      - data/graph/node_features.csv:
+          cache: true
+      - data/graph/graph_stats.json:
+          cache: true
+
+  extract_features:
+    cmd: python src/features/extract_all.py --config configs/features.yaml
+    deps:
+      - src/features/extract_all.py
+      - src/features/engineering.py
+      - src/features/feature_store.py
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+    params:
+      - features.text_encoder
+      - features.graph_encoder
+      - features.use_vision
+    outs:
+      - data/features/train_features.parquet:
+          cache: true
+      - data/features/val_features.parquet:
+          cache: true
+      - data/features/test_features.parquet:
+          cache: true
+
+  train_text:
+    cmd: python src/models/train_distilbert.py --config configs/distilbert.yaml
+    deps:
+      - src/models/train_distilbert.py
+      - src/models/multilingual.py
+      - data/features/train_features.parquet
+      - data/features/val_features.parquet
+    params:
+      - train_text.learning_rate
+      - train_text.batch_size
+      - train_text.num_epochs
+      - train_text.warmup_steps
+      - train_text.weight_decay
+    outs:
+      - models/distilbert/:
+          cache: true
+    metrics:
+      - metrics/distilbert.json:
+          cache: false
+
+  train_graph:
+    cmd: python src/models/train_gnn.py --config configs/gnn.yaml
+    deps:
+      - src/models/train_gnn.py
+      - src/models/gnn_model.py
+      - src/models/gat_model.py
+      - src/models/temporal_gnn.py
+      - data/graph/edge_list.csv
+      - data/graph/node_features.csv
+    params:
+      - train_graph.hidden_channels
+      - train_graph.num_layers
+      - train_graph.learning_rate
+      - train_graph.epochs
+    outs:
+      - models/gnn/:
+          cache: true
+    metrics:
+      - metrics/gnn.json:
+          cache: false
+
+  train_multimodal:
+    cmd: python src/models/train_multimodal.py --config configs/multimodal.yaml
+    deps:
+      - src/models/train_multimodal.py
+      - src/models/fusion.py
+      - src/models/temporal.py
+      - models/distilbert/
+      - models/gnn/
+      - data/features/train_features.parquet
+      - data/features/val_features.parquet
+    params:
+      - train_multimodal.fusion_type
+      - train_multimodal.dropout
+      - train_multimodal.learning_rate
+      - train_multimodal.epochs
+    outs:
+      - models/multimodal/:
+          cache: true
+    metrics:
+      - metrics/multimodal.json:
+          cache: false
+
+  adversarial_training:
+    cmd: python src/attacks/adversarial_training.py --config configs/adv_train.yaml
+    deps:
+      - src/attacks/adversarial_training.py
+      - src/attacks/adversarial_generator.py
+      - models/multimodal/
+      - data/features/train_features.parquet
+    params:
+      - adv.epsilon
+      - adv.alpha
+      - adv.num_steps
+      - adv.adv_ratio
+    outs:
+      - models/robust/:
+          cache: true
+    metrics:
+      - metrics/robustness.json:
+          cache: false
+
+  evaluate:
+    cmd: python src/evaluation/evaluate_model.py --config configs/eval.yaml
+    deps:
+      - src/evaluation/evaluate_model.py
+      - src/models/interpretability.py
+      - src/models/fairness.py
+      - src/models/calibration.py
+      - src/models/drift_detector.py
+      - models/robust/
+      - data/features/test_features.parquet
+    params:
+      - eval.metrics
+      - eval.fairness_audit
+      - eval.drift_check
+    outs:
+      - reports/evaluation_report.html:
+          cache: false
+      - reports/fairness_report.json:
+          cache: false
+      - reports/drift_report.json:
+          cache: false
+    metrics:
+      - metrics/test_metrics.json:
+          cache: false
+      - metrics/fairness.json:
+          cache: false
+
+  export_onnx:
+    cmd: python src/models/export_onnx.py --model_path models/robust/ --output models/doom_index.onnx
+    deps:
+      - src/models/export_onnx.py
+      - models/robust/
+    outs:
+      - models/doom_index.onnx:
+          cache: true
+      - models/doom_index_quantized.onnx:
+          cache: true
+
+  build_dashboard:
+    cmd: docker build -t doom-index/dashboard:latest -f docker/Dockerfile.dashboard .
+    deps:
+      - docker/Dockerfile.dashboard
+      - src/dashboard/
+      - models/doom_index.onnx
+    outs:
+      - docker/dashboard.built:
+          cache: false
+
+metrics:
+  - metrics/distilbert.json
+  - metrics/gnn.json
+  - metrics/multimodal.json
+  - metrics/robustness.json
+  - metrics/test_metrics.json
+  - metrics/fairness.json
+
+plots:
+  - metrics/loss_curves.csv:
+      template: simple
+      x: step
+      y: loss
+      title: Training Loss
+  - metrics/roc_curves.csv:
+      template: simple
+      x: fpr
+      y: tpr
+      title: ROC Curve

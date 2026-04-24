@@ -1,0 +1,52 @@
+# =============================================================================
+# HPC DistilBERT Training Configuration
+# For multi-node H100 cluster via SLURM
+# =============================================================================
+
+model_name: "distilbert-base-uncased"
+num_labels: 2
+max_length: 256
+
+# Training
+num_epochs: 3
+batch_size_per_gpu: 32
+gradient_accumulation_steps: 4
+learning_rate: 2.0e-5
+weight_decay: 0.01
+warmup_ratio: 0.1
+max_grad_norm: 1.0
+
+# Distributed
+backend: "nccl"
+use_fsdp: false
+use_deepspeed: false
+
+# Precision - H100 supports bfloat16 natively
+use_amp: true
+amp_dtype: "bfloat16"
+
+# Memory optimization
+gradient_checkpointing: true
+cpu_offload: false
+
+# Checkpointing
+output_dir: "models/distilbert_hpc"
+checkpoint_dir: "models/distilbert_hpc/checkpoints"
+save_steps: 500
+save_total_limit: 3
+
+# Logging
+logging_steps: 10
+eval_steps: 250
+wandb_project: "doom-index-hpc"
+wandb_run_name: "distilbert-h100-4node"
+
+# Data
+train_data_path: "data/processed/train.csv"
+val_data_path: "data/processed/val.csv"
+num_workers: 8
+dataloader_pin_memory: true
+dataloader_prefetch_factor: 4
+
+# Optimization
+seed: 42

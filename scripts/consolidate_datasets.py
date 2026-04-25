@@ -1,0 +1,390 @@
+#!/usr/bin/env python3
+"""
+Consolidate all labeled datasets into unified training format for Doom Index v2.
+
+Usage:
+    python scripts/consolidate_datasets.py --data-dir /path/to/data
+    
+This script:
+1. Loads all Tier 1 datasets from your inventory
+2. Normalizes labels to 0-1 Doom Score scale
+3. Creates unified schema with text, label, metadata
+4. Exports as parquet for training
+"""
+
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import argparse
+from datetime import datetime
+import warnings
+warnings.filterwarnings('ignore')
+
+# Unified output schema
+UNIFIED_COLUMNS = [
+    'text',              # Tweet/comment text (required)
+    'doom_score',        # 0.0-1.0 doom score (required)
+    'source',            # Dataset origin
+    'timestamp',         # When posted (optional)
+    'likes',             # Engagement metrics (optional)
+    'retweets',          
+    'replies',
+    'followers',         # User features (optional)
+    'verified',
+    'hashtags',          # List of hashtags
+    'language',          # Language code
+    'original_label',    # Original label before normalization
+]
+
+
+def load_cancelled_brands(filepath):
+    """Load Tweets on Cancelled Brands dataset."""
+    print(f"Loading: {filepath}")
+    df = pd.read_csv(filepath)
+    
+    # Schema: brand_name, Tweet.Date, Tweet.Location, Tweet.Content, 
+    #         Retweets.Received, Favourites.Received, User.Followers, 
+    #         User.Following, Favourites.Count, Statuses.Count, 
+    #         clean_tweet, Which hashtag
+    
+    # Binary classification: cancelled (1.0) or not (0.0)
+    # Assuming "Which hashtag" indicates cancellation event
+    df['doom_score'] = df['Which hashtag'].notna().astype(float)
+    
+    result = pd.DataFrame({
+        'text': df['Tweet.Content'].fillna(df['clean_tweet']),
+        'doom_score': df['doom_score'],
+        'source': 'cancelled_brands',
+        'timestamp': pd.to_datetime(df['Tweet.Date'], errors='coerce'),
+        'likes': df['Favourites.Received'],
+        'retweets': df['Retweets.Received'],
+        'followers': df['User.Followers'],
+        'hashtags': df['Which hashtag'].apply(lambda x: [x] if pd.notna(x) else []),
+        'original_label': df['Which hashtag'].notna().astype(int)
+    })
+    
+    print(f"  → Loaded {len(result)} samples, {result['doom_score'].sum():.0f} positive")
+    return result
+
+
+def load_cancellation_events(filepath):
+    """Load curated cancellation events."""
+    print(f"Loading: {filepath}")
+    df = pd.read_csv(filepath)
+    
+    # Schema: id, keyword, user, user_name, text, created_at, 
+    #         likes, retweets, replies, source
+    
+    # All are cancellation events by definition
+    df['doom_score'] = 1.0
+    
+    result = pd.DataFrame({
+        'text': df['text'],
+        'doom_score': df['doom_score'],
+        'source': 'cancellation_events',
+        'timestamp': pd.to_datetime(df['created_at'], errors='coerce'),
+        'likes': df['likes'],
+        'retweets': df['retweets'],
+        'replies': df['replies'],
+        'original_label': np.ones(len(df))
+    })
+    
+    print(f"  → Loaded {len(result)} samples (all positive events)")
+    return result
+
+
+def load_jigsaw_toxic(filepath):
+    """Load Jigsaw Toxic Comments dataset."""
+    print(f"Loading: {filepath}")
+    df = pd.read_csv(filepath)
+    
+    # Schema: id, comment_text, toxic, severe_toxic, obscene, 
+    #         threat, insult, identity_hate
+    
+    # Aggregate toxicity to doom score
+    # Use max of severe dimensions
+    toxicity_cols = ['toxic', 'severe_toxic', 'identity_hate']
+    available_cols = [c for c in toxicity_cols if c in df.columns]
+    
+    if available_cols:
+        df['doom_score'] = df[available_cols].max(axis=1)
+    else:
+        # Fallback to binary toxic column
+        df['doom_score'] = df.get('toxic', pd.Series([0]*len(df)))
+    
+    result = pd.DataFrame({
+        'text': df['comment_text'],
+        'doom_score': df['doom_score'],
+        'source': 'jigsaw_toxic',
+        'original_label': df['toxic'] if 'toxic' in df.columns else df['doom_score']
+    })
+    
+    print(f"  → Loaded {len(result)} samples, {result['doom_score'].sum():.0f} toxic")
+    return result
+
+
+def load_cyberbullying(filepath):
+    """Load Instagram/TikTok cyberbullying dataset."""
+    print(f"Loading: {filepath}")
+    df = pd.read_parquet(filepath)
+    
+    # Schema: text, label (int64)
+    # Assuming binary: 1 = cyberbullying, 0 = not
+    
+    df['doom_score'] = df['label'].astype(float)
+    
+    result = pd.DataFrame({
+        'text': df['text'],
+        'doom_score': df['doom_score'],
+        'source': 'cyberbullying',
+        'original_label': df['label']
+    })
+    
+    print(f"  → Loaded {len(result)} samples, {result['doom_score'].sum():.0f} positive")
+    return result
+
+
+def load_cade(filepath):
+    """Load CADE (Context-Aware Dataset for English) hate speech dataset."""
+    print(f"Loading: {filepath}")
+    df = pd.read_parquet(filepath)
+    
+    # CADE schema typically has: text, label (hate/not_hate/offensive)
+    # Map to doom score: hate=1.0, offensive=0.7, not_hate=0.0
+    
+    if 'label' in df.columns:
+        label_map = {
+            'hate': 1.0, 'not_hate': 0.0, 'normal': 0.0,
+            'offensive': 0.7, 'abusive': 0.8, 'hateful': 1.0,
+            'no_hate': 0.0, 'neutral': 0.0
+        }
+        # Handle both string and numeric labels
+        if df['label'].dtype == 'object':
+            df['doom_score'] = df['label'].str.lower().map(label_map).fillna(0.5)
+        else:
+            # Numeric labels: assume 1=hate, 0=not_hate or similar
+            df['doom_score'] = df['label'].astype(float)
+    else:
+        df['doom_score'] = 0.5
+    
+    result = pd.DataFrame({
+        'text': df['text'],
+        'doom_score': df['doom_score'],
+        'source': 'cade',
+        'original_label': df.get('label', 'unknown')
+    })
+    
+    print(f"  → Loaded {len(result)} samples, avg doom: {result['doom_score'].mean():.2f}")
+    return result
+
+
+def load_collective_violence(filepaths):
+    """Load multilingual Twitter collective violence dataset."""
+    print(f"Loading collective violence datasets: {len(filepaths)} files")
+    
+    all_dfs = []
+    for fp in filepaths:
+        try:
+            df = pd.read_parquet(fp)
+            all_dfs.append(df)
+        except Exception as e:
+            print(f"  Warning: Could not load {fp}: {e}")
+    
+    if not all_dfs:
+        return pd.DataFrame(columns=UNIFIED_COLUMNS)
+    
+    df = pd.concat(all_dfs, ignore_index=True)
+    
+    # Schema has post1geo10...post7geo70 columns
+    # Use post7geo70 as peak outrage metric (0-100 scale)
+    if 'post7geo70' in df.columns:
+        df['doom_score'] = df['post7geo70'].clip(0, 100) / 100.0
+    else:
+        # Fallback: average of all post*geo* columns
+        geo_cols = [c for c in df.columns if 'post' in c and 'geo' in c]
+        if geo_cols:
+            df['doom_score'] = df[geo_cols].mean(axis=1).clip(0, 100) / 100.0
+        else:
+            df['doom_score'] = 0.5  # Unknown
+    
+    result = pd.DataFrame({
+        'text': df.get('tweetid', pd.Series([None]*len(df))).astype(str),  # tweetid as placeholder
+        'doom_score': df['doom_score'],
+        'source': 'collective_violence',
+        'language': df.get('lang', 'en'),
+        'original_label': df.get('post7geo70', df['doom_score'])
+    })
+    
+    print(f"  → Loaded {len(result)} samples, avg doom score: {result['doom_score'].mean():.2f}")
+    return result
+
+
+def load_meme_datasets(filepaths):
+    """Load MemeLens hateful meme datasets for multimodal training."""
+    print(f"Loading meme datasets: {len(filepaths)} files")
+    
+    all_dfs = []
+    for fp in filepaths:
+        try:
+            df = pd.read_parquet(fp)
+            # Extract image bytes if present
+            if 'image' in df.columns:
+                # Handle struct<bytes: binary, path: string>
+                if isinstance(df['image'].iloc[0], dict):
+                    df['image_bytes'] = df['image'].apply(lambda x: x.get('bytes') if x else None)
+                    df['image_path'] = df['image'].apply(lambda x: x.get('path') if x else None)
+            all_dfs.append(df)
+        except Exception as e:
+            print(f"  Warning: Could not load {fp}: {e}")
+    
+    if not all_dfs:
+        return pd.DataFrame(columns=UNIFIED_COLUMNS + ['image_bytes', 'image_path'])
+    
+    df = pd.concat(all_dfs, ignore_index=True)
+    
+    # Convert string labels to numeric
+    # Common labels: 'hate', 'not_hate', 'offensive', etc.
+    if 'label' in df.columns:
+        label_map = {
+            'hate': 1.0, 'not_hate': 0.0, 'normal': 0.0,
+            'offensive': 0.5, 'abusive': 0.8, 'hateful': 1.0
+        }
+        df['doom_score'] = df['label'].str.lower().map(label_map).fillna(0.5)
+    else:
+        df['doom_score'] = 0.5
+    
+    result = pd.DataFrame({
+        'text': df.get('text', ''),
+        'doom_score': df['doom_score'],
+        'source': 'memelens',
+        'original_label': df.get('label', 'unknown'),
+        'image_bytes': df.get('image_bytes'),
+        'image_path': df.get('image_path')
+    })
+    
+    print(f"  → Loaded {len(result)} memes, {len(result[result['image_bytes'].notna()])} with images")
+    return result
+
+
+def consolidate_all_datasets(data_dir):
+    """Main consolidation function."""
+    data_dir = Path(data_dir)
+    all_data = []
+    
+    # Load CADE dataset (Priority 1 - high quality hate speech labels)
+    cade_files = list(data_dir.glob("*cade*.parquet")) + list(data_dir.glob("*CADE*.parquet"))
+    if not cade_files:
+        # Try HPC path pattern
+        cade_files = list(Path("/home/vivek.120542/CADE_aequa/data").glob("*.parquet"))
+    if cade_files:
+        for cf in cade_files[:3]:  # Take up to 3 files
+            all_data.append(load_cade(cf))
+    else:
+        print("Warning: CADE dataset not found")
+    
+    # Cancelled Brands (Priority 2 - actual cancellation events)
+    cancelled_brands_file = data_dir / "Tweets on Cancelled Brands.csv"
+    if cancelled_brands_file.exists():
+        all_data.append(load_cancelled_brands(cancelled_brands_file))
+    else:
+        print(f"Warning: {cancelled_brands_file} not found")
+    
+    # Cancellation Events
+    cancellation_events_file = data_dir / "cancellation_events.csv"
+    if cancellation_events_file.exists():
+        all_data.append(load_cancellation_events(cancellation_events_file))
+    else:
+        print(f"Warning: {cancellation_events_file} not found")
+    
+    # Cyberbullying (Priority 3 - social media harassment)
+    cyberbullying_files = list(data_dir.glob("*cyberbully*.parquet"))
+    if not cyberbullying_files:
+        # Try HPC path
+        cyberbullying_files = list(Path("/home/vivek.120542/cyberbullying-instagram-tiktok").glob("*.parquet"))
+    for cbf in cyberbullying_files[:3]:
+        all_data.append(load_cyberbullying(cbf))
+    
+    # Jigsaw Toxic (Priority 4 - large scale toxicity)
+    jigsaw_files = list(data_dir.glob("*jigsaw*.csv")) + list(data_dir.glob("*toxic*.csv"))
+    for jf in jigsaw_files[:2]:  # Take up to 2 files
+        all_data.append(load_jigsaw_toxic(jf))
+    
+    # Collective Violence (skip - only has tweet IDs, no text)
+    # Commented out as discussed - useless without actual tweet text
+    # cv_files = list(data_dir.glob("*collective*.parquet")) + \
+    #            list(data_dir.glob("*violence*.parquet"))
+    # if cv_files:
+    #     all_data.append(load_collective_violence(cv_files[:5]))
+    
+    # MemeLens (for future multimodal training)
+    meme_files = list(data_dir.glob("*meme*.parquet")) + \
+                 list(data_dir.glob("*MAMI*.parquet")) + \
+                 list(data_dir.glob("*Multi3Hate*.parquet"))
+    if not meme_files:
+        # Try HPC path
+        meme_files = list(Path("/home/vivek.120542/MemeLens").rglob("*.parquet"))
+    if meme_files:
+        all_data.append(load_meme_datasets(meme_files[:10]))  # Limit to 10 files initially
+    
+    if not all_data:
+        raise ValueError("No datasets loaded! Check data directory and HPC paths.")
+    
+    # Concatenate all datasets
+    combined = pd.concat(all_data, ignore_index=True)
+    
+    # Ensure required columns exist
+    for col in ['text', 'doom_score', 'source']:
+        if col not in combined.columns:
+            combined[col] = None
+    
+    # Clean up
+    combined = combined.dropna(subset=['text'])
+    combined['text'] = combined['text'].astype(str).str.strip()
+    combined = combined[combined['text'].str.len() > 0]
+    combined['doom_score'] = combined['doom_score'].clip(0, 1).fillna(0.5)
+    
+    print(f"\n{'='*60}")
+    print(f"CONSOLIDATION COMPLETE")
+    print(f"{'='*60}")
+    print(f"Total samples: {len(combined):,}")
+    print(f"Positive samples (doom > 0.5): {(combined['doom_score'] > 0.5).sum():,} ({(combined['doom_score'] > 0.5).mean()*100:.1f}%)")
+    print(f"Doom score distribution:")
+    print(f"  Mean: {combined['doom_score'].mean():.3f}")
+    print(f"  Median: {combined['doom_score'].median():.3f}")
+    print(f"  Std: {combined['doom_score'].std():.3f}")
+    print(f"\nSources:")
+    print(combined['source'].value_counts())
+    
+    return combined
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Consolidate datasets for Doom Index v2')
+    parser.add_argument('--data-dir', type=str, default='/workspace/data/raw',
+                       help='Directory containing raw datasets')
+    parser.add_argument('--output', type=str, default='/workspace/data/processed/unified_train.parquet',
+                       help='Output parquet file')
+    args = parser.parse_args()
+    
+    print(f"Starting dataset consolidation...")
+    print(f"Data directory: {args.data_dir}")
+    print(f"Output file: {args.output}")
+    print(f"{'='*60}\n")
+    
+    # Run consolidation
+    unified_df = consolidate_all_datasets(args.data_dir)
+    
+    # Save to parquet
+    Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+    unified_df.to_parquet(args.output, index=False)
+    print(f"\n✓ Saved unified dataset to: {args.output}")
+    print(f"  File size: {Path(args.output).stat().st_size / 1e6:.2f} MB")
+    
+    # Also save a CSV version for inspection
+    csv_output = args.output.replace('.parquet', '.csv')
+    unified_df.to_csv(csv_output, index=False)
+    print(f"✓ Saved CSV version to: {csv_output}")
+
+
+if __name__ == '__main__':
+    main()

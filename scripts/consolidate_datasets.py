@@ -144,6 +144,40 @@ def load_cyberbullying(filepath):
     return result
 
 
+def load_cade(filepath):
+    """Load CADE (Context-Aware Dataset for English) hate speech dataset."""
+    print(f"Loading: {filepath}")
+    df = pd.read_parquet(filepath)
+    
+    # CADE schema typically has: text, label (hate/not_hate/offensive)
+    # Map to doom score: hate=1.0, offensive=0.7, not_hate=0.0
+    
+    if 'label' in df.columns:
+        label_map = {
+            'hate': 1.0, 'not_hate': 0.0, 'normal': 0.0,
+            'offensive': 0.7, 'abusive': 0.8, 'hateful': 1.0,
+            'no_hate': 0.0, 'neutral': 0.0
+        }
+        # Handle both string and numeric labels
+        if df['label'].dtype == 'object':
+            df['doom_score'] = df['label'].str.lower().map(label_map).fillna(0.5)
+        else:
+            # Numeric labels: assume 1=hate, 0=not_hate or similar
+            df['doom_score'] = df['label'].astype(float)
+    else:
+        df['doom_score'] = 0.5
+    
+    result = pd.DataFrame({
+        'text': df['text'],
+        'doom_score': df['doom_score'],
+        'source': 'cade',
+        'original_label': df.get('label', 'unknown')
+    })
+    
+    print(f"  → Loaded {len(result)} samples, avg doom: {result['doom_score'].mean():.2f}")
+    return result
+
+
 def load_collective_violence(filepaths):
     """Load multilingual Twitter collective violence dataset."""
     print(f"Loading collective violence datasets: {len(filepaths)} files")
@@ -237,8 +271,18 @@ def consolidate_all_datasets(data_dir):
     data_dir = Path(data_dir)
     all_data = []
     
-    # Load each dataset type
-    # Cancelled Brands
+    # Load CADE dataset (Priority 1 - high quality hate speech labels)
+    cade_files = list(data_dir.glob("*cade*.parquet")) + list(data_dir.glob("*CADE*.parquet"))
+    if not cade_files:
+        # Try HPC path pattern
+        cade_files = list(Path("/home/vivek.120542/CADE_aequa/data").glob("*.parquet"))
+    if cade_files:
+        for cf in cade_files[:3]:  # Take up to 3 files
+            all_data.append(load_cade(cf))
+    else:
+        print("Warning: CADE dataset not found")
+    
+    # Cancelled Brands (Priority 2 - actual cancellation events)
     cancelled_brands_file = data_dir / "Tweets on Cancelled Brands.csv"
     if cancelled_brands_file.exists():
         all_data.append(load_cancelled_brands(cancelled_brands_file))
@@ -252,37 +296,38 @@ def consolidate_all_datasets(data_dir):
     else:
         print(f"Warning: {cancellation_events_file} not found")
     
-    # Jigsaw Toxic
-    jigsaw_files = list(data_dir.glob("*jigsaw*.csv")) + list(data_dir.glob("*toxic*.csv"))
-    for jf in jigsaw_files[:1]:  # Take first match
-        all_data.append(load_jigsaw_toxic(jf))
-    
-    # Cyberbullying
+    # Cyberbullying (Priority 3 - social media harassment)
     cyberbullying_files = list(data_dir.glob("*cyberbully*.parquet"))
-    for cbf in cyberbullying_files[:1]:
+    if not cyberbullying_files:
+        # Try HPC path
+        cyberbullying_files = list(Path("/home/vivek.120542/cyberbullying-instagram-tiktok").glob("*.parquet"))
+    for cbf in cyberbullying_files[:3]:
         all_data.append(load_cyberbullying(cbf))
     
-    # Collective Violence
-    cv_files = list(data_dir.glob("*collective*.parquet")) + \
-               list(data_dir.glob("*violence*.parquet"))
-    if not cv_files:
-        # Try pattern from inventory
-        cv_files = list(Path("/home/vivek.120542/multilingual-twitter-collective-violence-dataset/data").glob("*.parquet"))
-    if cv_files:
-        all_data.append(load_collective_violence(cv_files[:5]))  # Limit to 5 files initially
+    # Jigsaw Toxic (Priority 4 - large scale toxicity)
+    jigsaw_files = list(data_dir.glob("*jigsaw*.csv")) + list(data_dir.glob("*toxic*.csv"))
+    for jf in jigsaw_files[:2]:  # Take up to 2 files
+        all_data.append(load_jigsaw_toxic(jf))
     
-    # MemeLens
+    # Collective Violence (skip - only has tweet IDs, no text)
+    # Commented out as discussed - useless without actual tweet text
+    # cv_files = list(data_dir.glob("*collective*.parquet")) + \
+    #            list(data_dir.glob("*violence*.parquet"))
+    # if cv_files:
+    #     all_data.append(load_collective_violence(cv_files[:5]))
+    
+    # MemeLens (for future multimodal training)
     meme_files = list(data_dir.glob("*meme*.parquet")) + \
                  list(data_dir.glob("*MAMI*.parquet")) + \
                  list(data_dir.glob("*Multi3Hate*.parquet"))
     if not meme_files:
-        # Try pattern from inventory
+        # Try HPC path
         meme_files = list(Path("/home/vivek.120542/MemeLens").rglob("*.parquet"))
     if meme_files:
         all_data.append(load_meme_datasets(meme_files[:10]))  # Limit to 10 files initially
     
     if not all_data:
-        raise ValueError("No datasets loaded! Check data directory.")
+        raise ValueError("No datasets loaded! Check data directory and HPC paths.")
     
     # Concatenate all datasets
     combined = pd.concat(all_data, ignore_index=True)

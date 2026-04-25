@@ -69,12 +69,23 @@ def find_latest_parquet(data_dir: str) -> tuple:
     """Find the most recent train/val/test parquet files"""
     data_path = Path(data_dir)
     
-    train_files = sorted(data_path.glob('train_*.parquet'))
-    val_files = sorted(data_path.glob('val_*.parquet'))
-    test_files = sorted(data_path.glob('test_*.parquet'))
+    # Try multiple naming patterns
+    train_files = sorted(data_path.glob('train_*.parquet')) + \
+                  sorted(data_path.glob('train_split_*.parquet')) + \
+                  sorted(data_path.glob('*train*.parquet'))
+    val_files = sorted(data_path.glob('val_*.parquet')) + \
+                sorted(data_path.glob('validation_*.parquet')) + \
+                sorted(data_path.glob('*val*.parquet'))
+    test_files = sorted(data_path.glob('test_*.parquet')) + \
+                 sorted(data_path.glob('*test*.parquet'))
     
     if not train_files or not val_files or not test_files:
-        raise ValueError(f"No processed parquet files found in {data_dir}. Run consolidate_production.py first.")
+        available_files = list(data_path.glob('*.parquet'))
+        raise ValueError(
+            f"No processed parquet files found in {data_dir}. "
+            f"Run consolidate_datasets.py first. "
+            f"Available files: {available_files}"
+        )
     
     return str(train_files[-1]), str(val_files[-1]), str(test_files[-1])
 
@@ -146,11 +157,12 @@ def main():
     parser = argparse.ArgumentParser(description='Train Doom Index Text Baseline')
     parser.add_argument('--data-dir', type=str, default='data/processed', help='Processed data directory')
     parser.add_argument('--output-dir', type=str, default='models/text_baseline', help='Model output directory')
-    parser.add_argument('--batch-size', type=int, default=32, help='Batch size')
+    parser.add_argument('--batch-size', type=int, default=64, help='Batch size (increase for H100)')
     parser.add_argument('--epochs', type=int, default=5, help='Number of epochs')
-    parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate')
+    parser.add_argument('--lr', type=float, default=3e-5, help='Learning rate')
     parser.add_argument('--max-length', type=int, default=128, help='Max sequence length')
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID')
+    parser.add_argument('--num-workers', type=int, default=8, help='DataLoader workers for HPC')
     args = parser.parse_args()
     
     # Setup
@@ -199,10 +211,10 @@ def main():
         args.max_length
     )
     
-    # DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
+    # DataLoaders (use args.num_workers for HPC)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
     
     # Model
     model = DoomDistilBert().to(device)

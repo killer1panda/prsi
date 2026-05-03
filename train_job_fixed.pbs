@@ -1,0 +1,39 @@
+#!/bin/bash
+#PBS -N doom_train
+#PBS -q gpu
+#PBS -l select=1:ncpus=8:ngpus=1:mem=32gb
+#PBS -j oe
+#PBS -V
+
+cd $PBS_O_WORKDIR
+
+echo "Job started at: $(date)"
+echo "Working directory: $(pwd)"
+echo "Hostname: $(hostname)"
+
+# Initialize Conda properly for PBS
+export CONDA_HOME=/home/soft/anaconda3
+source $CONDA_HOME/etc/profile.d/conda.sh
+conda init bash
+conda activate prsi_env
+
+# Load CUDA
+module load cuda/12.8
+
+# Verify environment
+echo "Python path: $(which python)"
+echo "Conda env: $CONDA_DEFAULT_ENV"
+python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, GPU: {torch.cuda.get_device_name(0)}')"
+
+# Run training
+echo "Starting training..."
+python scripts/train_text_baseline.py \
+    --data-dir data/processed \
+    --output-dir models/text_baseline \
+    --batch-size 32 \
+    --epochs 3 \
+    --lr 3e-5 \
+    --max-length 128 \
+    --num-workers 4
+
+echo "Job finished at: $(date)"

@@ -36,15 +36,15 @@ fastparquet>=2023.10.0
 polars>=0.20.0
 webdataset>=0.2.48
 zstandard>=0.22.0
-simdjson>=5.0.2
+# # simdjson>=5.0.2
 
 # --- Graph Neural Networks ---
 torch-geometric>=2.4.0
-torch-scatter>=2.1.2
-torch-sparse>=0.6.18
-torch-cluster
-torch-spline-conv
-pyg-lib
+# torch-scatter>=2.1.2
+# torch-sparse>=0.6.18
+# torch-cluster
+# torch-spline-conv
+# pyg-lib
 networkx>=3.2.0
 neo4j>=5.15.0
 

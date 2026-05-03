@@ -6,9 +6,10 @@ Optimized for HPC H100 cluster
 """
 
 import torch
+from torch.optim import AdamW
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from transformers import DistilBertTokenizer, DistilBertModel, AdamW, get_linear_schedule_with_warmup
+from transformers import DistilBertTokenizer, DistilBertModel, get_linear_schedule_with_warmup
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -157,8 +158,8 @@ def main():
     parser = argparse.ArgumentParser(description='Train Doom Index Text Baseline')
     parser.add_argument('--data-dir', type=str, default='data/processed', help='Processed data directory')
     parser.add_argument('--output-dir', type=str, default='models/text_baseline', help='Model output directory')
-    parser.add_argument('--batch-size', type=int, default=64, help='Batch size (increase for H100)')
-    parser.add_argument('--epochs', type=int, default=5, help='Number of epochs')
+    parser.add_argument('--batch-size', type=int, default=32, help='Batch size (increase for H100)')
+    parser.add_argument('--epochs', type=int, default=8, help='Number of epochs')
     parser.add_argument('--lr', type=float, default=3e-5, help='Learning rate')
     parser.add_argument('--max-length', type=int, default=128, help='Max sequence length')
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID')
@@ -218,16 +219,25 @@ def main():
     
     # Model
     model = DoomDistilBert().to(device)
+    # Calculate class weight for imbalanced data
+pos_count = (train_df['doom_score'] > 0.5).sum()
+neg_count = (train_df['doom_score'] <= 0.5).sum()
+    pos_weight = float(neg_count / pos_count)
+    print(f"\n🏋️ Class Weighting: Positive Weight = {pos_weight:.2f} (Neg: {neg_count:,}, Pos: {pos_count:,})")
+
     criterion = nn.BCELoss()
+    # Apply class weight if needed
+    if pos_weight > 1:
+        criterion = nn.BCELoss(weight=torch.tensor([pos_weight]).to(device))
+
     optimizer = AdamW(model.parameters(), lr=args.lr)
-    
+
     total_steps = len(train_loader) * args.epochs
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=int(0.1 * total_steps),
         num_training_steps=total_steps
     )
-    
     print(f"\nStarting training for {args.epochs} epochs...")
     print("="*60)
     

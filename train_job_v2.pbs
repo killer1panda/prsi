@@ -1,0 +1,45 @@
+#!/bin/bash
+#PBS -N doom_train_v2
+#PBS -q gpu
+#PBS -l select=1:ncpus=8:ngpus=1:mem=32gb
+#PBS -j oe
+#PBS -V
+
+cd $PBS_O_WORKDIR
+
+echo "=========================================="
+echo "Job Started: $(date)"
+echo "Working Directory: $(pwd)"
+echo "Node: $(hostname)"
+echo "=========================================="
+
+# Activate Conda (explicit initialization)
+source /home/soft/anaconda3/etc/profile.d/conda.sh
+conda activate prsi_env
+
+# Verify GPU (PyTorch should already have CUDA bundled)
+echo "Checking GPU..."
+python -c "
+import torch
+if torch.cuda.is_available():
+    print(f'CUDA Available: True')
+    print(f'GPU: {torch.cuda.get_device_name(0)}')
+    print(f'CUDA Version: {torch.version.cuda}')
+else:
+    print('CUDA Not Available - Job will fail')
+    exit(1)
+"
+
+# Start Training
+echo "Starting Training at $(date)..."
+python scripts/train_text_baseline.py \
+    --data-dir data/processed \
+    --output-dir models/text_baseline \
+    --batch-size 32 \
+    --epochs 3 \
+    --lr 3e-5 \
+    --max-length 128 \
+    --num-workers 4
+
+echo "Training Finished at $(date)"
+echo "=========================================="

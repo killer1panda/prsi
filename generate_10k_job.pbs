@@ -1,0 +1,17 @@
+#!/bin/bash
+#PBS -N gen_adversarial_10k
+#PBS -q gpu
+#PBS -j oe
+#PBS -l select=1:ncpus=4:ngpus=1:mem=32gb
+
+echo "Job started at: $(date)"
+cd $PBS_O_WORKDIR
+
+module load cuda/12.8
+source /home/soft/anaconda3/etc/profile.d/conda.sh
+conda activate prsi_env
+
+nvidia-smi
+python generate_adversarial_data_10k.py
+
+echo "Job finished at: $(date)"

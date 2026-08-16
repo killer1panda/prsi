@@ -1,0 +1,3 @@
+## 2025-03-05 - Avoid repetitive string parsing and column transformations in Pandas loops
+**Learning:** In Pandas, if you iterate through a list of substrings or patterns (e.g. `keywords`) and check if they exist in a text column, calculating `.fillna('').str.lower()` on the original column inside the loop redundantly applies those transformations on every iteration. This adds significant overhead. Additionally, `str.contains(kw)` without `regex=False` can be slower for simple text matching.
+**Action:** Extract operations like `fillna().str.lower()` out of the loop and reuse the transformed series. When performing substring matching using `str.contains()` on simple text (non-regex), explicitly set `regex=False`.

@@ -126,8 +126,9 @@ class FeatureEngineer:
 
         # Keyword-based features
         cancellation_keywords = ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']
+        lower_text = df['text'].fillna('').str.lower()
         for kw in cancellation_keywords:
-            df[f'has_{kw}'] = df['text'].fillna('').str.lower().str.contains(kw).astype(int)
+            df[f'has_{kw}'] = lower_text.str.contains(kw, regex=False).astype(int)
 
         return df
 

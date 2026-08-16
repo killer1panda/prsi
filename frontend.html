@@ -26,6 +26,8 @@
     <h1>Doom Index – Cancellation Risk Analyzer</h1>
     <p class="small">Enter any text (social‑media post, comment, news headline, etc.) to get a multimodal analysis: sentiment (VADER, DistilBERT, RoBERTa), toxicity (Perspective API), and a machine‑learning prediction of cancellation risk.</p>
 
+    <div id="errorMsg" role="alert" style="display:none; color: #e74c3c; margin-bottom: 1rem; font-weight: bold;"></div>
+    <label for="inputText" class="label" style="display:block; margin-bottom:0.5rem;">Text to analyze:</label>
     <textarea id="inputText" placeholder="Paste or type text here…"></textarea><br>
     <button id="analyzeBtn">Analyze</button>
 
@@ -56,9 +58,19 @@
     const API_URL = window.location.origin; // assumes frontend and backend on same origin
 
     document.getElementById('analyzeBtn').addEventListener('click', async () => {
-        const text = document.getElementById('inputText').value.trim();
+        const inputText = document.getElementById('inputText');
+        const errorMsg = document.getElementById('errorMsg');
+        const text = inputText.value.trim();
+
+        // Reset errors
+        errorMsg.style.display = 'none';
+        inputText.removeAttribute('aria-invalid');
+
         if (!text) {
-            alert('Please enter some text to analyze.');
+            errorMsg.textContent = 'Please enter some text to analyze.';
+            errorMsg.style.display = 'block';
+            inputText.setAttribute('aria-invalid', 'true');
+            inputText.focus();
             return;
         }
 
@@ -82,7 +94,8 @@
             const data = await response.json();
             renderResult(data);
         } catch (err) {
-            alert('Analysis failed: ' + err.message);
+            errorMsg.textContent = 'Analysis failed: ' + err.message;
+            errorMsg.style.display = 'block';
             console.error(err);
         } finally {
             btn.disabled = false;

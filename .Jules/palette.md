@@ -1,0 +1,3 @@
+## 2024-08-16 - Replaced Jarring Alerts with Accessible Inline Validation
+**Learning:** Using `alert()` for form validation is a jarring experience and inaccessible to screen readers because it abruptly interrupts the user flow and removes focus context. Screen readers handle ARIA live regions and inline `role="alert"` messages much more gracefully.
+**Action:** Replace `alert()` dialogs with inline error messages using `role="alert"`. When validation fails, set `aria-invalid="true"` on the input and call `.focus()` to immediately direct screen reader and keyboard users to the exact source of the error.

@@ -49,7 +49,7 @@ class Neo4jConfig:
     """Neo4j connection configuration."""
     uri: str = "bolt://localhost:7687"
     user: str = "neo4j"
-    password: str = "doom_index_prod_2026"
+    password: str = os.environ.get("NEO4J_PASSWORD", "")
     database: str = "neo4j"
     max_pool_size: int = 50
     connection_timeout: int = 30
@@ -738,7 +738,7 @@ async def main():
     parser.add_argument('--reddit-data', type=str, help='Path to Reddit data')
     parser.add_argument('--limit', type=int, default=None, help='Limit records')
     parser.add_argument('--uri', type=str, default='bolt://localhost:7687')
-    parser.add_argument('--password', type=str, default='doom_index_prod_2026')
+    parser.add_argument('--password', type=str, default=os.environ.get('NEO4J_PASSWORD', ''))
     
     args = parser.parse_args()
     

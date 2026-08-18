@@ -10,6 +10,8 @@
         textarea {width:100%; height:120px; padding:0.8rem; font-size:1rem; margin-bottom:1rem; border:1px solid #ccc; border-radius:4px;}
         button {background:#2980b9; color:#fff; border:none; padding:0.8rem 1.5rem; font-size:1rem; border-radius:4px; cursor:pointer;}
         button:hover {background:#3498db;}
+        button:disabled {background:#95a5a6; cursor:not-allowed; opacity:0.7;}
+        textarea:focus-visible, button:focus-visible {outline:2px solid #2980b9; outline-offset:2px;}
         .result {margin-top:1.5rem; padding:1rem; background:#ecf0f1; border-radius:4px;}
         .section {margin-bottom:1rem;}
         .section h2 {color:#2c3e50; border-bottom:1px solid #bdc3c7; padding-bottom:0.3rem;}
@@ -26,10 +28,11 @@
     <h1>Doom Index – Cancellation Risk Analyzer</h1>
     <p class="small">Enter any text (social‑media post, comment, news headline, etc.) to get a multimodal analysis: sentiment (VADER, DistilBERT, RoBERTa), toxicity (Perspective API), and a machine‑learning prediction of cancellation risk.</p>
 
+    <label for="inputText" class="label" style="display:block; margin-bottom:0.5rem;">Enter text to analyze:</label>
     <textarea id="inputText" placeholder="Paste or type text here…"></textarea><br>
     <button id="analyzeBtn">Analyze</button>
 
-    <div id="output" class="result" style="display:none;">
+    <div id="output" class="result" style="display:none;" aria-live="polite">
         <div class="section">
             <h2>🔎 Prediction</h2>
             <div class="label">Cancellation Risk:</div>

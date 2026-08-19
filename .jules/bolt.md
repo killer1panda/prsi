@@ -1,0 +1,3 @@
+## 2024-05-24 - Pandas String Methods Overhead
+**Learning:** In Pandas, series string methods like `.str.split().str.len()` or `.str.contains()` chained together have massive overhead when evaluated row by row in Python, especially loops calling these multiple times over large string series. Also, Pandas `.max(axis=1)` has significantly higher overhead compared to `np.maximum`.
+**Action:** When doing string counting, prefer `.str.count()` (e.g. `count(' ') + 1` instead of `split().str.len()`). For multiple exact substring checks across rows, falling back to a python list comprehension `[1 if kw in text else 0 for text in text_list]` is actually faster than iterating over keywords and using `df.str.contains(kw)`. For row-wise max, use `np.maximum`.

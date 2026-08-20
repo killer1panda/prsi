@@ -15,6 +15,7 @@ from .toxicity import analyze_text_toxicity
 
 logger = logging.getLogger(__name__)
 
+
 class FeatureEngineer:
     """Feature engineering pipeline."""
 
@@ -26,7 +27,7 @@ class FeatureEngineer:
         input_csv: str,
         output_csv: str = None,
         sample_size: Optional[int] = None,
-        batch_size: int = 100
+        batch_size: int = 100,
     ) -> pd.DataFrame:
         """Process dataset to add sentiment and toxicity features.
 
@@ -53,21 +54,26 @@ class FeatureEngineer:
         toxicity_features = []
 
         for i in range(0, len(df), batch_size):
-            batch = df.iloc[i:i+batch_size]
+            batch = df.iloc[i : i + batch_size]
             logger.info(f"Processing batch {i//batch_size + 1}/{(len(df)-1)//batch_size + 1}")
 
             batch_sentiment = []
             batch_toxicity = []
 
             for _, row in batch.iterrows():
-                text = str(row.get('text', ''))
+                text = str(row.get("text", ""))
 
                 # Sentiment analysis
-                sentiment = analyze_text_sentiment(text) or {'neg': 0.0, 'neu': 1.0, 'pos': 0.0, 'compound': 0.0}
+                sentiment = analyze_text_sentiment(text) or {
+                    "neg": 0.0,
+                    "neu": 1.0,
+                    "pos": 0.0,
+                    "compound": 0.0,
+                }
                 batch_sentiment.append(sentiment)
 
                 # Toxicity analysis
-                toxicity = analyze_text_toxicity(text) or {'toxicity': 0.0}
+                toxicity = analyze_text_toxicity(text) or {"toxicity": 0.0}
                 batch_toxicity.append(toxicity)
 
             sentiment_features.extend(batch_sentiment)
@@ -78,17 +84,24 @@ class FeatureEngineer:
         toxicity_df = pd.DataFrame(toxicity_features)
 
         # Rename columns to avoid conflicts
-        sentiment_df = sentiment_df.add_prefix('sentiment_')
-        toxicity_df = toxicity_df.add_prefix('toxicity_')
+        sentiment_df = sentiment_df.add_prefix("sentiment_")
+        toxicity_df = toxicity_df.add_prefix("toxicity_")
 
         # Drop existing columns to avoid duplicates
         existing_cols = set(df.columns)
         new_cols = set(sentiment_df.columns) | set(toxicity_df.columns)
         cols_to_drop = existing_cols & new_cols
         if cols_to_drop:
-            df = df.drop(columns=list(cols_to_drop), errors='ignore')
+            df = df.drop(columns=list(cols_to_drop), errors="ignore")
 
-        df = pd.concat([df.reset_index(drop=True), sentiment_df.reset_index(drop=True), toxicity_df.reset_index(drop=True)], axis=1)
+        df = pd.concat(
+            [
+                df.reset_index(drop=True),
+                sentiment_df.reset_index(drop=True),
+                toxicity_df.reset_index(drop=True),
+            ],
+            axis=1,
+        )
 
         # Add engineered features
         df = self._add_engineered_features(df)
@@ -105,36 +118,45 @@ class FeatureEngineer:
         df = df.reset_index(drop=True)
 
         # Text length features
-        df['text_length'] = df['text'].fillna('').str.len()
-        df['word_count'] = df['text'].fillna('').str.split().str.len()
-        df['hashtag_count'] = df['hashtags'].fillna('').str.count('#')
+        df["text_length"] = df["text"].fillna("").str.len()
+        df["word_count"] = df["text"].fillna("").str.split().str.len()
+        df["hashtag_count"] = df["hashtags"].fillna("").str.count("#")
 
         # Sentiment-based features
-        df.loc[:, 'sentiment_polarity'] = df['sentiment_compound']
-        df.loc[:, 'sentiment_intensity'] = df[['sentiment_pos', 'sentiment_neg']].max(axis=1)
+        df.loc[:, "sentiment_polarity"] = df["sentiment_compound"]
+        df.loc[:, "sentiment_intensity"] = df[["sentiment_pos", "sentiment_neg"]].max(axis=1)
 
         # Toxicity flags
-        if 'toxicity_toxicity' in df.columns:
-            df.loc[:, 'is_toxic'] = (df['toxicity_toxicity'] > 0.7).astype(int)
+        if "toxicity_toxicity" in df.columns:
+            df.loc[:, "is_toxic"] = (df["toxicity_toxicity"] > 0.7).astype(int)
         else:
-            df['is_toxic'] = 0
+            df["is_toxic"] = 0
 
         # Time features
-        df['created_at'] = pd.to_datetime(df['created_at'], errors='coerce')
-        df['hour'] = df['created_at'].dt.hour
-        df['day_of_week'] = df['created_at'].dt.dayofweek
+        df["created_at"] = pd.to_datetime(df["created_at"], errors="coerce")
+        df["hour"] = df["created_at"].dt.hour
+        df["day_of_week"] = df["created_at"].dt.dayofweek
 
         # Keyword-based features
-        cancellation_keywords = ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']
+        cancellation_keywords = [
+            "cancel",
+            "cancelled",
+            "backlash",
+            "controversy",
+            "boycott",
+            "outrage",
+            "petition",
+        ]
+        # Bolt optimization: perform str.lower() once instead of N times in the loop
+        # and use regex=False for simple substring matching to speed up contains()
+        lower_text = df["text"].fillna("").str.lower()
         for kw in cancellation_keywords:
-            df[f'has_{kw}'] = df['text'].fillna('').str.lower().str.contains(kw).astype(int)
+            df[f"has_{kw}"] = lower_text.str.contains(kw, regex=False).astype(int)
 
         return df
 
     def create_feature_matrix(
-        self,
-        df: pd.DataFrame,
-        feature_cols: list = None
+        self, df: pd.DataFrame, feature_cols: list = None
     ) -> tuple[np.ndarray, np.ndarray]:
         """Create feature matrix and target vector for ML.
 
@@ -148,12 +170,31 @@ class FeatureEngineer:
         if feature_cols is None:
             # Default feature set
             feature_cols = [
-                'likes', 'retweets', 'replies', 'quotes',
-                'text_length', 'word_count', 'hashtag_count',
-                'sentiment_polarity', 'sentiment_intensity',
-                'toxicity_toxicity', 'is_toxic',
-                'hour', 'day_of_week'
-            ] + [f'has_{kw}' for kw in ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']]
+                "likes",
+                "retweets",
+                "replies",
+                "quotes",
+                "text_length",
+                "word_count",
+                "hashtag_count",
+                "sentiment_polarity",
+                "sentiment_intensity",
+                "toxicity_toxicity",
+                "is_toxic",
+                "hour",
+                "day_of_week",
+            ] + [
+                f"has_{kw}"
+                for kw in [
+                    "cancel",
+                    "cancelled",
+                    "backlash",
+                    "controversy",
+                    "boycott",
+                    "outrage",
+                    "petition",
+                ]
+            ]
 
         # Filter to available columns
         available_cols = [col for col in feature_cols if col in df.columns]
@@ -163,12 +204,32 @@ class FeatureEngineer:
 
         # Target: whether it's a cancellation-related post (1) or not (0)
         # For now, use presence of cancellation keywords as proxy
-        y = df[[f'has_{kw}' for kw in ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']]].any(axis=1).astype(int).values
+        y = (
+            df[
+                [
+                    f"has_{kw}"
+                    for kw in [
+                        "cancel",
+                        "cancelled",
+                        "backlash",
+                        "controversy",
+                        "boycott",
+                        "outrage",
+                        "petition",
+                    ]
+                ]
+            ]
+            .any(axis=1)
+            .astype(int)
+            .values
+        )
 
         return X, y
 
 
-def process_dataset_for_ml(input_csv: str, output_csv: str = None, sample_size: int = None) -> pd.DataFrame:
+def process_dataset_for_ml(
+    input_csv: str, output_csv: str = None, sample_size: int = None
+) -> pd.DataFrame:
     """Convenience function to process dataset for ML."""
     engineer = FeatureEngineer()
     return engineer.process_dataset(input_csv, output_csv, sample_size)

@@ -1,0 +1,3 @@
+## 2026-08-22 - Improving Form Accessibility and State Management in HTML
+**Learning:** Adding explicit ARIA attributes like `aria-live="polite"` to dynamic content regions (like results containers) and toggling `aria-busy` during async operations significantly improves the experience for screen reader users by automatically announcing updates and communicating loading states. Also, explicit `:focus` and `:focus-visible` styles are critical for keyboard navigation.
+**Action:** Always include `aria-live` on containers that get updated via JS, use `aria-busy` on submit buttons while waiting for network requests, and define explicit focus outlines for interactive elements rather than relying on default browser styles.

@@ -104,9 +104,13 @@ class FeatureEngineer:
         """Add engineered features to the dataset."""
         df = df.reset_index(drop=True)
 
+        # Pre-process text to avoid redundant fillna and lower() calls
+        text_filled = df['text'].fillna('')
+        text_lower = text_filled.str.lower()
+
         # Text length features
-        df['text_length'] = df['text'].fillna('').str.len()
-        df['word_count'] = df['text'].fillna('').str.split().str.len()
+        df['text_length'] = text_filled.str.len()
+        df['word_count'] = text_filled.str.split().str.len()
         df['hashtag_count'] = df['hashtags'].fillna('').str.count('#')
 
         # Sentiment-based features
@@ -127,7 +131,8 @@ class FeatureEngineer:
         # Keyword-based features
         cancellation_keywords = ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']
         for kw in cancellation_keywords:
-            df[f'has_{kw}'] = df['text'].fillna('').str.lower().str.contains(kw).astype(int)
+            # regex=False is significantly faster for simple string matching
+            df[f'has_{kw}'] = text_lower.str.contains(kw, regex=False).astype(int)
 
         return df
 

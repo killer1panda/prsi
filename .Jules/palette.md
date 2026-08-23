@@ -1,0 +1,3 @@
+## 2024-05-24 - Doom Index Form Accessibility
+**Learning:** Adding labels for `textarea` elements not only improves screen reader accessibility but also provides a clear visual cue to sighted users about what the field is for, which is especially important for large input fields. Adding `:focus-visible` styles enhances keyboard navigation without cluttering the UI for mouse users. Disabling hover styles on disabled buttons prevents confusing interactions.
+**Action:** Always pair `textarea` elements with an explicit `<label>`, style disabled states to be visually distinct (e.g., lower opacity, `cursor: not-allowed`), and use `:focus-visible` for keyboard accessibility on interactive elements.

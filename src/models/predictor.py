@@ -22,6 +22,7 @@ from src.features import process_dataset_for_ml
 
 logger = logging.getLogger(__name__)
 
+
 class CancellationPredictor:
     """ML model for predicting cancellation events."""
 
@@ -33,9 +34,9 @@ class CancellationPredictor:
     def train(
         self,
         input_csv: str,
-        model_type: str = 'random_forest',
+        model_type: str = "random_forest",
         test_size: float = 0.2,
-        sample_size: Optional[int] = None
+        sample_size: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Train the model.
 
@@ -52,6 +53,7 @@ class CancellationPredictor:
 
         # Process dataset
         from src.features import FeatureEngineer
+
         engineer = FeatureEngineer()
         df = engineer.process_dataset(input_csv, sample_size=sample_size)
         X, y = engineer.create_feature_matrix(df)
@@ -66,25 +68,14 @@ class CancellationPredictor:
         X_test_scaled = self.scaler.transform(X_test)
 
         # Select model
-        if model_type == 'random_forest':
+        if model_type == "random_forest":
             self.model = RandomForestClassifier(
-                n_estimators=100,
-                max_depth=10,
-                random_state=42,
-                class_weight='balanced'
+                n_estimators=100, max_depth=10, random_state=42, class_weight="balanced"
             )
-        elif model_type == 'logistic':
-            self.model = LogisticRegression(
-                random_state=42,
-                class_weight='balanced',
-                max_iter=1000
-            )
-        elif model_type == 'svm':
-            self.model = SVC(
-                random_state=42,
-                class_weight='balanced',
-                probability=True
-            )
+        elif model_type == "logistic":
+            self.model = LogisticRegression(random_state=42, class_weight="balanced", max_iter=1000)
+        elif model_type == "svm":
+            self.model = SVC(random_state=42, class_weight="balanced", probability=True)
         else:
             raise ValueError(f"Unknown model type: {model_type}")
 
@@ -96,13 +87,13 @@ class CancellationPredictor:
         y_pred_proba = self.model.predict_proba(X_test_scaled)[:, 1]
 
         results = {
-            'model_type': model_type,
-            'train_size': len(X_train),
-            'test_size': len(X_test),
-            'classification_report': classification_report(y_test, y_pred, output_dict=True),
-            'confusion_matrix': confusion_matrix(y_test, y_pred).tolist(),
-            'cross_val_scores': cross_val_score(self.model, X_train_scaled, y_train, cv=5).tolist(),
-            'feature_importance': getattr(self.model, 'feature_importances_', None)
+            "model_type": model_type,
+            "train_size": len(X_train),
+            "test_size": len(X_test),
+            "classification_report": classification_report(y_test, y_pred, output_dict=True),
+            "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
+            "cross_val_scores": cross_val_score(self.model, X_train_scaled, y_train, cv=5).tolist(),
+            "feature_importance": getattr(self.model, "feature_importances_", None),
         }
 
         logger.info(f"Training complete. CV scores: {results['cross_val_scores']}")
@@ -134,33 +125,29 @@ class CancellationPredictor:
         if self.model is None:
             raise ValueError("No model to save")
 
-        model_data = {
-            'model': self.model,
-            'scaler': self.scaler,
-            'feature_cols': self.feature_cols
-        }
+        model_data = {"model": self.model, "scaler": self.scaler, "feature_cols": self.feature_cols}
 
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             pickle.dump(model_data, f)
 
         logger.info(f"Model saved to {path}")
 
     def load_model(self, path: str):
         """Load trained model."""
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             model_data = pickle.load(f)
 
-        self.model = model_data['model']
-        self.scaler = model_data.get('scaler')
-        self.feature_cols = model_data.get('feature_cols')
+        self.model = model_data["model"]
+        self.scaler = model_data.get("scaler")
+        self.feature_cols = model_data.get("feature_cols")
 
         logger.info(f"Model loaded from {path}")
 
 
 def train_cancellation_model(
     input_csv: str,
-    model_path: str = 'models/cancellation_predictor.pkl',
-    model_type: str = 'random_forest'
+    model_path: str = "models/cancellation_predictor.pkl",
+    model_type: str = "random_forest",
 ) -> CancellationPredictor:
     """Train and save cancellation prediction model."""
     predictor = CancellationPredictor()

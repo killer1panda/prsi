@@ -2,6 +2,7 @@
 Integration tests for the complete Doom Index pipeline.
 Tests end-to-end flows: data ingestion -> feature extraction -> prediction -> API response.
 """
+
 import pytest
 import torch
 import numpy as np
@@ -20,9 +21,13 @@ class TestDataPipeline:
         from src.data.preprocessing import preprocess_reddit_raw
 
         raw_posts = [
-            {"body": "This is a test post about cancel culture", "score": 100, "created_utc": 1609459200},
+            {
+                "body": "This is a test post about cancel culture",
+                "score": 100,
+                "created_utc": 1609459200,
+            },
             {"body": "[deleted]", "score": 0, "created_utc": 1609459200},  # Should be filtered
-            {"body": "Normal discussion here", "score": 5, "created_utc": 1609459200}
+            {"body": "Normal discussion here", "score": 5, "created_utc": 1609459200},
         ]
 
         processed = preprocess_reddit_raw(raw_posts)
@@ -35,7 +40,7 @@ class TestDataPipeline:
 
         texts = [
             "I absolutely hate this person and everyone should cancel them!!!",
-            "Lovely weather today, hope everyone is doing well."
+            "Lovely weather today, hope everyone is doing well.",
         ]
 
         features = extract_features(texts)
@@ -49,12 +54,14 @@ class TestDataPipeline:
         """Test graph construction from user interactions."""
         from src.data.build_neo4j_graph import GraphBuilder
 
-        df = pd.DataFrame({
-            "author": ["user1", "user2", "user1", "user3"],
-            "parent_author": [None, "user1", "user2", "user1"],
-            "subreddit": ["test", "test", "test", "test"],
-            "score": [10, 5, 3, 8]
-        })
+        df = pd.DataFrame(
+            {
+                "author": ["user1", "user2", "user1", "user3"],
+                "parent_author": [None, "user1", "user2", "user1"],
+                "subreddit": ["test", "test", "test", "test"],
+                "score": [10, 5, 3, 8],
+            }
+        )
 
         builder = GraphBuilder(uri="bolt://localhost:7687", user="neo4j", password="test")
         # Note: This would need a running Neo4j instance; mock in real tests
@@ -73,6 +80,7 @@ class TestModelPipeline:
         )
 
         from transformers import DistilBertTokenizer
+
         tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
 
         inputs = tokenizer("Test post about cancellation", return_tensors="pt", padding=True)
@@ -87,7 +95,7 @@ class TestModelPipeline:
         import torch_geometric.data as pyg_data
 
         x = torch.randn(10, 64)
-        edge_index = torch.tensor([[0,1,2,3,4], [1,2,3,4,5]], dtype=torch.long)
+        edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 5]], dtype=torch.long)
         data = pyg_data.Data(x=x, edge_index=edge_index)
 
         # This test assumes GraphSAGE exists; adjust based on actual model
@@ -121,7 +129,7 @@ class TestAPIPipeline:
         payload = {
             "text": "This person needs to be cancelled immediately!",
             "user_id": "test_user_123",
-            "source": "reddit"
+            "source": "reddit",
         }
         response = client.post("/analyze", json=payload)
         assert response.status_code == 200
@@ -136,7 +144,7 @@ class TestAPIPipeline:
         payload = {
             "text": "I think this policy is misguided.",
             "target_doom_score": 80,
-            "constraints": {"toxicity": 0.7}
+            "constraints": {"toxicity": 0.7},
         }
         response = client.post("/attack/simulate", json=payload)
         assert response.status_code == 200
@@ -152,7 +160,7 @@ class TestAPIPipeline:
             "texts": [
                 "Post one about controversy",
                 "Post two about kittens",
-                "Post three about politics"
+                "Post three about politics",
             ]
         }
         response = client.post("/predict/batch", json=payload)
@@ -218,15 +226,14 @@ class TestStreamingPipeline:
             name="user_features",
             entities=["user_id"],
             features=["follower_count", "avg_sentiment"],
-            online=True
+            online=True,
         )
         store.register_feature_view(view)
 
         # Push online
-        store.push_online("user", "u123", "user_features", {
-            "follower_count": 1000,
-            "avg_sentiment": -0.2
-        })
+        store.push_online(
+            "user", "u123", "user_features", {"follower_count": 1000, "avg_sentiment": -0.2}
+        )
 
         # Read online
         features = store.get_online("user", "u123", "user_features")
@@ -240,6 +247,7 @@ def client():
     """Create test client for FastAPI app."""
     from fastapi.testclient import TestClient
     from src.api.api_v2 import app  # Adjust import as needed
+
     return TestClient(app)
 
 

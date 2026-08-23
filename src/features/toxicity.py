@@ -7,8 +7,10 @@ import logging
 from typing import Dict, Any, Optional
 import requests
 from src.config import get_env_var
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
+
 
 class ToxicityAnalyzer:
     """Toxicity analyzer using Google Perspective API."""
@@ -38,16 +40,12 @@ class ToxicityAnalyzer:
                 "IDENTITY_ATTACK": {},
                 "INSULT": {},
                 "PROFANITY": {},
-                "THREAT": {}
-            }
+                "THREAT": {},
+            },
         }
 
         try:
-            response = requests.post(
-                f"{self.endpoint}?key={self.api_key}",
-                json=data,
-                timeout=10
-            )
+            response = requests.post(f"{self.endpoint}?key={self.api_key}", json=data, timeout=10)
             response.raise_for_status()
             result = response.json()
 
@@ -72,6 +70,7 @@ class ToxicityAnalyzer:
 # Global analyzer instance
 _toxicity_analyzer = None
 
+
 def get_toxicity_analyzer() -> ToxicityAnalyzer:
     """Get or create global toxicity analyzer instance."""
     global _toxicity_analyzer
@@ -79,6 +78,8 @@ def get_toxicity_analyzer() -> ToxicityAnalyzer:
         _toxicity_analyzer = ToxicityAnalyzer()
     return _toxicity_analyzer
 
+
+@lru_cache(maxsize=1024)
 def analyze_text_toxicity(text: str) -> Optional[Dict[str, float]]:
     """Convenience function to analyze text toxicity."""
     analyzer = get_toxicity_analyzer()

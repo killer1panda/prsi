@@ -48,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import webdataset as wds
+
     WEBDATASET_AVAILABLE = True
 except ImportError:
     WEBDATASET_AVAILABLE = False
@@ -55,6 +56,7 @@ except ImportError:
 
 try:
     from transformers import AutoTokenizer
+
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
@@ -120,7 +122,9 @@ class ShardWriter:
         meta_path = self.output_dir / "shard_meta.json"
         with open(meta_path, "w") as f:
             json.dump(dict(self._meta), f)
-        logger.info(f"Shard writing complete. {self._meta['total_examples']} examples in {self._shard_idx} shards")
+        logger.info(
+            f"Shard writing complete. {self._meta['total_examples']} examples in {self._shard_idx} shards"
+        )
 
 
 class WebDatasetConverter:
@@ -132,7 +136,9 @@ class WebDatasetConverter:
         max_length: int = 256,
         num_workers: int = 8,
     ):
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name) if TRANSFORMERS_AVAILABLE else None
+        self.tokenizer = (
+            AutoTokenizer.from_pretrained(tokenizer_name) if TRANSFORMERS_AVAILABLE else None
+        )
         self.max_length = max_length
         self.num_workers = num_workers
 
@@ -204,11 +210,13 @@ class WebDatasetConverter:
                     "input_ids": tokens["input_ids"].tobytes(),
                     "attention_mask": tokens["attention_mask"].tobytes(),
                     "label": np.array([label], dtype=np.int64).tobytes(),
-                    "json": json.dumps({
-                        "label": label,
-                        "label_score": int(row.get("label_score", 0)),
-                        "subreddit": str(row.get("subreddit", "")),
-                    }).encode(),
+                    "json": json.dumps(
+                        {
+                            "label": label,
+                            "label_score": int(row.get("label_score", 0)),
+                            "subreddit": str(row.get("subreddit", "")),
+                        }
+                    ).encode(),
                 }
                 writer.write(f"{split_name}_{idx:08d}", data)
 
@@ -260,6 +268,7 @@ class WebDatasetConverter:
             return pd.read_csv(path)
         elif path.suffix in (".arrow", ".ipc"):
             import pyarrow.ipc as ipc
+
             with ipc.open_file(path) as reader:
                 return reader.read_pandas()
         else:
@@ -286,7 +295,9 @@ class DoomWebDataset(torch.utils.data.IterableDataset):
             raise FileNotFoundError(f"No shards found in {shard_dir}")
 
     def __iter__(self):
-        dataset = wds.WebDataset(self._urls, shardshuffle=self.shuffle_shards, nodesplitter=wds.split_by_node)
+        dataset = wds.WebDataset(
+            self._urls, shardshuffle=self.shuffle_shards, nodesplitter=wds.split_by_node
+        )
         dataset = dataset.shuffle(self.shuffle_buffer)
         dataset = dataset.decode("l")
         dataset = dataset.to_tuple("input_ids", "attention_mask", "label")
@@ -297,6 +308,7 @@ class DoomWebDataset(torch.utils.data.IterableDataset):
     @staticmethod
     def _to_tensor(input_ids_bytes, attention_mask_bytes, label_bytes):
         import torch
+
         input_ids = torch.frombuffer(input_ids_bytes, dtype=torch.int32).clone()
         attention_mask = torch.frombuffer(attention_mask_bytes, dtype=torch.int32).clone()
         label = torch.frombuffer(label_bytes, dtype=torch.int64).clone()
@@ -338,4 +350,5 @@ def main():
 
 if __name__ == "__main__":
     import torch
+
     main()

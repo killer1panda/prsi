@@ -2,6 +2,7 @@
 Contrastive pretraining for user embeddings using SimCLR-style NT-Xent loss.
 Learns robust user representations from augmented social graph views.
 """
+
 import logging
 from typing import Tuple, Optional, Callable
 from dataclasses import dataclass
@@ -56,10 +57,7 @@ class NTXentLoss(nn.Module):
         sim = sim.masked_fill(mask, -9e15)
 
         # Positive pairs: (i, i+B) and (i+B, i)
-        pos_sim = torch.cat([
-            torch.diag(sim, B),
-            torch.diag(sim, -B)
-        ])  # (2B,)
+        pos_sim = torch.cat([torch.diag(sim, B), torch.diag(sim, -B)])  # (2B,)
 
         # Numerical stability
         sim_max, _ = sim.max(dim=1, keepdim=True)
@@ -81,7 +79,7 @@ class UserEmbeddingProjector(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim),
             nn.ReLU(),
-            nn.Linear(embedding_dim, projection_dim)
+            nn.Linear(embedding_dim, projection_dim),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -98,21 +96,22 @@ class ContrastivePretrainer:
         self.device = torch.device(self.config.device)
         self.encoder = encoder.to(self.device)
         self.projector = UserEmbeddingProjector(
-            self.config.embedding_dim, 
-            self.config.projection_dim
+            self.config.embedding_dim, self.config.projection_dim
         ).to(self.device)
         self.criterion = NTXentLoss(self.config.temperature)
         self.optimizer = torch.optim.AdamW(
             list(self.encoder.parameters()) + list(self.projector.parameters()),
             lr=self.config.lr,
-            weight_decay=self.config.weight_decay
+            weight_decay=self.config.weight_decay,
         )
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             self.optimizer, T_max=self.config.num_epochs
         )
         logger.info("ContrastivePretrainer initialized")
 
-    def augment(self, x: torch.Tensor, edge_index: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def augment(
+        self, x: torch.Tensor, edge_index: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Create two augmented views of the graph.
         Augmentations: feature dropout, edge dropout, feature masking.
@@ -152,8 +151,7 @@ class ContrastivePretrainer:
 
         # Gradient clipping
         torch.nn.utils.clip_grad_norm_(
-            list(self.encoder.parameters()) + list(self.projector.parameters()), 
-            max_norm=1.0
+            list(self.encoder.parameters()) + list(self.projector.parameters()), max_norm=1.0
         )
 
         self.optimizer.step()
@@ -168,7 +166,7 @@ class ContrastivePretrainer:
             num_batches = 0
 
             for batch in data_loader:
-                if hasattr(batch, 'x') and hasattr(batch, 'edge_index'):
+                if hasattr(batch, "x") and hasattr(batch, "edge_index"):
                     x = batch.x.to(self.device)
                     edge_index = batch.edge_index.to(self.device)
                 else:
@@ -195,11 +193,14 @@ class ContrastivePretrainer:
             return self.encoder(x, edge_index)
 
     def save(self, path: str):
-        torch.save({
-            "encoder": self.encoder.state_dict(),
-            "projector": self.projector.state_dict(),
-            "config": self.config
-        }, path)
+        torch.save(
+            {
+                "encoder": self.encoder.state_dict(),
+                "projector": self.projector.state_dict(),
+                "config": self.config,
+            },
+            path,
+        )
         logger.info(f"Contrastive pretrainer saved to {path}")
 
     def load(self, path: str):

@@ -2,6 +2,7 @@
 Meme detection and virality scoring using CLIP embeddings.
 Detects known meme templates and estimates meme virality potential.
 """
+
 import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Union
@@ -47,7 +48,7 @@ class MemeDetector:
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         ).to(self.device)
 
         self._load_templates()
@@ -67,7 +68,7 @@ class MemeDetector:
                 self.template_metadata[template_file.stem] = {
                     "name": template_file.stem,
                     "path": str(template_file),
-                    "avg_virality": 0.7  # Placeholder; should be loaded from DB
+                    "avg_virality": 0.7,  # Placeholder; should be loaded from DB
                 }
             except Exception as e:
                 logger.error(f"Failed to load template {template_file}: {e}")
@@ -77,7 +78,7 @@ class MemeDetector:
         Detect if image is a meme and identify template.
 
         Returns:
-            Dict with keys: is_meme, template_matches, virality_score, 
+            Dict with keys: is_meme, template_matches, virality_score,
                            confidence, meme_type
         """
         emb = self.vision_encoder.encode([image], use_cache=False)[0]
@@ -89,23 +90,26 @@ class MemeDetector:
                 "template_matches": [],
                 "virality_score": 0.0,
                 "confidence": 0.0,
-                "meme_type": "unknown"
+                "meme_type": "unknown",
             }
 
         # Compute similarities to all templates
         similarities = {}
         for name, template_emb in self.template_embeddings.items():
-            sim = torch.cosine_similarity(emb.unsqueeze(0), 
-                                          template_emb.unsqueeze(0).to(self.device), 
-                                          dim=-1).item()
+            sim = torch.cosine_similarity(
+                emb.unsqueeze(0), template_emb.unsqueeze(0).to(self.device), dim=-1
+            ).item()
             similarities[name] = sim
 
         # Top-K matches
         sorted_sims = sorted(similarities.items(), key=lambda x: x[1], reverse=True)
         top_matches = [
-            {"template": name, "similarity": round(sim, 4), 
-             "metadata": self.template_metadata.get(name, {})}
-            for name, sim in sorted_sims[:self.config.top_k_templates]
+            {
+                "template": name,
+                "similarity": round(sim, 4),
+                "metadata": self.template_metadata.get(name, {}),
+            }
+            for name, sim in sorted_sims[: self.config.top_k_templates]
         ]
 
         best_sim = sorted_sims[0][1] if sorted_sims else 0.0
@@ -113,10 +117,11 @@ class MemeDetector:
 
         # Virality scoring using visual features + template history
         visual_features = self._extract_visual_features(image)
-        virality_input = torch.cat([
-            emb.detach().cpu(), 
-            torch.tensor(visual_features, dtype=torch.float32)
-        ]).unsqueeze(0).to(self.device)
+        virality_input = (
+            torch.cat([emb.detach().cpu(), torch.tensor(visual_features, dtype=torch.float32)])
+            .unsqueeze(0)
+            .to(self.device)
+        )
 
         with torch.no_grad():
             virality_score = self.virality_scorer(virality_input).item()
@@ -126,7 +131,7 @@ class MemeDetector:
             "template_matches": top_matches,
             "virality_score": round(virality_score, 4),
             "confidence": round(best_sim, 4),
-            "meme_type": sorted_sims[0][0] if is_meme else "original"
+            "meme_type": sorted_sims[0][0] if is_meme else "original",
         }
 
     def _extract_visual_features(self, image: Union[str, Path, Image.Image]) -> np.ndarray:
@@ -144,7 +149,11 @@ class MemeDetector:
             np.mean(np.abs(np.diff(img_array, axis=1))) / 255.0,  # Horizontal edge density
             img.size[0] / img.size[1],  # Aspect ratio
             1.0 if img.size[0] < 500 else 0.0,  # Low resolution flag
-            0.0, 0.0, 0.0, 0.0, 0.0  # Reserved for OCR text density, etc.
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Reserved for OCR text density, etc.
         ]
         return np.array(features[:10], dtype=np.float32)
 

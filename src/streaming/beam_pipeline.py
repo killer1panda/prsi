@@ -2,6 +2,7 @@
 Apache Beam pipeline for large-scale ETL on social media data.
 Supports both batch (historical backfill) and streaming (real-time) modes.
 """
+
 import logging
 from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass
@@ -33,6 +34,7 @@ class ExtractPostFn(beam.DoFn):
 
     def process(self, element: str):
         import json
+
         try:
             post = json.loads(element)
             yield {
@@ -43,7 +45,7 @@ class ExtractPostFn(beam.DoFn):
                 "subreddit": post.get("subreddit", ""),
                 "score": post.get("score", 0),
                 "num_comments": post.get("num_comments", 0),
-                "source": post.get("source", "unknown")
+                "source": post.get("source", "unknown"),
             }
         except json.JSONDecodeError:
             yield beam.pvalue.TaggedOutput("parse_errors", element)
@@ -80,6 +82,7 @@ class PredictDoomFn(beam.DoFn):
     def setup(self):
         # Load model once per worker
         import torch
+
         self._model = torch.load(self.model_path, map_location="cpu")
         self._model.eval()
 
@@ -96,7 +99,7 @@ class PredictDoomFn(beam.DoFn):
                 "user_id": post["user_id"],
                 "doom_score": doom_score,
                 "timestamp": post["timestamp"],
-                "features": features
+                "features": features,
             }
         except Exception as e:
             post["error"] = str(e)
@@ -112,7 +115,7 @@ class FormatOutputFn(beam.DoFn):
             "user_id": prediction["user_id"],
             "doom_score": float(prediction["doom_score"]),
             "timestamp": prediction["timestamp"],
-            "feature_json": str(prediction.get("features", {}))
+            "feature_json": str(prediction.get("features", {})),
         }
 
 
@@ -140,8 +143,9 @@ class DoomBeamPipeline:
 
         return options
 
-    def build_batch_pipeline(self, input_path: str, output_path: str,
-                             feature_extractor: Callable, model_path: str):
+    def build_batch_pipeline(
+        self, input_path: str, output_path: str, feature_extractor: Callable, model_path: str
+    ):
         """
         Build batch pipeline for historical data processing.
 
@@ -158,13 +162,9 @@ class DoomBeamPipeline:
 
             parsed = raw | "Parse" >> beam.ParDo(ExtractPostFn())
 
-            enriched = parsed | "Enrich" >> beam.ParDo(
-                EnrichFeaturesFn(feature_extractor)
-            )
+            enriched = parsed | "Enrich" >> beam.ParDo(EnrichFeaturesFn(feature_extractor))
 
-            predictions = enriched | "Predict" >> beam.ParDo(
-                PredictDoomFn(model_path)
-            )
+            predictions = enriched | "Predict" >> beam.ParDo(PredictDoomFn(model_path))
 
             formatted = predictions | "Format" >> beam.ParDo(FormatOutputFn())
 
@@ -172,13 +172,16 @@ class DoomBeamPipeline:
             formatted | "WriteParquet" >> beam.io.WriteToParquet(
                 file_path_prefix=output_path,
                 schema=self._get_parquet_schema(),
-                file_name_suffix=".parquet"
+                file_name_suffix=".parquet",
             )
 
-    def build_streaming_pipeline(self, input_subscription: str, 
-                                 output_table: str,
-                                 feature_extractor: Callable, 
-                                 model_path: str):
+    def build_streaming_pipeline(
+        self,
+        input_subscription: str,
+        output_table: str,
+        feature_extractor: Callable,
+        model_path: str,
+    ):
         """
         Build streaming pipeline from Pub/Sub to BigQuery.
 
@@ -192,19 +195,14 @@ class DoomBeamPipeline:
         options.view_as(StandardOptions).streaming = True
 
         with beam.Pipeline(options=options) as p:
-            raw = p | "ReadPubSub" >> beam.io.ReadFromPubSub(
-                subscription=input_subscription
-            )
+            raw = p | "ReadPubSub" >> beam.io.ReadFromPubSub(subscription=input_subscription)
 
             # Windowing
             windowed = raw | "Window" >> beam.WindowInto(
                 FixedWindows(size=self.config.window_size),
-                trigger=AfterWatermark(
-                    early=AfterProcessingTime(30),
-                    late=AfterProcessingTime(60)
-                ),
+                trigger=AfterWatermark(early=AfterProcessingTime(30), late=AfterProcessingTime(60)),
                 allowed_lateness=300,
-                accumulation_mode=AccumulationMode.ACCUMULATING
+                accumulation_mode=AccumulationMode.ACCUMULATING,
             )
 
             parsed = windowed | "Parse" >> beam.ParDo(ExtractPostFn())
@@ -216,29 +214,33 @@ class DoomBeamPipeline:
                 table=output_table,
                 schema=self._get_bq_schema(),
                 create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
-                write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
+                write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
             )
 
     def _get_parquet_schema(self):
         """Get PyArrow schema for Parquet output."""
         import pyarrow as pa
-        return pa.schema([
-            ("post_id", pa.string()),
-            ("user_id", pa.string()),
-            ("doom_score", pa.float64()),
-            ("timestamp", pa.int64()),
-            ("feature_json", pa.string())
-        ])
+
+        return pa.schema(
+            [
+                ("post_id", pa.string()),
+                ("user_id", pa.string()),
+                ("doom_score", pa.float64()),
+                ("timestamp", pa.int64()),
+                ("feature_json", pa.string()),
+            ]
+        )
 
     def _get_bq_schema(self):
         """Get BigQuery schema."""
         from apache_beam.io.gcp.bigquery import TableFieldSchema
+
         return {
             "fields": [
                 {"name": "post_id", "type": "STRING", "mode": "REQUIRED"},
                 {"name": "user_id", "type": "STRING", "mode": "REQUIRED"},
                 {"name": "doom_score", "type": "FLOAT", "mode": "NULLABLE"},
                 {"name": "timestamp", "type": "TIMESTAMP", "mode": "NULLABLE"},
-                {"name": "feature_json", "type": "STRING", "mode": "NULLABLE"}
+                {"name": "feature_json", "type": "STRING", "mode": "NULLABLE"},
             ]
         }

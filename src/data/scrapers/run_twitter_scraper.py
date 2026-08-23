@@ -29,24 +29,20 @@ async def login_and_save_session():
     """Login to Twitter and save session."""
     print("Initializing Twikit client...")
     # Using a custom user agent and proxy to bypass Cloudflare
-    user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     # Using a proxy from the proxy list
-    proxy = 'http://95.217.195.146:9999'
-    client = Client(language='en-US', user_agent=user_agent, proxy=proxy)
-    
+    proxy = "http://95.217.195.146:9999"
+    client = Client(language="en-US", user_agent=user_agent, proxy=proxy)
+
     try:
         print(f"Logging in with username: {USERNAME}, email: {EMAIL}")
-        await client.login(
-            auth_info_1=EMAIL,
-            auth_info_2=USERNAME,
-            password=PASSWORD
-        )
+        await client.login(auth_info_1=EMAIL, auth_info_2=USERNAME, password=PASSWORD)
         print("Login successful!")
-        
+
         # Save session
         client.save_session(SESSION_FILE)
         print(f"Session saved to {SESSION_FILE}")
-        
+
         return client
     except Exception as e:
         print(f"Login failed: {e}")
@@ -57,9 +53,9 @@ async def load_existing_session():
     """Try to load an existing session."""
     if os.path.exists(SESSION_FILE):
         print(f"Loading existing session from {SESSION_FILE}...")
-        user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        proxy = 'http://95.217.195.146:9999'
-        client = Client(language='en-US', user_agent=user_agent, proxy=proxy)
+        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        proxy = "http://95.217.195.146:9999"
+        client = Client(language="en-US", user_agent=user_agent, proxy=proxy)
         try:
             client.load_session(SESSION_FILE)
             print("Session loaded successfully!")
@@ -139,36 +135,36 @@ async def main():
     print("=" * 50)
     print("Twitter/X Scraper using Twikit")
     print("=" * 50)
-    
+
     # Try to load existing session first
     client = await load_existing_session()
-    
+
     if not client:
         # Login with credentials
         client = await login_and_save_session()
-    
+
     if not client:
         print("Failed to authenticate. Please check credentials.")
         return
-    
+
     # Demonstrate various features
     print("\n" + "=" * 50)
     print("Scraping Data")
     print("=" * 50)
-    
+
     # Get user info
     user = await get_user_info(client, USERNAME)
-    
+
     # Get user tweets
     if user:
         await get_user_tweets(client, USERNAME, count=5)
-    
+
     # Search for something
     await search_tweets(client, "Python programming", count=5)
-    
+
     # Get trending
     await get_trending(client)
-    
+
     print("\n" + "=" * 50)
     print("Scraping complete!")
     print("=" * 50)

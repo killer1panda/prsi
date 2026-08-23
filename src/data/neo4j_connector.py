@@ -11,7 +11,7 @@ from src.config import get_env_var
 
 class Neo4jConnector:
     """Neo4j connection and operations manager."""
-    
+
     def __init__(
         self,
         uri: str = None,
@@ -20,7 +20,7 @@ class Neo4jConnector:
         database: str = "neo4j",
     ):
         """Initialize Neo4j connection.
-        
+
         Args:
             uri: Neo4j connection URI
             user: Neo4j username
@@ -30,18 +30,18 @@ class Neo4jConnector:
         self.uri = uri or get_env_var("NEO4J_URI", "bolt://localhost:7687")
         self.user = user or get_env_var("NEO4J_USER", "neo4j")
         self.password = password or get_env_var("NEO4J_PASSWORD")
-        
+
         if not self.password:
             raise ValueError("NEO4J_PASSWORD environment variable must be set")
-        
+
         self.database = database
-        
+
         # Initialize driver
         self.driver = GraphDatabase.driver(
             self.uri,
             auth=(self.user, self.password),
         )
-        
+
         # Test connection
         try:
             with self.driver.session(database=self.database) as session:
@@ -50,10 +50,10 @@ class Neo4jConnector:
         except ServiceUnavailable as e:
             logger.error(f"Neo4j connection failed: {e}")
             raise
-        
+
         # Setup constraints
         self._setup_constraints()
-    
+
     def _setup_constraints(self):
         """Create constraints and indexes."""
         with self.driver.session(database=self.database) as session:
@@ -65,7 +65,7 @@ class Neo4jConnector:
                 """)
             except Exception as e:
                 logger.debug(f"User constraint may already exist: {e}")
-            
+
             # Post constraints
             try:
                 session.run("""
@@ -74,14 +74,16 @@ class Neo4jConnector:
                 """)
             except Exception as e:
                 logger.debug(f"Post constraint may already exist: {e}")
-            
+
             # Create indexes
             session.run("CREATE INDEX user_source_idx IF NOT EXISTS FOR (u:User) ON (u.source)")
-            session.run("CREATE INDEX post_created_idx IF NOT EXISTS FOR (p:Post) ON (p.created_at)")
+            session.run(
+                "CREATE INDEX post_created_idx IF NOT EXISTS FOR (p:Post) ON (p.created_at)"
+            )
             session.run("CREATE INDEX post_source_idx IF NOT EXISTS FOR (p:Post) ON (p.source)")
-            
+
             logger.info("Neo4j constraints and indexes created")
-    
+
     def create_user(
         self,
         user_id: str,
@@ -92,7 +94,7 @@ class Neo4jConnector:
         **kwargs,
     ) -> bool:
         """Create or update a user node.
-        
+
         Args:
             user_id: Unique user identifier (hashed)
             source: Platform source (twitter, reddit, instagram)
@@ -100,7 +102,7 @@ class Neo4jConnector:
             followers: Follower count
             verified: Verification status
             **kwargs: Additional user properties
-            
+
         Returns:
             True if successful
         """
@@ -114,7 +116,7 @@ class Neo4jConnector:
                 SET u += $properties
                 RETURN u
             """
-            
+
             result = session.run(
                 query,
                 user_id=user_id,
@@ -123,9 +125,9 @@ class Neo4jConnector:
                 verified=verified,
                 properties=kwargs,
             )
-            
+
             return result.single() is not None
-    
+
     def create_post(
         self,
         post_id: str,
@@ -136,7 +138,7 @@ class Neo4jConnector:
         **kwargs,
     ) -> bool:
         """Create a post node and link to author.
-        
+
         Args:
             post_id: Unique post identifier
             author_id: Author user ID
@@ -144,7 +146,7 @@ class Neo4jConnector:
             created_at: Post creation timestamp
             text: Post text content
             **kwargs: Additional post properties
-            
+
         Returns:
             True if successful
         """
@@ -161,7 +163,7 @@ class Neo4jConnector:
                 MERGE (u)-[:POSTED]->(p)
                 RETURN p
             """
-            
+
             result = session.run(
                 query,
                 post_id=post_id,
@@ -171,9 +173,9 @@ class Neo4jConnector:
                 text=text,
                 properties=kwargs,
             )
-            
+
             return result.single() is not None
-    
+
     def create_interaction(
         self,
         from_user_id: str,
@@ -183,14 +185,14 @@ class Neo4jConnector:
         weight: float = 1.0,
     ) -> bool:
         """Create an interaction relationship between users.
-        
+
         Args:
             from_user_id: Source user ID
             to_user_id: Target user ID
             interaction_type: Type (REPLIED, MENTIONED, RETWEETED, QUOTED)
             post_id: Related post ID
             weight: Interaction weight
-            
+
         Returns:
             True if successful
         """
@@ -208,7 +210,7 @@ class Neo4jConnector:
                 )
                 RETURN r
             """
-            
+
             result = session.run(
                 query,
                 from_user_id=from_user_id,
@@ -217,9 +219,9 @@ class Neo4jConnector:
                 post_id=post_id,
                 weight=weight,
             )
-            
+
             return result.single() is not None
-    
+
     def get_user_network(
         self,
         user_id: str,
@@ -227,12 +229,12 @@ class Neo4jConnector:
         limit: int = 100,
     ) -> Dict[str, Any]:
         """Get user's interaction network.
-        
+
         Args:
             user_id: Target user ID
             depth: Network depth (1 = direct connections)
             limit: Maximum nodes to return
-            
+
         Returns:
             Dictionary with nodes and edges
         """
@@ -242,38 +244,40 @@ class Neo4jConnector:
                 RETURN u, connected, relationships(path) as rels
                 LIMIT {limit}
             """
-            
+
             result = session.run(query, user_id=user_id)
-            
+
             nodes = {}
             edges = []
-            
+
             for record in result:
                 # Add user node
                 user = dict(record["u"])
                 nodes[user["user_id"]] = user
-                
+
                 # Add connected node
                 connected = dict(record["connected"])
                 nodes[connected["user_id"]] = connected
-                
+
                 # Add edges
                 for rel in record["rels"]:
-                    edges.append({
-                        "source": rel.start_node["user_id"],
-                        "target": rel.end_node["user_id"],
-                        "type": rel["type"],
-                        "weight": rel.get("weight", 1.0),
-                    })
-            
+                    edges.append(
+                        {
+                            "source": rel.start_node["user_id"],
+                            "target": rel.end_node["user_id"],
+                            "type": rel["type"],
+                            "weight": rel.get("weight", 1.0),
+                        }
+                    )
+
             return {
                 "nodes": list(nodes.values()),
                 "edges": edges,
             }
-    
+
     def get_graph_stats(self) -> Dict[str, Any]:
         """Get graph statistics.
-        
+
         Returns:
             Dictionary with graph statistics
         """
@@ -281,13 +285,13 @@ class Neo4jConnector:
             # Node counts
             user_count = session.run("MATCH (u:User) RETURN count(u) as count").single()["count"]
             post_count = session.run("MATCH (p:Post) RETURN count(p) as count").single()["count"]
-            
+
             # Relationship counts
             interaction_count = session.run("""
                 MATCH ()-[r:INTERACTED]->()
                 RETURN count(r) as count
             """).single()["count"]
-            
+
             # Average degree
             avg_degree_result = session.run("""
                 MATCH (u:User)-[r:INTERACTED]-()
@@ -295,14 +299,14 @@ class Neo4jConnector:
                 RETURN avg(degree) as avg_degree
             """).single()
             avg_degree = avg_degree_result["avg_degree"] if avg_degree_result else 0
-            
+
             return {
                 "users": user_count,
                 "posts": post_count,
                 "interactions": interaction_count,
                 "avg_degree": avg_degree or 0,
             }
-    
+
     def close(self):
         """Close Neo4j connection."""
         self.driver.close()

@@ -23,9 +23,7 @@ class GraphExtractor:
         self.neo4j = neo4j or get_neo4j()
 
     def extract_user_graph(
-        self,
-        min_interactions: int = 1,
-        max_users: int = 50000
+        self, min_interactions: int = 1, max_users: int = 50000
     ) -> Tuple[Data, pd.DataFrame]:
         """Extract user-interaction graph from Neo4j.
 
@@ -44,7 +42,7 @@ class GraphExtractor:
             return self._create_empty_graph(), user_df
 
         # Create user_id → index mapping
-        user_ids = user_df['user_id'].tolist()
+        user_ids = user_df["user_id"].tolist()
         user_id_to_idx = {uid: i for i, uid in enumerate(user_ids)}
 
         # 2. Get interaction edges
@@ -55,11 +53,11 @@ class GraphExtractor:
         edge_weights = []
 
         for edge in edges:
-            src = edge['from_user']
-            dst = edge['to_user']
+            src = edge["from_user"]
+            dst = edge["to_user"]
             if src in user_id_to_idx and dst in user_id_to_idx:
                 edge_list.append([user_id_to_idx[src], user_id_to_idx[dst]])
-                edge_weights.append(edge.get('weight', 1.0))
+                edge_weights.append(edge.get("weight", 1.0))
 
         if len(edge_list) == 0:
             logger.warning("No edges found. Creating k-NN fallback graph.")
@@ -79,12 +77,7 @@ class GraphExtractor:
         y = self._build_node_labels(user_df)
 
         # 5. Create PyG Data object
-        data = Data(
-            x=x,
-            edge_index=edge_index,
-            y=y,
-            num_nodes=len(user_df)
-        )
+        data = Data(x=x, edge_index=edge_index, y=y, num_nodes=len(user_df))
 
         if edge_weight is not None:
             data.edge_weight = edge_weight
@@ -123,16 +116,18 @@ class GraphExtractor:
             result = session.run(query, max_users=max_users)
             users = []
             for record in result:
-                users.append({
-                    'user_id': record['user_id'],
-                    'followers': record['followers'] or 0,
-                    'verified': 1.0 if record['verified'] else 0.0,
-                    'post_count': record['post_count'] or 0,
-                    'avg_sentiment': record['avg_sentiment'] or 0.0,
-                    'avg_toxicity': record['avg_toxicity'] or 0.0,
-                    'controversy_count': record['controversy_count'] or 0,
-                    'controversy_rate': record['controversy_rate'] or 0.0,
-                })
+                users.append(
+                    {
+                        "user_id": record["user_id"],
+                        "followers": record["followers"] or 0,
+                        "verified": 1.0 if record["verified"] else 0.0,
+                        "post_count": record["post_count"] or 0,
+                        "avg_sentiment": record["avg_sentiment"] or 0.0,
+                        "avg_toxicity": record["avg_toxicity"] or 0.0,
+                        "controversy_count": record["controversy_count"] or 0,
+                        "controversy_rate": record["controversy_rate"] or 0.0,
+                    }
+                )
             return users
 
     def _get_interaction_edges(self, min_interactions: int) -> List[Dict]:
@@ -150,19 +145,25 @@ class GraphExtractor:
             result = session.run(query, min_interactions=min_interactions)
             edges = []
             for record in result:
-                edges.append({
-                    'from_user': record['from_user'],
-                    'to_user': record['to_user'],
-                    'weight': record['weight'],
-                    'interaction_count': record['interaction_count']
-                })
+                edges.append(
+                    {
+                        "from_user": record["from_user"],
+                        "to_user": record["to_user"],
+                        "weight": record["weight"],
+                        "interaction_count": record["interaction_count"],
+                    }
+                )
             return edges
 
     def _build_node_features(self, user_df: pd.DataFrame) -> torch.Tensor:
         """Build normalized node feature matrix."""
         feature_cols = [
-            'followers', 'verified', 'post_count', 
-            'avg_sentiment', 'avg_toxicity', 'controversy_rate'
+            "followers",
+            "verified",
+            "post_count",
+            "avg_sentiment",
+            "avg_toxicity",
+            "controversy_rate",
         ]
 
         features = user_df[feature_cols].fillna(0).values.astype(np.float32)
@@ -182,15 +183,15 @@ class GraphExtractor:
 
         Heuristic: High controversy rate + negative sentiment + high toxicity = at-risk
         """
-        controversy = user_df['controversy_rate'].fillna(0).values
-        sentiment = user_df['avg_sentiment'].fillna(0).values
-        toxicity = user_df['avg_toxicity'].fillna(0).values
+        controversy = user_df["controversy_rate"].fillna(0).values
+        sentiment = user_df["avg_sentiment"].fillna(0).values
+        toxicity = user_df["avg_toxicity"].fillna(0).values
 
         # Risk score: higher controversy, more negative sentiment, higher toxicity
         risk_score = (
-            controversy * 3.0 +
-            (-sentiment) * 2.0 +  # Negative sentiment increases risk
-            toxicity * 2.0
+            controversy * 3.0
+            + (-sentiment) * 2.0  # Negative sentiment increases risk
+            + toxicity * 2.0
         )
 
         # Binary label: top 20% are "high risk"
@@ -203,11 +204,24 @@ class GraphExtractor:
         """Create k-NN graph from feature similarity if no edges exist."""
         from sklearn.neighbors import kneighbors_graph
 
-        features = user_df[['followers', 'verified', 'post_count', 
-                           'avg_sentiment', 'avg_toxicity', 'controversy_rate']].fillna(0).values
+        features = (
+            user_df[
+                [
+                    "followers",
+                    "verified",
+                    "post_count",
+                    "avg_sentiment",
+                    "avg_toxicity",
+                    "controversy_rate",
+                ]
+            ]
+            .fillna(0)
+            .values
+        )
 
-        adj = kneighbors_graph(features, n_neighbors=min(k, len(features)-1), 
-                               mode='connectivity', include_self=False)
+        adj = kneighbors_graph(
+            features, n_neighbors=min(k, len(features) - 1), mode="connectivity", include_self=False
+        )
 
         # Convert to edge_index
         coo = adj.tocoo()
@@ -219,14 +233,9 @@ class GraphExtractor:
         """Create minimal graph when Neo4j is empty."""
         return Data(x=torch.zeros((1, 6)), edge_index=torch.zeros((2, 0), dtype=torch.long))
 
-    def get_user_embedding(
-        self,
-        user_id: str,
-        model,
-        data: Data
-    ) -> Optional[torch.Tensor]:
+    def get_user_embedding(self, user_id: str, model, data: Data) -> Optional[torch.Tensor]:
         """Get GraphSAGE embedding for a specific user."""
-        if not hasattr(data, 'user_id_map') or user_id not in data.user_id_map:
+        if not hasattr(data, "user_id_map") or user_id not in data.user_id_map:
             return None
 
         idx = data.user_id_map[user_id]

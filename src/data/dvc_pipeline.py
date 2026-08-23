@@ -1,6 +1,7 @@
 """
 DVC pipeline utilities for programmatic pipeline execution and monitoring.
 """
+
 import logging
 import subprocess
 import json
@@ -57,21 +58,21 @@ class DVCPipelineManager:
             "stage": stage_name,
             "returncode": result.returncode,
             "stdout": result.stdout,
-            "stderr": result.stderr
+            "stderr": result.stderr,
         }
 
     def run_full_pipeline(self, force: bool = False) -> List[Dict[str, Any]]:
         """Run complete pipeline from scratch."""
         stages = [
             "prepare",
-            "build_graph", 
+            "build_graph",
             "extract_features",
             "train_text",
             "train_graph",
             "train_multimodal",
             "adversarial_training",
             "evaluate",
-            "export_onnx"
+            "export_onnx",
         ]
 
         results = []

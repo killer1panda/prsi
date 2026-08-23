@@ -2,6 +2,7 @@
 Kafka-based real-time streaming pipeline for social media posts.
 Consumes raw posts, enriches with features, and produces predictions.
 """
+
 import logging
 import json
 import signal
@@ -40,24 +41,28 @@ class KafkaPipeline:
         self.config = config or KafkaConfig()
         self.running = False
 
-        self.consumer = Consumer({
-            "bootstrap.servers": self.config.bootstrap_servers,
-            "group.id": self.config.consumer_group,
-            "auto.offset.reset": self.config.auto_offset_reset,
-            "max.poll.interval.ms": self.config.session_timeout_ms,
-            "heartbeat.interval.ms": self.config.heartbeat_interval_ms,
-            "enable.auto.commit": True,
-            "auto.commit.interval.ms": 5000,
-        })
+        self.consumer = Consumer(
+            {
+                "bootstrap.servers": self.config.bootstrap_servers,
+                "group.id": self.config.consumer_group,
+                "auto.offset.reset": self.config.auto_offset_reset,
+                "max.poll.interval.ms": self.config.session_timeout_ms,
+                "heartbeat.interval.ms": self.config.heartbeat_interval_ms,
+                "enable.auto.commit": True,
+                "auto.commit.interval.ms": 5000,
+            }
+        )
 
-        self.producer = Producer({
-            "bootstrap.servers": self.config.bootstrap_servers,
-            "compression.type": "lz4",
-            "batch.size": 16384,
-            "linger.ms": 5,
-            "retries": 3,
-            "retry.backoff.ms": 1000
-        })
+        self.producer = Producer(
+            {
+                "bootstrap.servers": self.config.bootstrap_servers,
+                "compression.type": "lz4",
+                "batch.size": 16384,
+                "linger.ms": 5,
+                "retries": 3,
+                "retry.backoff.ms": 1000,
+            }
+        )
 
         self.consumer.subscribe([self.config.input_topic])
 
@@ -83,13 +88,13 @@ class KafkaPipeline:
             "original": message,
             "error": error,
             "timestamp": datetime.utcnow().isoformat(),
-            "topic": self.config.input_topic
+            "topic": self.config.input_topic,
         }
         self.producer.produce(
             self.config.dlq_topic,
             key=str(message.get("post_id", "unknown")),
             value=json.dumps(dlq_msg),
-            callback=self._delivery_callback
+            callback=self._delivery_callback,
         )
 
     def _process_message(self, msg_value: str) -> Optional[Dict]:
@@ -105,7 +110,9 @@ class KafkaPipeline:
             # Validate required fields
             required = ["text", "user_id", "post_id"]
             if not all(k in post for k in required):
-                raise ValueError(f"Missing required fields: {[k for k in required if k not in post]}")
+                raise ValueError(
+                    f"Missing required fields: {[k for k in required if k not in post]}"
+                )
 
             # Run prediction
             result = self.predictor(post)
@@ -118,7 +125,7 @@ class KafkaPipeline:
                 "risk_level": result.get("risk_level", "unknown"),
                 "timestamp": datetime.utcnow().isoformat(),
                 "model_version": result.get("model_version", "unknown"),
-                "features": result.get("features", {})
+                "features": result.get("features", {}),
             }
 
             return prediction
@@ -159,7 +166,7 @@ class KafkaPipeline:
                         self.config.output_topic,
                         key=str(prediction["post_id"]),
                         value=json.dumps(prediction),
-                        callback=self._delivery_callback
+                        callback=self._delivery_callback,
                     )
 
                 # Flush producer periodically
@@ -188,7 +195,7 @@ class KafkaPipeline:
                 "status": "healthy",
                 "brokers": len(metadata.brokers),
                 "topics": [t for t in metadata.topics.keys()],
-                "subscribed": self.config.input_topic
+                "subscribed": self.config.input_topic,
             }
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}

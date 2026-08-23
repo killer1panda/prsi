@@ -2,6 +2,7 @@
 Unit and integration tests for FastAPI endpoints.
 Uses TestClient for synchronous testing and async tests for websockets.
 """
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
@@ -30,7 +31,7 @@ def mock_predictor():
         "doom_score": 75.5,
         "risk_level": "high",
         "confidence": 0.92,
-        "features": {"toxicity": 0.8, "sentiment": -0.6}
+        "features": {"toxicity": 0.8, "sentiment": -0.6},
     }
     return predictor
 
@@ -63,7 +64,7 @@ class TestAnalyzeEndpoints:
         payload = {
             "text": "This is absolutely unacceptable behavior from a public figure!",
             "source": "twitter",
-            "metadata": {"timestamp": "2026-01-01T00:00:00Z"}
+            "metadata": {"timestamp": "2026-01-01T00:00:00Z"},
         }
         response = client.post("/analyze", json=payload)
         assert response.status_code == 200
@@ -89,7 +90,7 @@ class TestAnalyzeEndpoints:
         payload = {
             "text": "Controversial opinion here.",
             "user_id": "test_user_456",
-            "include_graph_features": True
+            "include_graph_features": True,
         }
         response = client.post("/analyze", json=payload)
         assert response.status_code == 200
@@ -110,7 +111,7 @@ class TestBatchEndpoints:
             "items": [
                 {"text": "Post 1", "user_id": "u1"},
                 {"text": "Post 2", "user_id": "u2"},
-                {"text": "Post 3", "user_id": "u3"}
+                {"text": "Post 3", "user_id": "u3"},
             ]
         }
         response = client.post("/predict/batch", json=payload)
@@ -139,10 +140,7 @@ class TestAttackEndpoints:
             "text": "I disagree with this policy decision.",
             "strategy": "semantic",
             "num_variants": 3,
-            "constraints": {
-                "max_toxicity": 0.7,
-                "preserve_sentiment": True
-            }
+            "constraints": {"max_toxicity": 0.7, "preserve_sentiment": True},
         }
         response = client.post("/attack/simulate", json=payload)
         assert response.status_code == 200
@@ -153,10 +151,7 @@ class TestAttackEndpoints:
         assert all("text" in v and "doom_score" in v for v in data["variants"])
 
     def test_attack_simulate_invalid_strategy(self, client):
-        payload = {
-            "text": "Test",
-            "strategy": "invalid_strategy"
-        }
+        payload = {"text": "Test", "strategy": "invalid_strategy"}
         response = client.post("/attack/simulate", json=payload)
         assert response.status_code == 422
 

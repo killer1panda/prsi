@@ -28,6 +28,7 @@ try:
     from textattack.constraints.semantics.sentence_encoders import UniversalSentenceEncoder
     from textattack.transformations import WordSwapEmbedding, WordSwapWordNet
     from textattack.augmentation import EasyDataAugmenter
+
     TEXTATTACK_AVAILABLE = True
 except ImportError:
     TEXTATTACK_AVAILABLE = False
@@ -37,6 +38,7 @@ except ImportError:
 @dataclass
 class AttackResult:
     """Result of a single adversarial attack."""
+
     variant_text: str
     original_doom: float
     attacked_doom: float
@@ -76,22 +78,22 @@ class AdversarialGenerator:
     def _build_strategy_pool(self) -> Dict[str, Callable]:
         """Build pool of mutation strategies."""
         strategies = {
-            'emoji_injection': self._emoji_injection,
-            'outrage_punctuation': self._outrage_punctuation,
-            'rhetorical_question': self._rhetorical_question,
-            'exaggeration': self._exaggeration,
-            'controversy_frame': self._controversy_frame,
-            'call_to_action': self._call_to_action,
-            'authority_challenge': self._authority_challenge,
-            'passive_active_voice': self._passive_active_voice,
-            'loaded_language': self._loaded_language,
-            'us_vs_them': self._us_vs_them,
+            "emoji_injection": self._emoji_injection,
+            "outrage_punctuation": self._outrage_punctuation,
+            "rhetorical_question": self._rhetorical_question,
+            "exaggeration": self._exaggeration,
+            "controversy_frame": self._controversy_frame,
+            "call_to_action": self._call_to_action,
+            "authority_challenge": self._authority_challenge,
+            "passive_active_voice": self._passive_active_voice,
+            "loaded_language": self._loaded_language,
+            "us_vs_them": self._us_vs_them,
         }
 
         # Add TextAttack strategies if available
         if TEXTATTACK_AVAILABLE:
-            strategies['textattack_wordnet'] = self._textattack_wordnet
-            strategies['textattack_embedding'] = self._textattack_embedding
+            strategies["textattack_wordnet"] = self._textattack_wordnet
+            strategies["textattack_embedding"] = self._textattack_embedding
 
         return strategies
 
@@ -106,28 +108,28 @@ class AdversarialGenerator:
 
     def _outrage_punctuation(self, text: str, intensity: float = 1.0) -> str:
         """Amplify punctuation for urgency cues."""
-        text = re.sub(r'\.+', '!!!', text)
-        text = re.sub(r'!+', '!!!', text)
-        if '!' not in text:
-            text = text.rstrip('.') + "!!!"
+        text = re.sub(r"\.+", "!!!", text)
+        text = re.sub(r"!+", "!!!", text)
+        if "!" not in text:
+            text = text.rstrip(".") + "!!!"
         return text
 
     def _rhetorical_question(self, text: str, intensity: float = 1.0) -> str:
         """Convert statements to rhetorical questions."""
-        if text.endswith('?'):
+        if text.endswith("?"):
             return text + " Don't you see the problem?"
         return text + " Isn't it obvious?"
 
     def _exaggeration(self, text: str, intensity: float = 1.0) -> str:
         """Amplify intensity words."""
         replacements = {
-            r'\bvery\b': 'extremely',
-            r'\bsome\b': 'countless',
-            r'\bmany\b': 'overwhelming',
-            r'\ba few\b': 'massive numbers of',
-            r'\bimportant\b': 'critical',
-            r'\bbad\b': 'disastrous',
-            r'\bwrong\b': 'catastrophically wrong',
+            r"\bvery\b": "extremely",
+            r"\bsome\b": "countless",
+            r"\bmany\b": "overwhelming",
+            r"\ba few\b": "massive numbers of",
+            r"\bimportant\b": "critical",
+            r"\bbad\b": "disastrous",
+            r"\bwrong\b": "catastrophically wrong",
         }
         for pattern, replacement in replacements.items():
             text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
@@ -169,19 +171,19 @@ class AdversarialGenerator:
     def _passive_active_voice(self, text: str, intensity: float = 1.0) -> str:
         """Convert passive to active voice where possible."""
         # Simple heuristic replacements
-        text = re.sub(r'was attacked by', 'faces backlash from', text, flags=re.IGNORECASE)
-        text = re.sub(r'is being criticized', 'faces mounting criticism', text, flags=re.IGNORECASE)
-        text = re.sub(r'has been accused', 'stands accused', text, flags=re.IGNORECASE)
+        text = re.sub(r"was attacked by", "faces backlash from", text, flags=re.IGNORECASE)
+        text = re.sub(r"is being criticized", "faces mounting criticism", text, flags=re.IGNORECASE)
+        text = re.sub(r"has been accused", "stands accused", text, flags=re.IGNORECASE)
         return text
 
     def _loaded_language(self, text: str, intensity: float = 1.0) -> str:
         """Replace neutral words with emotionally loaded alternatives."""
         replacements = {
-            r'\bsaid\b': 'claimed',
-            r'\bclaimed\b': 'insisted',
-            r'\bdefended\b': 'desperately defended',
-            r'\bresponded\b': 'lashed out',
-            r'\bapologized\b': 'was forced to apologize',
+            r"\bsaid\b": "claimed",
+            r"\bclaimed\b": "insisted",
+            r"\bdefended\b": "desperately defended",
+            r"\bresponded\b": "lashed out",
+            r"\bapologized\b": "was forced to apologize",
         }
         for pattern, replacement in replacements.items():
             text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
@@ -243,19 +245,17 @@ class AdversarialGenerator:
         """
         # Get baseline
         baseline = self.predictor.predict(text, author_id)
-        original_doom = baseline['probability']
+        original_doom = baseline["probability"]
 
         logger.info(f"Original doom score: {original_doom:.4f}")
 
         if use_genetic:
             variants = self._genetic_optimize(
-                text, author_id, original_doom, 
-                max_variants, toxicity_budget
+                text, author_id, original_doom, max_variants, toxicity_budget
             )
         else:
             variants = self._greedy_optimize(
-                text, author_id, original_doom,
-                max_variants, toxicity_budget
+                text, author_id, original_doom, max_variants, toxicity_budget
             )
 
         # Sort by doom uplift
@@ -297,16 +297,18 @@ class AdversarialGenerator:
                     # Semantic similarity (simple Jaccard as proxy)
                     similarity = self._semantic_similarity(text, variant_text)
 
-                    variants.append(AttackResult(
-                        variant_text=variant_text,
-                        original_doom=original_doom,
-                        attacked_doom=result['probability'],
-                        doom_uplift=result['probability'] - original_doom,
-                        toxicity_score=toxicity,
-                        strategy=strategy_name,
-                        semantic_similarity=similarity,
-                        passes_moderation=toxicity <= toxicity_budget,
-                    ))
+                    variants.append(
+                        AttackResult(
+                            variant_text=variant_text,
+                            original_doom=original_doom,
+                            attacked_doom=result["probability"],
+                            doom_uplift=result["probability"] - original_doom,
+                            toxicity_score=toxicity,
+                            strategy=strategy_name,
+                            semantic_similarity=similarity,
+                            passes_moderation=toxicity <= toxicity_budget,
+                        )
+                    )
 
                     used_strategies.add(strategy_name)
 
@@ -348,7 +350,7 @@ class AdversarialGenerator:
                     else:
                         # Fitness = doom uplift - lambda * (1 - similarity)
                         similarity = self._semantic_similarity(text, individual)
-                        fitness = (result['probability'] - original_doom) - 0.1 * (1 - similarity)
+                        fitness = (result["probability"] - original_doom) - 0.1 * (1 - similarity)
 
                     fitness_scores.append(fitness)
                 except Exception:
@@ -359,15 +361,17 @@ class AdversarialGenerator:
                 if fit > 0:
                     result = self.predictor.predict(ind, author_id)
                     toxicity = self.toxicity_proxy(ind)
-                    best_individuals.append(AttackResult(
-                        variant_text=ind,
-                        original_doom=original_doom,
-                        attacked_doom=result['probability'],
-                        doom_uplift=result['probability'] - original_doom,
-                        toxicity_score=toxicity,
-                        strategy=f"genetic_gen{generation}",
-                        semantic_similarity=self._semantic_similarity(text, ind),
-                    ))
+                    best_individuals.append(
+                        AttackResult(
+                            variant_text=ind,
+                            original_doom=original_doom,
+                            attacked_doom=result["probability"],
+                            doom_uplift=result["probability"] - original_doom,
+                            toxicity_score=toxicity,
+                            strategy=f"genetic_gen{generation}",
+                            semantic_similarity=self._semantic_similarity(text, ind),
+                        )
+                    )
 
             # Selection (tournament)
             selected = self._tournament_select(population, fitness_scores)
@@ -380,13 +384,15 @@ class AdversarialGenerator:
 
             # Elitism
             sorted_indices = np.argsort(fitness_scores)[::-1]
-            elites = [population[i] for i in sorted_indices[:self.elite_size]]
+            elites = [population[i] for i in sorted_indices[: self.elite_size]]
 
-            population = elites + offspring[:self.population_size - self.elite_size]
+            population = elites + offspring[: self.population_size - self.elite_size]
 
         return best_individuals
 
-    def _tournament_select(self, population: List[str], fitness: List[float], k: int = 3) -> List[str]:
+    def _tournament_select(
+        self, population: List[str], fitness: List[float], k: int = 3
+    ) -> List[str]:
         """Tournament selection."""
         selected = []
         for _ in range(len(population)):
@@ -402,12 +408,12 @@ class AdversarialGenerator:
             p1, p2 = parents[i], parents[i + 1]
 
             # Simple sentence-level crossover
-            s1 = p1.split('. ')
-            s2 = p2.split('. ')
+            s1 = p1.split(". ")
+            s2 = p2.split(". ")
 
             if len(s1) > 1 and len(s2) > 1:
                 split = random.randint(1, min(len(s1), len(s2)) - 1)
-                child = '. '.join(s1[:split] + s2[split:])
+                child = ". ".join(s1[:split] + s2[split:])
             else:
                 child = p1 if random.random() > 0.5 else p2
 
@@ -447,7 +453,7 @@ class AdversarialGenerator:
         text_lower = text.lower()
 
         # Profanity list (simplified)
-        profanity = ['damn', 'hell', 'stupid', 'idiot', 'moron', 'hate', 'kill']
+        profanity = ["damn", "hell", "stupid", "idiot", "moron", "hate", "kill"]
         score += sum(0.1 for word in profanity if word in text_lower)
 
         # All caps ratio
@@ -455,13 +461,14 @@ class AdversarialGenerator:
         score += caps_ratio * 0.3
 
         # Exclamation density
-        excl_ratio = text.count('!') / max(len(text.split()), 1)
+        excl_ratio = text.count("!") / max(len(text.split()), 1)
         score += excl_ratio * 0.2
 
         return min(score, 1.0)
 
 
 # ── Convenience wrapper ─────────────────────────────────────────────────────
+
 
 def generate_attacks(
     text: str,

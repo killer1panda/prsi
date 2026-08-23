@@ -2,6 +2,7 @@
 Production drift detection: monitors feature distributions, prediction distributions,
 and concept drift using statistical tests and learned detectors.
 """
+
 import logging
 from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass, field
@@ -59,14 +60,16 @@ class DriftDetector:
 
         # Per-feature statistics
         for i in range(features.shape[1]):
-            feat_name = self.config.feature_names[i] if i < len(self.config.feature_names) else f"feat_{i}"
+            feat_name = (
+                self.config.feature_names[i] if i < len(self.config.feature_names) else f"feat_{i}"
+            )
             self.reference_stats[feat_name] = {
                 "mean": float(np.mean(features[:, i])),
                 "std": float(np.std(features[:, i])),
                 "min": float(np.min(features[:, i])),
                 "max": float(np.max(features[:, i])),
                 "hist": np.histogram(features[:, i], bins=50, density=True),
-                "percentiles": np.percentile(features[:, i], [5, 25, 50, 75, 95]).tolist()
+                "percentiles": np.percentile(features[:, i], [5, 25, 50, 75, 95]).tolist(),
             }
 
         if predictions is not None:
@@ -75,7 +78,9 @@ class DriftDetector:
         # Fit autoencoder for learned drift detection
         self._fit_autoencoder(features)
 
-        logger.info(f"Reference fitted on {features.shape[0]} samples, {features.shape[1]} features")
+        logger.info(
+            f"Reference fitted on {features.shape[0]} samples, {features.shape[1]} features"
+        )
 
     def _fit_autoencoder(self, features: np.ndarray):
         """Fit a simple autoencoder to learn reference distribution."""
@@ -127,7 +132,9 @@ class DriftDetector:
             features = np.array(features)
 
         for i in range(features.shape[1]):
-            feat_name = self.config.feature_names[i] if i < len(self.config.feature_names) else f"feat_{i}"
+            feat_name = (
+                self.config.feature_names[i] if i < len(self.config.feature_names) else f"feat_{i}"
+            )
             if feat_name not in self.detection_buffer:
                 self.detection_buffer[feat_name] = deque(maxlen=self.config.detection_window_size)
             self.detection_buffer[feat_name].extend(features[:, i].tolist())
@@ -147,7 +154,7 @@ class DriftDetector:
             "feature_drift": {},
             "prediction_drift": {},
             "autoencoder_drift": False,
-            "overall_risk": "low"
+            "overall_risk": "low",
         }
 
         drift_count = 0
@@ -155,12 +162,14 @@ class DriftDetector:
 
         # 1. Feature drift: KS test per feature
         for feat_name, ref_stats in self.reference_stats.items():
-            if feat_name not in self.detection_buffer or len(self.detection_buffer[feat_name]) < 100:
+            if (
+                feat_name not in self.detection_buffer
+                or len(self.detection_buffer[feat_name]) < 100
+            ):
                 continue
 
             ref_samples = np.random.normal(
-                ref_stats["mean"], ref_stats["std"], 
-                self.config.reference_window_size
+                ref_stats["mean"], ref_stats["std"], self.config.reference_window_size
             )
             det_samples = np.array(self.detection_buffer[feat_name])
 
@@ -174,7 +183,7 @@ class DriftDetector:
                 "drift": drift or psi > self.config.psi_threshold,
                 "ks_stat": float(ks_stat),
                 "p_value": float(p_value),
-                "psi": float(psi)
+                "psi": float(psi),
             }
 
             if drift or psi > self.config.psi_threshold:
@@ -190,10 +199,11 @@ class DriftDetector:
             mean_shift = abs(np.mean(det_pred) - np.mean(ref_pred))
 
             results["prediction_drift"] = {
-                "drift": p_value < self.config.ks_threshold or mean_shift > self.config.prediction_drift_threshold,
+                "drift": p_value < self.config.ks_threshold
+                or mean_shift > self.config.prediction_drift_threshold,
                 "ks_stat": float(ks_stat),
                 "p_value": float(p_value),
-                "mean_shift": float(mean_shift)
+                "mean_shift": float(mean_shift),
             }
 
             if results["prediction_drift"]["drift"]:
@@ -205,10 +215,12 @@ class DriftDetector:
             first_buffer = list(self.detection_buffer.values())[0]
             if len(first_buffer) >= 100:
                 # Reconstruct recent samples
-                recent = np.array([
-                    list(self.detection_buffer.get(f"feat_{i}", [0]*100))[-100:]
-                    for i in range(len(self.reference_stats))
-                ]).T
+                recent = np.array(
+                    [
+                        list(self.detection_buffer.get(f"feat_{i}", [0] * 100))[-100:]
+                        for i in range(len(self.reference_stats))
+                    ]
+                ).T
 
                 if recent.shape[1] == len(self.reference_stats):
                     X_recent = torch.tensor(recent, dtype=torch.float32)
@@ -250,7 +262,9 @@ class DriftDetector:
         expected_percents = np.clip(expected_percents, 1e-10, 1.0)
         actual_percents = np.clip(actual_percents, 1e-10, 1.0)
 
-        psi = np.sum((actual_percents - expected_percents) * np.log(actual_percents / expected_percents))
+        psi = np.sum(
+            (actual_percents - expected_percents) * np.log(actual_percents / expected_percents)
+        )
         return float(psi)
 
     def reset(self):

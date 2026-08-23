@@ -49,6 +49,7 @@ try:
         ExpectColumnValuesToBeInSet,
         ExpectColumnPairValuesToBeEqual,
     )
+
     GX_AVAILABLE = True
 except ImportError:
     GX_AVAILABLE = False
@@ -58,6 +59,7 @@ except ImportError:
 try:
     import pandera as pa
     from pandera import Column, DataFrameSchema, Check
+
     PANDERA_AVAILABLE = True
 except ImportError:
     PANDERA_AVAILABLE = False
@@ -66,6 +68,7 @@ except ImportError:
 @dataclass
 class ValidationResult:
     """Structured result of a validation run."""
+
     suite_name: str
     dataset_path: str
     passed: bool
@@ -99,24 +102,44 @@ class DataValidator:
 
     # Expected schema for processed Reddit data
     EXPECTED_COLUMNS = [
-        "id", "author_hash", "subreddit", "created_utc",
-        "title", "selftext", "combined_text", "score",
-        "num_comments", "upvote_ratio", "distinguished",
-        "edited", "label", "label_score", "label_components",
-        "engagement_velocity", "content_hash",
+        "id",
+        "author_hash",
+        "subreddit",
+        "created_utc",
+        "title",
+        "selftext",
+        "combined_text",
+        "score",
+        "num_comments",
+        "upvote_ratio",
+        "distinguished",
+        "edited",
+        "label",
+        "label_score",
+        "label_components",
+        "engagement_velocity",
+        "content_hash",
     ]
 
-    CANCEL_SUBREDDITS = frozenset([
-        "outoftheloop", "subredditdrama", "againsthatesubreddits",
-        "circlebroke", "worstof", "bestofoutrageculture",
-    ])
+    CANCEL_SUBREDDITS = frozenset(
+        [
+            "outoftheloop",
+            "subredditdrama",
+            "againsthatesubreddits",
+            "circlebroke",
+            "worstof",
+            "bestofoutrageculture",
+        ]
+    )
 
     def __init__(self, strict: bool = True, pii_check: bool = True):
         self.strict = strict
         self.pii_check = pii_check
         self._failure_threshold = 0.05  # 5% bad rows max
 
-    def validate(self, dataset_path: str, suite_name: str = "reddit_production") -> ValidationResult:
+    def validate(
+        self, dataset_path: str, suite_name: str = "reddit_production"
+    ) -> ValidationResult:
         """Run full validation suite against dataset."""
         logger.info(f"Validating {dataset_path}")
         df = self._load(dataset_path)
@@ -180,6 +203,7 @@ class DataValidator:
             return pd.read_csv(path)
         elif p.suffix in (".arrow", ".ipc"):
             import pyarrow.ipc as ipc
+
             with ipc.open_file(path) as reader:
                 return reader.read_pandas()
         else:
@@ -282,7 +306,10 @@ class DataValidator:
             errors.append(f"{too_long} extremely long texts (>10000 chars)")
         if errors:
             return False, f"Text quality issues: {errors}"
-        return True, f"Text quality OK (empty={empty}, long={too_long}, non-ascii={encoding_issues})"
+        return (
+            True,
+            f"Text quality OK (empty={empty}, long={too_long}, non-ascii={encoding_issues})",
+        )
 
     def _check_duplicates(self, df: pd.DataFrame) -> Tuple[bool, str]:
         """Check for duplicate IDs or content hashes."""
@@ -307,7 +334,10 @@ class DataValidator:
         sample = df["author_hash"].dropna().head(100).astype(str)
         looks_like_raw = sample.str.match(r"^[a-zA-Z0-9_-]{3,20}$").mean()
         if looks_like_raw > 0.5:
-            return False, f"{looks_like_raw:.0%} of author_hash looks like raw usernames, not hashes"
+            return (
+                False,
+                f"{looks_like_raw:.0%} of author_hash looks like raw usernames, not hashes",
+            )
         return True, "Author hashing appears valid"
 
     def _check_date_consistency(self, df: pd.DataFrame) -> Tuple[bool, str]:
@@ -345,8 +375,12 @@ class DataValidator:
             context = gx.get_context()
             suite = ExpectationSuite(name="reddit_suite")
             suite.add_expectation(ExpectColumnValuesToNotBeNull(column="id"))
-            suite.add_expectation(ExpectColumnValuesToBeBetween(column="label", min_value=0, max_value=1))
-            suite.add_expectation(ExpectColumnValuesToBeBetween(column="upvote_ratio", min_value=0, max_value=1))
+            suite.add_expectation(
+                ExpectColumnValuesToBeBetween(column="label", min_value=0, max_value=1)
+            )
+            suite.add_expectation(
+                ExpectColumnValuesToBeBetween(column="upvote_ratio", min_value=0, max_value=1)
+            )
 
             # Validate
             validation_results = df.validate(suite)

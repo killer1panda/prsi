@@ -2,6 +2,7 @@
 Production-grade CLIP-based Vision Encoder for multimodal Doom Index.
 Handles image preprocessing, batch embedding extraction, and meme-aware encoding.
 """
+
 import logging
 import hashlib
 from pathlib import Path
@@ -40,12 +41,10 @@ class VisionEncoder(nn.Module):
 
         # Load CLIP vision components
         self.processor = CLIPProcessor.from_pretrained(
-            self.config.model_name, 
-            cache_dir=self.config.cache_dir
+            self.config.model_name, cache_dir=self.config.cache_dir
         )
         self.vision_model = CLIPVisionModel.from_pretrained(
-            self.config.model_name,
-            cache_dir=self.config.cache_dir
+            self.config.model_name, cache_dir=self.config.cache_dir
         ).to(self.device)
 
         if self.config.freeze_backbone:
@@ -58,7 +57,7 @@ class VisionEncoder(nn.Module):
             nn.LayerNorm(self.config.projection_dim * 2),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(self.config.projection_dim * 2, self.config.projection_dim)
+            nn.Linear(self.config.projection_dim * 2, self.config.projection_dim),
         ).to(self.device)
 
         self._cache: Dict[str, torch.Tensor] = {}
@@ -96,8 +95,9 @@ class VisionEncoder(nn.Module):
 
     @torch.cuda.amp.autocast()
     @torch.no_grad()
-    def encode(self, images: List[Union[str, Path, Image.Image]], 
-               use_cache: bool = True) -> torch.Tensor:
+    def encode(
+        self, images: List[Union[str, Path, Image.Image]], use_cache: bool = True
+    ) -> torch.Tensor:
         """
         Encode images to embedding vectors with caching.
 
@@ -124,7 +124,7 @@ class VisionEncoder(nn.Module):
         # Batch processing
         all_embeddings = []
         for i in range(0, len(images), self.config.batch_size):
-            batch = images[i:i + self.config.batch_size]
+            batch = images[i : i + self.config.batch_size]
             pixel_values = self.preprocess(batch)
 
             vision_outputs = self.vision_model(pixel_values=pixel_values)
@@ -149,8 +149,9 @@ class VisionEncoder(nn.Module):
         pooled = vision_outputs.pooler_output
         return self.projection(pooled)
 
-    def compute_similarity(self, img1: Union[str, Image.Image], 
-                           img2: Union[str, Image.Image]) -> float:
+    def compute_similarity(
+        self, img1: Union[str, Image.Image], img2: Union[str, Image.Image]
+    ) -> float:
         """Compute cosine similarity between two images."""
         embs = self.encode([img1, img2], use_cache=False)
         sim = torch.cosine_similarity(embs[0:1], embs[1:2], dim=-1)
@@ -158,11 +159,14 @@ class VisionEncoder(nn.Module):
 
     def save(self, path: str):
         """Save model weights and config."""
-        torch.save({
-            "vision_model": self.vision_model.state_dict(),
-            "projection": self.projection.state_dict(),
-            "config": self.config
-        }, path)
+        torch.save(
+            {
+                "vision_model": self.vision_model.state_dict(),
+                "projection": self.projection.state_dict(),
+                "config": self.config,
+            },
+            path,
+        )
         logger.info(f"VisionEncoder saved to {path}")
 
     def load(self, path: str):
@@ -179,8 +183,9 @@ class MultimodalFusion(nn.Module):
     Uses cross-modal attention for fine-grained alignment.
     """
 
-    def __init__(self, text_dim: int = 768, vision_dim: int = 256, 
-                 fusion_dim: int = 512, num_heads: int = 8):
+    def __init__(
+        self, text_dim: int = 768, vision_dim: int = 256, fusion_dim: int = 512, num_heads: int = 8
+    ):
         super().__init__()
         self.text_proj = nn.Linear(text_dim, fusion_dim)
         self.vision_proj = nn.Linear(vision_dim, fusion_dim)
@@ -193,12 +198,13 @@ class MultimodalFusion(nn.Module):
             nn.LayerNorm(fusion_dim),
             nn.GELU(),
             nn.Dropout(0.15),
-            nn.Linear(fusion_dim, fusion_dim)
+            nn.Linear(fusion_dim, fusion_dim),
         )
         self.output_proj = nn.Linear(fusion_dim, 1)
 
-    def forward(self, text_emb: torch.Tensor, 
-                vision_emb: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, text_emb: torch.Tensor, vision_emb: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
             text_emb: (B, text_dim)

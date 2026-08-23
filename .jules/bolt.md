@@ -1,0 +1,3 @@
+## 2024-05-18 - Model Inference / API Call Bottleneck
+**Learning:** Functions that perform model inferences or external API calls (e.g., `analyze_text_sentiment`, `analyze_text_toxicity`) can be heavily bottlenecked when processing large batches of similar or identical texts. In our case, the same text was generating repeated requests.
+**Action:** Used `@lru_cache` from `functools` on convenience wrapper functions (`analyze_text_sentiment` and `analyze_text_toxicity`) to drastically reduce inference time on repeated texts, dropping execution time for subsequent calls from ~1-2s to under a millisecond without sacrificing readability.

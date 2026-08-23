@@ -93,15 +93,11 @@ class TextEncoder(nn.Module):
         """Encode a single text string."""
         self.eval()
         inputs = tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=512
+            text, return_tensors="pt", truncation=True, padding=True, max_length=512
         ).to(device)
 
         with torch.no_grad():
-            embedding = self.forward(inputs['input_ids'], inputs['attention_mask'])
+            embedding = self.forward(inputs["input_ids"], inputs["attention_mask"])
 
         return embedding.squeeze(0)
 
@@ -245,11 +241,7 @@ class MultimodalDoomPredictor(nn.Module):
 
         # Tokenize text
         inputs = self.tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=512
+            text, return_tensors="pt", truncation=True, padding=True, max_length=512
         ).to(device)
 
         # Move graph to device
@@ -260,8 +252,10 @@ class MultimodalDoomPredictor(nn.Module):
 
         with torch.no_grad():
             logits = self.forward(
-                x, edge_index,
-                inputs['input_ids'], inputs['attention_mask'],
+                x,
+                edge_index,
+                inputs["input_ids"],
+                inputs["attention_mask"],
                 torch.tensor([user_idx], dtype=torch.long, device=device),
                 edge_weight,
             )
@@ -284,11 +278,7 @@ class MultimodalDoomPredictor(nn.Module):
         self.eval()
 
         inputs = self.tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=512
+            text, return_tensors="pt", truncation=True, padding=True, max_length=512
         ).to(device)
 
         x = x.to(device)
@@ -297,12 +287,12 @@ class MultimodalDoomPredictor(nn.Module):
         with torch.no_grad():
             graph_emb = self.graph_encoder(x, edge_index, edge_weight)
             user_emb = graph_emb[user_idx]
-            text_emb = self.text_encoder(inputs['input_ids'], inputs['attention_mask'])
+            text_emb = self.text_encoder(inputs["input_ids"], inputs["attention_mask"])
 
         return {
-            'graph_embedding': user_emb.cpu().numpy(),
-            'text_embedding': text_emb.squeeze(0).cpu().numpy(),
-            'combined_dim': user_emb.shape[-1] + text_emb.shape[-1],
+            "graph_embedding": user_emb.cpu().numpy(),
+            "text_embedding": text_emb.squeeze(0).cpu().numpy(),
+            "combined_dim": user_emb.shape[-1] + text_emb.shape[-1],
         }
 
 

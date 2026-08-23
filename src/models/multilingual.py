@@ -2,6 +2,7 @@
 Multilingual text encoder for Indian social media (Hinglish, Hindi, English).
 Uses XLM-RoBERTa with domain adaptation for code-switched text.
 """
+
 import logging
 import re
 from typing import List, Optional, Dict, Union
@@ -26,7 +27,7 @@ class MultilingualConfig:
 
 class MultilingualEncoder(nn.Module):
     """
-    Production multilingual encoder with language detection and 
+    Production multilingual encoder with language detection and
     code-switching handling for Indian social media.
     """
 
@@ -42,7 +43,7 @@ class MultilingualEncoder(nn.Module):
         if self.config.freeze_layers > 0:
             for param in self.backbone.embeddings.parameters():
                 param.requires_grad = False
-            for layer in self.backbone.encoder.layer[:self.config.freeze_layers]:
+            for layer in self.backbone.encoder.layer[: self.config.freeze_layers]:
                 for param in layer.parameters():
                     param.requires_grad = False
 
@@ -52,7 +53,7 @@ class MultilingualEncoder(nn.Module):
             nn.LayerNorm(hidden_size // 2),
             nn.GELU(),
             nn.Dropout(self.config.dropout),
-            nn.Linear(hidden_size // 2, self.config.projection_dim)
+            nn.Linear(hidden_size // 2, self.config.projection_dim),
         ).to(self.device)
 
         # Language detection head (auxiliary task)
@@ -66,10 +67,14 @@ class MultilingualEncoder(nn.Module):
     def _compile_hinglish_patterns(self) -> Dict[str, re.Pattern]:
         """Compile regex patterns for common Hinglish constructs."""
         return {
-            "roman_hindi": re.compile(r'\b(kya|nahi|hai|main|tu|aap|kaise|kyun|bahut|achha|bura)\b', re.I),
-            "hindi_script": re.compile(r'[\u0900-\u097F]+'),
-            "english": re.compile(r'\b(the|is|are|was|were|have|has|had|do|does|did|will|would|could|should)\b', re.I),
-            "emoji_heavy": re.compile(r'[\U0001F600-\U0001F64F]{3,}'),
+            "roman_hindi": re.compile(
+                r"\b(kya|nahi|hai|main|tu|aap|kaise|kyun|bahut|achha|bura)\b", re.I
+            ),
+            "hindi_script": re.compile(r"[\u0900-\u097F]+"),
+            "english": re.compile(
+                r"\b(the|is|are|was|were|have|has|had|do|does|did|will|would|could|should)\b", re.I
+            ),
+            "emoji_heavy": re.compile(r"[\U0001F600-\U0001F64F]{3,}"),
         }
 
     def detect_language(self, text: str) -> str:
@@ -99,13 +104,15 @@ class MultilingualEncoder(nn.Module):
         normalized = []
         for text in texts:
             # Normalize repeated characters (e.g., "haaaa" -> "haa")
-            text = re.sub(r'(.)\1{3,}', r'\1\1\1', text)
+            text = re.sub(r"(.)\1{3,}", r"\1\1\1", text)
             # Normalize spaces around punctuation
-            text = re.sub(r'\s+([.,!?])', r'\1', text)
+            text = re.sub(r"\s+([.,!?])", r"\1", text)
             normalized.append(text.lower().strip())
         return normalized
 
-    def encode(self, texts: List[str], return_lang_logits: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    def encode(
+        self, texts: List[str], return_lang_logits: bool = False
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Encode texts to embeddings.
 
@@ -123,7 +130,7 @@ class MultilingualEncoder(nn.Module):
             padding=True,
             truncation=True,
             max_length=self.config.max_length,
-            return_tensors="pt"
+            return_tensors="pt",
         ).to(self.device)
 
         outputs = self.backbone(**inputs)
@@ -145,12 +152,15 @@ class MultilingualEncoder(nn.Module):
         return self.projection(pooled)
 
     def save(self, path: str):
-        torch.save({
-            "backbone": self.backbone.state_dict(),
-            "projection": self.projection.state_dict(),
-            "lang_classifier": self.lang_classifier.state_dict(),
-            "config": self.config
-        }, path)
+        torch.save(
+            {
+                "backbone": self.backbone.state_dict(),
+                "projection": self.projection.state_dict(),
+                "lang_classifier": self.lang_classifier.state_dict(),
+                "config": self.config,
+            },
+            path,
+        )
         logger.info(f"MultilingualEncoder saved to {path}")
 
     def load(self, path: str):

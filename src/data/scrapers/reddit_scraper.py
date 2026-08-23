@@ -13,6 +13,7 @@ from src.config import get_env_var
 try:
     import praw
     from praw.models import Comment, Submission
+
     REDDIT_AVAILABLE = True
 except ImportError:
     REDDIT_AVAILABLE = False
@@ -21,7 +22,7 @@ except ImportError:
 
 class RedditScraper:
     """Reddit API scraper with rate limiting and error handling."""
-    
+
     # Target subreddits for cancellation content
     CANCELLATION_SUBREDDITS = [
         "SubredditDrama",
@@ -34,7 +35,7 @@ class RedditScraper:
         "Fauxmoi",
         "HobbyDrama",
     ]
-    
+
     def __init__(
         self,
         client_id: str = None,
@@ -42,23 +43,25 @@ class RedditScraper:
         user_agent: str = None,
     ):
         """Initialize Reddit API client.
-        
+
         Args:
             client_id: Reddit client ID
             client_secret: Reddit client secret
             user_agent: Reddit user agent string
         """
         if not REDDIT_AVAILABLE:
-            raise ImportError("praw is required for Reddit scraping. Install with: pip install praw")
-        
+            raise ImportError(
+                "praw is required for Reddit scraping. Install with: pip install praw"
+            )
+
         self.client_id = client_id or get_env_var("REDDIT_CLIENT_ID")
         self.client_secret = client_secret or get_env_var("REDDIT_CLIENT_SECRET")
         self.user_agent = user_agent or get_env_var("REDDIT_USER_AGENT", "doom-index/0.1.0")
-        
+
         # Check if credentials are available
         if not all([self.client_id, self.client_secret]):
             logger.warning("Reddit API credentials not configured. Some features may not work.")
-        
+
         # Initialize PRAW client
         if self.client_id and self.client_secret:
             self.reddit = praw.Reddit(
@@ -68,22 +71,22 @@ class RedditScraper:
             )
         else:
             self.reddit = None
-        
+
         logger.info("Reddit API client initialized")
-    
+
     def anonymize_user_id(self, username: str) -> str:
         """Hash username for anonymization.
-        
+
         Args:
             username: Original username
-            
+
         Returns:
             Hashed username
         """
         if username in ["[deleted]", "AutoModerator"]:
             return username
         return hashlib.sha256(username.encode()).hexdigest()[:16]
-    
+
     def get_subreddit_posts(
         self,
         subreddit_name: str,
@@ -92,25 +95,25 @@ class RedditScraper:
         time_filter: str = "month",
     ) -> Generator[Dict[str, Any], None, None]:
         """Get posts from a subreddit.
-        
+
         Args:
             subreddit_name: Name of subreddit
             category: Category (hot, new, top, controversial)
             limit: Maximum posts to retrieve
             time_filter: Time filter for top/controversial (hour, day, week, month, year, all)
-            
+
         Yields:
             Post data dictionaries
         """
         if not self.reddit:
             logger.error("Reddit client not initialized")
             return
-        
+
         logger.info(f"Fetching {category} posts from r/{subreddit_name}")
-        
+
         try:
             subreddit = self.reddit.subreddit(subreddit_name)
-            
+
             if category == "hot":
                 posts = subreddit.hot(limit=limit)
             elif category == "new":
@@ -121,46 +124,46 @@ class RedditScraper:
                 posts = subreddit.controversial(time_filter=time_filter, limit=limit)
             else:
                 posts = subreddit.hot(limit=limit)
-            
+
             for post in posts:
                 yield self._parse_submission(post)
-                
+
         except Exception as e:
             logger.error(f"Error fetching from r/{subreddit_name}: {e}")
-    
+
     def get_post_comments(
         self,
         post_id: str,
         limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Get comments from a post.
-        
+
         Args:
             post_id: Reddit post ID
             limit: Maximum comments to retrieve
-            
+
         Returns:
             List of comment data dictionaries
         """
         if not self.reddit:
             logger.error("Reddit client not initialized")
             return []
-        
+
         logger.info(f"Fetching comments for post: {post_id}")
-        
+
         comments = []
         try:
             submission = self.reddit.submission(id=post_id)
             submission.comments.replace_more(limit=0)  # Remove "load more" stubs
-            
+
             for comment in submission.comments[:limit]:
                 comments.append(self._parse_comment(comment))
-                
+
         except Exception as e:
             logger.error(f"Error fetching comments: {e}")
-            
+
         return comments
-    
+
     def search_cancellation_posts(
         self,
         query: str = "cancelled",
@@ -169,22 +172,22 @@ class RedditScraper:
         time_filter: str = "month",
     ) -> Generator[Dict[str, Any], None, None]:
         """Search for cancellation-related posts.
-        
+
         Args:
             query: Search query
             subreddit: Subreddit to search (default: all)
             limit: Maximum results
             time_filter: Time filter
-            
+
         Yields:
             Post data dictionaries
         """
         if not self.reddit:
             logger.error("Reddit client not initialized")
             return
-        
+
         logger.info(f"Searching Reddit for: {query}")
-        
+
         try:
             search_results = self.reddit.subreddit(subreddit).search(
                 query,
@@ -192,68 +195,68 @@ class RedditScraper:
                 time_filter=time_filter,
                 limit=limit,
             )
-            
+
             for post in search_results:
                 yield self._parse_submission(post)
-                
+
         except Exception as e:
             logger.error(f"Error searching Reddit: {e}")
-    
+
     def get_user_history(
         self,
         username: str,
         limit: int = 100,
     ) -> Dict[str, List[Dict[str, Any]]]:
         """Get user's post and comment history.
-        
+
         Args:
             username: Reddit username
             limit: Maximum items per category
-            
+
         Returns:
             Dictionary with posts and comments
         """
         if not self.reddit:
             logger.error("Reddit client not initialized")
             return {"posts": [], "comments": []}
-        
+
         logger.info(f"Fetching history for user: {username}")
-        
+
         result = {"posts": [], "comments": []}
-        
+
         try:
             redditor = self.reddit.redditor(username)
-            
+
             # Get posts
             for post in redditor.submissions.new(limit=limit):
                 result["posts"].append(self._parse_submission(post))
-            
+
             # Get comments
             for comment in redditor.comments.new(limit=limit):
                 result["comments"].append(self._parse_comment(comment))
-                
+
         except Exception as e:
             logger.error(f"Error fetching user history: {e}")
-            
+
         return result
-    
+
     def collect_drama_threads(
         self,
         samples_per_subreddit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Collect drama/cancellation threads from relevant subreddits.
-        
+
         Args:
             samples_per_subreddit: Samples per subreddit
-            
+
         Returns:
             List of collected posts with comments
         """
         all_posts = []
-        
+
         for subreddit_name in tqdm(self.CANCELLATION_SUBREDDITS, desc="Collecting Reddit posts"):
             logger.info(f"Collecting from r/{subreddit_name}")
-            
+
             count = 0
             for post in self.get_subreddit_posts(
                 subreddit_name,
@@ -262,25 +265,22 @@ class RedditScraper:
             ):
                 # Get top comments for each post
                 if post["num_comments"] > 10:
-                    post["comments"] = self.get_post_comments(
-                        post["post_id"],
-                        limit=50
-                    )
-                
+                    post["comments"] = self.get_post_comments(post["post_id"], limit=50)
+
                 all_posts.append(post)
                 count += 1
-                
+
             logger.info(f"Collected {count} posts from r/{subreddit_name}")
-            
+
         logger.info(f"Total Reddit posts collected: {len(all_posts)}")
         return all_posts
-    
+
     def _parse_submission(self, submission: Submission) -> Dict[str, Any]:
         """Parse submission object to dictionary.
-        
+
         Args:
             submission: PRAW Submission object
-            
+
         Returns:
             Parsed submission dictionary
         """
@@ -288,7 +288,9 @@ class RedditScraper:
             "post_id": submission.id,
             "title": submission.title,
             "text": submission.selftext,
-            "author": self.anonymize_user_id(str(submission.author)) if submission.author else "[deleted]",
+            "author": (
+                self.anonymize_user_id(str(submission.author)) if submission.author else "[deleted]"
+            ),
             "subreddit": submission.subreddit.display_name,
             "created_at": datetime.fromtimestamp(submission.created_utc).isoformat(),
             "score": submission.score,
@@ -300,13 +302,13 @@ class RedditScraper:
             "link_flair_text": submission.link_flair_text,
             "source": "reddit",
         }
-    
+
     def _parse_comment(self, comment: Comment) -> Dict[str, Any]:
         """Parse comment object to dictionary.
-        
+
         Args:
             comment: PRAW Comment object
-            
+
         Returns:
             Parsed comment dictionary
         """
@@ -314,7 +316,9 @@ class RedditScraper:
             "comment_id": comment.id,
             "post_id": comment.submission.id,
             "text": comment.body,
-            "author": self.anonymize_user_id(str(comment.author)) if comment.author else "[deleted]",
+            "author": (
+                self.anonymize_user_id(str(comment.author)) if comment.author else "[deleted]"
+            ),
             "created_at": datetime.fromtimestamp(comment.created_utc).isoformat(),
             "score": comment.score,
             "is_submitter": comment.is_submitter,

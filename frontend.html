@@ -19,6 +19,8 @@
         .score.high  {background:#e74c3c; color:#fff;}
         .label {font-weight:600; margin-right:0.5rem;}
         .small {font-size:0.9rem; color:#555;}
+        textarea:focus-visible, button:focus-visible { outline: 2px solid #2980b9; outline-offset: 2px; }
+        .error-msg { margin-bottom: 1rem; padding: 0.8rem; background: #fdeaea; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 4px; display: none; }
     </style>
 </head>
 <body>
@@ -26,7 +28,10 @@
     <h1>Doom Index – Cancellation Risk Analyzer</h1>
     <p class="small">Enter any text (social‑media post, comment, news headline, etc.) to get a multimodal analysis: sentiment (VADER, DistilBERT, RoBERTa), toxicity (Perspective API), and a machine‑learning prediction of cancellation risk.</p>
 
-    <textarea id="inputText" placeholder="Paste or type text here…"></textarea><br>
+    <div id="errorContainer" class="error-msg" role="alert"></div>
+
+    <label for="inputText" class="label" style="display:block; margin-bottom:0.5rem;">Text to analyze:</label>
+    <textarea id="inputText" placeholder="Paste or type text here…" aria-required="true"></textarea><br>
     <button id="analyzeBtn">Analyze</button>
 
     <div id="output" class="result" style="display:none;">
@@ -55,10 +60,24 @@
 <script>
     const API_URL = window.location.origin; // assumes frontend and backend on same origin
 
+    function showError(message) {
+        const errEl = document.getElementById('errorContainer');
+        errEl.textContent = message;
+        errEl.style.display = 'block';
+        document.getElementById('inputText').focus();
+    }
+
+    function clearError() {
+        const errEl = document.getElementById('errorContainer');
+        errEl.textContent = '';
+        errEl.style.display = 'none';
+    }
+
     document.getElementById('analyzeBtn').addEventListener('click', async () => {
+        clearError();
         const text = document.getElementById('inputText').value.trim();
         if (!text) {
-            alert('Please enter some text to analyze.');
+            showError('Please enter some text to analyze.');
             return;
         }
 
@@ -82,7 +101,7 @@
             const data = await response.json();
             renderResult(data);
         } catch (err) {
-            alert('Analysis failed: ' + err.message);
+            showError('Analysis failed: ' + err.message);
             console.error(err);
         } finally {
             btn.disabled = false;

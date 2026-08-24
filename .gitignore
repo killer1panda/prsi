@@ -1,1 +1,19 @@
-Nothing to output - the file changes contain only a modified README.md file, which is a source/config file, and there are no build artifacts, dependencies, or temp files to ignore.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.idea/
+.vscode/
+.DS_Store
+node_modules/

@@ -1,0 +1,3 @@
+## 2026-08-27 - Replaced Jarring Alert with Inline Validation for Empty Text
+**Learning:** Using browser `alert()` for form validation is a poor user experience and breaks accessibility flows. Inline validation tied to the user input provides better context, especially when paired with `role="alert"` for screen readers. In addition, using `aria-live="polite"` on dynamically populated result containers ensures screen readers are aware of updates when the asynchronous request finishes.
+**Action:** Always prefer inline error messages over `alert()` dialogs for form validation. Utilize ARIA attributes (`role="alert"`, `aria-live`) to communicate state changes appropriately to assistive technologies without unnecessarily interrupting the user.

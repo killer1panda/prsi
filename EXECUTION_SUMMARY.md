@@ -70,7 +70,7 @@ python -m src.data.populate_neo4j_production \
     --twitter-data data/twitter_dataset.parquet \
     --reddit-data data/reddit_processed.parquet \
     --uri bolt://localhost:7687 \
-    --password doom_index_prod_2026
+    --password YOUR_PASSWORD_HERE
 ```
 
 **Impact:** GNN models now learn from REAL social network structure instead of random k-NN connections.

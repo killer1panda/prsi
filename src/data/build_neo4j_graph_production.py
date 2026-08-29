@@ -38,7 +38,7 @@ class GraphBuildConfig:
     """Configuration for graph construction."""
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
-    neo4j_password: str = "password"
+    neo4j_password: str = ""
     database: str = "neo4j"
     
     # Edge types to construct
@@ -60,6 +60,10 @@ class GraphBuildConfig:
     hash_salt: str = "doom_index_salt_2026"
     
     def __post_init__(self):
+        if not self.neo4j_password:
+            self.neo4j_password = os.getenv("NEO4J_PASSWORD", "")
+        if not self.neo4j_password:
+            raise ValueError("Neo4j password must be provided via NEO4J_PASSWORD environment variable or config.")
         os.environ["NEO4J_URI"] = self.neo4j_uri
 
 
@@ -695,7 +699,7 @@ def main():
     parser.add_argument("--data", required=True, help="Path to processed CSV/Parquet")
     parser.add_argument("--neo4j-uri", default="bolt://localhost:7687")
     parser.add_argument("--neo4j-user", default="neo4j")
-    parser.add_argument("--neo4j-password", default="password")
+    parser.add_argument("--neo4j-password", default="")
     parser.add_argument("--max-users", type=int, default=5000, help="Max users for co-subreddit edges")
     parser.add_argument("--temporal-window", type=int, default=24, help="Temporal window in hours")
     parser.add_argument("--output-edges", default="data/graph/edge_list.csv")

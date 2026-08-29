@@ -7,9 +7,12 @@
         body {font-family: Arial, sans-serif; margin: 2rem; background:#f9f9f9; color:#333;}
         h1 {color:#2c3e50;}
         .container {max-width: 800px; margin:auto; background:#fff; padding:2rem; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-        textarea {width:100%; height:120px; padding:0.8rem; font-size:1rem; margin-bottom:1rem; border:1px solid #ccc; border-radius:4px;}
-        button {background:#2980b9; color:#fff; border:none; padding:0.8rem 1.5rem; font-size:1rem; border-radius:4px; cursor:pointer;}
+        textarea {width:100%; height:120px; padding:0.8rem; font-size:1rem; margin-bottom:1rem; border:1px solid #ccc; border-radius:4px; outline:none;}
+        textarea:focus {border-color:#2980b9; box-shadow:0 0 0 2px rgba(41,128,185,0.3);}
+        button {background:#2980b9; color:#fff; border:none; padding:0.8rem 1.5rem; font-size:1rem; border-radius:4px; cursor:pointer; outline:none;}
         button:hover {background:#3498db;}
+        button:focus-visible {box-shadow:0 0 0 3px rgba(41,128,185,0.5);}
+        button:disabled {background:#95a5a6; cursor:not-allowed;}
         .result {margin-top:1.5rem; padding:1rem; background:#ecf0f1; border-radius:4px;}
         .section {margin-bottom:1rem;}
         .section h2 {color:#2c3e50; border-bottom:1px solid #bdc3c7; padding-bottom:0.3rem;}
@@ -26,10 +29,10 @@
     <h1>Doom Index – Cancellation Risk Analyzer</h1>
     <p class="small">Enter any text (social‑media post, comment, news headline, etc.) to get a multimodal analysis: sentiment (VADER, DistilBERT, RoBERTa), toxicity (Perspective API), and a machine‑learning prediction of cancellation risk.</p>
 
-    <textarea id="inputText" placeholder="Paste or type text here…"></textarea><br>
+    <textarea id="inputText" aria-label="Text to analyze" placeholder="Paste or type text here…"></textarea><br>
     <button id="analyzeBtn">Analyze</button>
 
-    <div id="output" class="result" style="display:none;">
+    <div id="output" class="result" aria-live="polite" style="display:none;">
         <div class="section">
             <h2>🔎 Prediction</h2>
             <div class="label">Cancellation Risk:</div>

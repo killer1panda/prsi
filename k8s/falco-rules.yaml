@@ -1,0 +1,12 @@
+customRules:
+  rules-doom-backend.yaml: |-
+    - rule: Unauthorized Process Execution in Backend
+      desc: Detects execution of a shell or unauthorized process in the backend container
+      condition: >
+        spawned_process and container.image.repository contains "doom-index-backend"
+        and not proc.name in ("node", "java", "python", "app")
+      output: >
+        Unauthorized process execution in backend container (user=%user.name
+        command=%proc.cmdline container_id=%container.id image=%container.image.repository)
+      priority: CRITICAL
+      tags: [backend, security, mitre_execution]

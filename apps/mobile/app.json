@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Risk Dashboard",
+    "slug": "risk-dashboard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.doomindex.riskdashboard"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1E293B"
+      },
+      "package": "com.doomindex.riskdashboard"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

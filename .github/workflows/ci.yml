@@ -45,6 +45,22 @@ jobs:
       - name: GitLeaks secret scanning
         run: gitleaks detect --source . --report-format json --report-path gitleaks-report.json || true
 
+      - name: Generate SBOM with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'cyclonedx'
+          output: 'sbom.json'
+
+      - name: Snyk vulnerability scan
+        uses: snyk/actions/python@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: apps/backend
+
       - name: Upload security reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -54,6 +70,7 @@ jobs:
             bandit-report.json
             safety-report.json
             gitleaks-report.json
+            sbom.json
 
   test-suite:
     name: Comprehensive Test Suite

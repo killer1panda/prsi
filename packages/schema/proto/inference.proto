@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package doom_index.inference.v1;
+
+option go_package = "github.com/killer1panda/prsi/packages/schema/proto/inference_v1";
+
+message PredictDoomRequest {
+  string text_content = 1;
+  repeated bytes image_contents = 2;
+  string source_id = 3;
+}
+
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW = 1;
+  RISK_LEVEL_MEDIUM = 2;
+  RISK_LEVEL_HIGH = 3;
+  RISK_LEVEL_EXTREME = 4;
+}
+
+message PredictDoomResponse {
+  float doom_score = 1;
+  RiskLevel risk_level = 2;
+  string prediction_id = 3;
+  int64 timestamp = 4;
+}
+
+service PredictionService {
+  rpc PredictDoom(PredictDoomRequest) returns (PredictDoomResponse);
+}

@@ -1,0 +1,14 @@
+_format_version: "3.0"
+services:
+  - name: doom-backend
+    url: http://doom-backend:8000
+    routes:
+      - name: doom-backend-route
+        paths:
+          - /api/v2
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          policy: local
+      - name: key-auth

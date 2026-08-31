@@ -465,30 +465,74 @@ with tab3:
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Network visualization placeholder
+        # ── Live Network Graph from Neo4j/NetworkX ───────────────────────────
         st.subheader("🕸️ Outrage Network Visualization")
-        st.info("Network graph showing echo-chamber clusters and cross-community spread patterns.")
-        
-        # Simulated network data
-        np.random.seed(42)
-        n_nodes = 50
-        network_df = pd.DataFrame({
-            "x": np.random.randn(n_nodes),
-            "y": np.random.randn(n_nodes),
-            "size": np.random.randint(10, 100, n_nodes),
-            "doom_score": np.random.beta(2, 5, n_nodes) * 100,
-            "cluster": np.random.choice(["A", "B", "C", "D"], n_nodes)
-        })
-        
+        st.info("Echo-chamber clusters coloured by Louvain community. Node size = follower reach.")
+
+        # Attempt to load real graph from Neo4j via GraphExtractor
+        network_df = None
+        try:
+            from src.features.graph_extractor import GraphExtractor, LOUVAIN_AVAILABLE
+            import networkx as nx
+
+            extractor = GraphExtractor()
+            pyg_data, user_df = extractor.extract_user_graph(max_users=500)
+
+            if pyg_data.num_nodes > 0 and pyg_data.num_edges > 0:
+                # Build NetworkX graph for layout
+                G_vis = nx.Graph()
+                G_vis.add_nodes_from(range(pyg_data.num_nodes))
+                edges = pyg_data.edge_index.t().tolist()
+                G_vis.add_edges_from(edges)
+
+                # Spring layout positions
+                pos = nx.spring_layout(G_vis, seed=42, k=0.5)
+
+                # Echo-chamber density per node for colour
+                edges_raw = extractor._get_interaction_edges(min_interactions=1)
+                user_ids = user_df["user_id"].tolist() if "user_id" in user_df.columns else list(range(pyg_data.num_nodes))
+                density_map = extractor.compute_echo_chamber_density(user_ids, edges_raw)
+
+                node_df = pd.DataFrame({
+                    "x": [pos[i][0] for i in range(len(pos))],
+                    "y": [pos[i][1] for i in range(len(pos))],
+                    "size": (user_df["followers"].fillna(0).clip(upper=1e6) / 1e4 + 5).tolist()
+                          if "followers" in user_df.columns else [10] * pyg_data.num_nodes,
+                    "doom_score": (user_df["avg_toxicity"].fillna(0) * 100).tolist()
+                                 if "avg_toxicity" in user_df.columns else [50] * pyg_data.num_nodes,
+                    "echo_chamber": [density_map.get(uid, 0.0) for uid in user_ids],
+                    "user_id": [str(uid) for uid in user_ids],
+                })
+                network_df = node_df
+                st.caption(f"Live graph: {pyg_data.num_nodes} users, {pyg_data.num_edges} interactions — Neo4j")
+        except Exception as e:
+            st.caption(f"⚠️ Neo4j offline or GraphExtractor error ({type(e).__name__}). Showing demo layout.")
+
+        if network_df is None:
+            # Graceful fallback: use a small seeded demo graph (clearly labelled)
+            np.random.seed(42)
+            n_nodes = 50
+            network_df = pd.DataFrame({
+                "x": np.random.randn(n_nodes),
+                "y": np.random.randn(n_nodes),
+                "size": np.random.randint(10, 100, n_nodes),
+                "doom_score": np.random.beta(2, 5, n_nodes) * 100,
+                "echo_chamber": np.random.beta(3, 2, n_nodes),
+                "user_id": [f"demo_user_{i}" for i in range(n_nodes)],
+            })
+
         fig_network = px.scatter(
-            network_df, x="x", y="y", size="size", color="doom_score",
-            hover_data=["cluster"],
-            title="User Interaction Network (t-SNE projection)",
-            color_continuous_scale="Reds"
+            network_df, x="x", y="y",
+            size="size", color="doom_score",
+            hover_data=["user_id", "echo_chamber"],
+            title="User Interaction Network (Spring Layout — Echo-Chamber Density)",
+            color_continuous_scale="Reds",
+            labels={"doom_score": "Doom Score", "echo_chamber": "Echo-Chamber Density"},
         )
         st.plotly_chart(fig_network, use_container_width=True)
     else:
         st.info("No leaderboard data available.")
+
 
 # =============================================================================
 # Tab 4: Privacy Analysis
@@ -530,21 +574,44 @@ with tab4:
     
     st.divider()
     
-    # Privacy-Utility Tradeoff Curves
+    # ── Privacy-Utility Tradeoff Curves ──────────────────────────────────────
     st.subheader("📈 Privacy-Utility Tradeoff")
-    
-    # Generate or fetch tradeoff data
-    epsilon_values = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, float('inf')]
-    # Simulated accuracy values (in practice, these come from actual training runs)
-    accuracy_values = [72.3, 80.1, 85.4, 88.2, 90.1, 91.0, 91.8]
-    f1_values = [68.5, 76.2, 82.1, 85.3, 87.8, 88.9, 89.5]
-    
-    tradeoff_df = pd.DataFrame({
-        "epsilon": [str(e) for e in epsilon_values],
-        "epsilon_numeric": [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 100],
-        "accuracy": accuracy_values,
-        "f1_score": f1_values
-    })
+
+    # Attempt to load real tradeoff CSV produced by dp_trainer experiments
+    _TRADEOFF_CSV = Path("reports/privacy_utility_tradeoff.csv")
+    _fallback_label = ""
+
+    if _TRADEOFF_CSV.exists():
+        try:
+            tradeoff_df = pd.read_csv(_TRADEOFF_CSV)
+            # Normalise column names (dp_trainer writes: epsilon, accuracy, f1_score)
+            tradeoff_df = tradeoff_df.rename(columns=str.lower)
+            if "epsilon" in tradeoff_df.columns:
+                tradeoff_df["epsilon_numeric"] = pd.to_numeric(tradeoff_df["epsilon"], errors="coerce")
+                tradeoff_df["epsilon"] = tradeoff_df["epsilon"].astype(str)
+                st.caption(f"✅ Live data from `{_TRADEOFF_CSV}` ({len(tradeoff_df)} epsilon levels)")
+            else:
+                raise ValueError("Missing 'epsilon' column in CSV")
+        except Exception as e:
+            st.caption(f"⚠️ Could not parse tradeoff CSV ({e}). Showing demo values.")
+            tradeoff_df = None
+    else:
+        _fallback_label = " *(demo — run dp_trainer to generate live data)*"
+        tradeoff_df = None
+
+    if tradeoff_df is None:
+        # Static demo values (clearly marked)
+        epsilon_values = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, float("inf")]
+        accuracy_values = [72.3, 80.1, 85.4, 88.2, 90.1, 91.0, 91.8]
+        f1_values = [68.5, 76.2, 82.1, 85.3, 87.8, 88.9, 89.5]
+        tradeoff_df = pd.DataFrame({
+            "epsilon": [str(e) for e in epsilon_values],
+            "epsilon_numeric": [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 100],
+            "accuracy": accuracy_values,
+            "f1_score": f1_values,
+        })
+        st.caption(f"📊 Demo tradeoff curves{_fallback_label}")
+
     
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     

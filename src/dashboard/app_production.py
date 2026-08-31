@@ -373,7 +373,7 @@ with tab2:
             cols = st.columns(3)
             cols[0].metric("Original Score", f"{original_score:.1f}")
             cols[1].metric("Max Uplift", f"+{max(v['doom_uplift'] for v in variants):.1f}", delta=f"+{max(v['doom_uplift'] for v in variants):.1f}")
-            cols[2].metric("Avg Uplift", f"+{np.mean([v['doom_uplift'] for v in variants):.1f}")
+            cols[2].metric("Avg Uplift", f"+{np.mean([v['doom_uplift'] for v in variants]):.1f}")
             
             # Variant comparison chart
             fig = go.Figure()

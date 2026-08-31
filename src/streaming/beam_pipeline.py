@@ -71,35 +71,61 @@ class EnrichFeaturesFn(beam.DoFn):
 
 
 class PredictDoomFn(beam.DoFn):
-    """Run Doom Index prediction on enriched posts."""
+    """Run Doom Index prediction on enriched posts using IntegratedDoomPredictor.
 
-    def __init__(self, model_path: str):
+    Loaded once per Beam worker in setup() — avoids reloading the model
+    on every element, which would be catastrophically slow.
+    """
+
+    def __init__(self, model_path: str, config_path: str = None):
         self.model_path = model_path
-        self._model = None
+        self.config_path = config_path or model_path.replace("best_model.pt", "model_config.pt")
+        self._predictor = None
 
     def setup(self):
-        # Load model once per worker
-        import torch
-        self._model = torch.load(self.model_path, map_location="cpu")
-        self._model.eval()
+        """Load IntegratedDoomPredictor once per Beam worker process."""
+        try:
+            from src.models.integrated_predictor import IntegratedDoomPredictor
+            self._predictor = IntegratedDoomPredictor(
+                model_path=self.model_path,
+                config_path=self.config_path,
+                device="cpu",  # Beam workers run on CPU by default
+            )
+            logger.info(f"PredictDoomFn: predictor loaded from {self.model_path}")
+        except Exception as e:
+            logger.warning(f"PredictDoomFn: could not load predictor ({e}). Will use fallback 0.5.")
+            self._predictor = None
 
     def process(self, post: Dict):
         try:
-            # Run inference
             features = post.get("features", {})
-            # Convert to model input and predict
-            # This is a placeholder - actual implementation depends on model format
-            doom_score = 0.5  # Placeholder
+
+            if self._predictor is not None and self._predictor.model is not None:
+                # Real inference — IntegratedDoomPredictor.predict(text, author_id, followers, verified)
+                result = self._predictor.predict(
+                    text=post.get("text", ""),
+                    author_id=str(post.get("user_id", "anonymous")),
+                    followers=int(features.get("followers", 0)),
+                    verified=bool(features.get("verified", False)),
+                )
+                doom_score = result.get("probability", 0.5)
+                risk_level = result.get("risk_level", "UNKNOWN")
+            else:
+                # Fallback when model unavailable (e.g. testing / no checkpoint)
+                doom_score = 0.5
+                risk_level = "UNKNOWN"
 
             yield {
                 "post_id": post["post_id"],
                 "user_id": post["user_id"],
-                "doom_score": doom_score,
+                "doom_score": float(doom_score),
+                "risk_level": risk_level,
                 "timestamp": post["timestamp"],
-                "features": features
+                "features": features,
             }
         except Exception as e:
             post["error"] = str(e)
+            post["doom_score"] = 0.5
             yield beam.pvalue.TaggedOutput("prediction_errors", post)
 
 

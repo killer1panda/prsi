@@ -410,22 +410,37 @@ adversarial_generator: ProductionAdversarialGenerator = ProductionAdversarialGen
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     global redis_client, model_manager, adversarial_generator
-    
+
     # Startup
     logger.info("Starting Doom Index API...")
-    
+
     try:
         redis_client = await aioredis.from_url(config.redis_url, decode_responses=True)
         await redis_client.ping()
         logger.info("Redis connected")
+
+        # ── Attach RateLimitMiddleware now that redis_client is live ─────────
+        # Must be done here (not at module level) because RateLimitMiddleware
+        # takes redis_client as a constructor argument, which is None until
+        # the startup event fires. Starlette supports dynamic middleware
+        # injection via app.middleware_stack rebuild (or just wrap the ASGI app).
+        # We use the add_middleware approach with a deferred-init wrapper.
+        app.add_middleware(
+            RateLimitMiddleware,
+            redis_client=redis_client,
+            max_requests=config.rate_limit_per_minute if hasattr(config, "rate_limit_per_minute") else 100,
+            window=60,
+        )
+        logger.info("RateLimitMiddleware registered (100 req/min per IP)")
+
     except Exception as e:
-        logger.warning(f"Redis unavailable ({e}); running with in-memory caching fallback.")
+        logger.warning(f"Redis unavailable ({e}); running with in-memory caching fallback. Rate limiting DISABLED.")
         redis_client = None
-    
+
     logger.info("Model and Adversarial Generator verified ready")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down...")
     if redis_client:

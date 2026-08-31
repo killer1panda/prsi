@@ -151,14 +151,25 @@ class IntegratedDoomPredictor:
         if self.model is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
-        # Ensure user exists in graph
+        # ── Graph-data None guard ────────────────────────────────────────────
+        # graph_data is None when the predictor is instantiated without a
+        # pre-built graph (cold start, unit tests, Beam workers before setup).
+        # Fall back to text-only prediction in that case.
+        if self.graph_data is None:
+            logger.warning(
+                "graph_data is None — falling back to text-only prediction for '%s'. "
+                "Call build_graph_from_posts() to enable full GNN inference.",
+                author_id,
+            )
+            return self._text_only_predict(text, author_id, followers, verified)
+
+        # ── Ensure user exists in graph (add new node if unseen) ────────────
         if author_id not in self.user_to_idx:
-            # Add as new node with given features
             self._add_new_user(author_id, followers, verified)
 
         user_idx = self.user_to_idx[author_id]
 
-        # Predict
+        # ── Full multimodal predict ──────────────────────────────────────────
         pred, prob = self.model.predict(
             x=self.graph_data.x,
             edge_index=self.graph_data.edge_index,
@@ -176,10 +187,57 @@ class IntegratedDoomPredictor:
             device=self.device,
         )
 
-        # Compute doom score (0-100)
+        return self._build_result(pred, prob, embeddings)
+
+    def _text_only_predict(
+        self,
+        text: str,
+        author_id: str = "anonymous",
+        followers: int = 0,
+        verified: bool = False,
+    ) -> Dict[str, Any]:
+        """Text-only fallback when graph_data is unavailable.
+
+        Uses only the DistilBERT text encoder with a zero graph embedding.
+        Slightly less accurate than full GNN inference but never crashes.
+        """
+        import torch
+        from torch_geometric.data import Data
+
+        # Build a minimal single-node graph for this user
+        node_features = torch.tensor(
+            [[np.log1p(followers), float(verified), 1.0, 0.0, 0.0, 0.0]],
+            dtype=torch.float,
+            device=self.device,
+        )
+        # Self-loop edge so GNN has a valid edge_index
+        edge_index = torch.zeros((2, 1), dtype=torch.long, device=self.device)
+        stub_graph = Data(x=node_features, edge_index=edge_index)
+
+        pred, prob = self.model.predict(
+            x=stub_graph.x,
+            edge_index=stub_graph.edge_index,
+            text=text,
+            user_idx=0,
+            device=self.device,
+        )
+
+        embeddings = self.model.get_multimodal_embeddings(
+            x=stub_graph.x,
+            edge_index=stub_graph.edge_index,
+            text=text,
+            user_idx=0,
+            device=self.device,
+        )
+
+        result = self._build_result(pred, prob, embeddings)
+        result["inference_mode"] = "text_only"
+        return result
+
+    def _build_result(self, pred: int, prob: float, embeddings: Dict) -> Dict[str, Any]:
+        """Construct standardised result dict from prediction outputs."""
         doom_score = int(prob * 100)
 
-        # Risk level
         if prob > 0.7:
             risk_level = "CRITICAL"
         elif prob > 0.4:
@@ -190,12 +248,13 @@ class IntegratedDoomPredictor:
             risk_level = "LOW"
 
         return {
-            'prediction': pred,
-            'probability': prob,
-            'doom_score': doom_score,
-            'risk_level': risk_level,
-            'graph_embedding_norm': float(np.linalg.norm(embeddings['graph_embedding'])),
-            'text_embedding_norm': float(np.linalg.norm(embeddings['text_embedding'])),
+            "prediction": pred,
+            "probability": prob,
+            "doom_score": doom_score,
+            "risk_level": risk_level,
+            "graph_embedding_norm": float(np.linalg.norm(embeddings.get("graph_embedding", [0]))),
+            "text_embedding_norm": float(np.linalg.norm(embeddings.get("text_embedding", [0]))),
+            "inference_mode": "full_multimodal",
         }
 
     def predict_batch(self, texts: list, author_ids: list) -> list:

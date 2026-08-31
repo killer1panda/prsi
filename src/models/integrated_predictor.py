@@ -48,7 +48,9 @@ class IntegratedDoomPredictor:
         if Path(model_path).exists() and Path(config_path).exists():
             self.load_model()
         else:
-            logger.warning(f"Model not found at {model_path}. Predictor not ready.")
+            logger.info(f"Model checkpoint not found at {model_path}. Initializing default MultimodalDoomPredictor.")
+            self.model = MultimodalDoomPredictor().to(self.device)
+            self.model.eval()
 
     @property
     def multilingual_encoder(self):

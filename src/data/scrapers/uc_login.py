@@ -5,10 +5,17 @@ Use undetected-chromedriver to login to Twitter/X and extract cookies.
 import json
 import time
 import os
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
+try:
+    import undetected_chromedriver as uc
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    UC_AVAILABLE = True
+except ImportError:
+    UC_AVAILABLE = False
+    uc = None
+
 
 # Credentials
 EMAIL = "vaasha038@gmail.com"

@@ -294,13 +294,21 @@ class DataPreprocessor:
         return self.stats
 
 
-def preprocess_posts(posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def preprocess_posts(posts: List[Dict[str, Any]], languages: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Convenience function for preprocessing posts."""
     preprocessor = DataPreprocessor()
     
+    # Normalize 'body' -> 'text' if needed (e.g. raw Reddit/Pushshift records)
+    for p in posts:
+        if "text" not in p and "body" in p:
+            p["text"] = p["body"]
+
     # Run preprocessing pipeline
     posts = preprocessor.deduplicate_posts(posts)
-    posts = preprocessor.filter_by_language(posts)
+    if languages:
+        posts = preprocessor.filter_by_language(posts, languages=languages)
     posts = preprocessor.preprocess_pipeline(posts)
     
     return posts
+
+

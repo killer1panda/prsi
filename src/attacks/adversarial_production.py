@@ -297,9 +297,10 @@ class ProductionAdversarialGenerator:
         max_variants: int = 5,
         toxicity_budget: float = 0.7,
         use_genetic: bool = True,
-        min_semantic_similarity: float = 0.6,
+        min_semantic_similarity: float = 0.4,
         strategy: str = "combined",
     ) -> List[AttackResult]:
+
         """Generate adversarial variants."""
         baseline = self.predictor.predict(text, author_id)
         original_doom = baseline['probability']

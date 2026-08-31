@@ -100,8 +100,18 @@ try:
     TEXTATTACK_AVAILABLE = True
 except ImportError as e:
     TEXTATTACK_AVAILABLE = False
-    print(f"⚠️  TextAttack not fully installed: {e}")
-    print("Install with: pip install textattack[transformers]")
+    class ModelWrapper:
+        pass
+    class HuggingFaceModelWrapper:
+        pass
+    class Attack:
+        pass
+    class Attacker:
+        pass
+    class Dataset:
+        pass
+    logger = logging.getLogger(__name__)
+    logger.warning(f"TextAttack not fully installed ({e}). Advanced features will use custom fallbacks.")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -118,26 +128,27 @@ class AttackConfig:
     perturbation_budget: float = 0.3  # Max 30% words changed
     min_semantic_similarity: float = 0.7  # USE similarity threshold
     max_toxicity_score: float = 0.7  # Stay under moderation threshold
-    target_doom_increase: float = 20.0  # Minimum doom score increase
-    use_ensemble: bool = False
-    num_strategies: int = 3
+    max_perplexity_increase: float = 2.0  # Max 2x perplexity increase
+    use_toxicity_filter: bool = True
+    use_similarity_filter: bool = True
+    use_perplexity_filter: bool = False
+    device: str = "cuda"
     batch_size: int = 32
-    timeout_per_sample: int = 60  # seconds
+    num_workers: int = 4
+    seed: int = 42
 
 
 @dataclass
 class AttackResult:
-    """Result of a single adversarial attack."""
+    """Result of an adversarial attack on a single post."""
     original_text: str
-    attacked_text: str
-    original_doom_score: float
-    attacked_doom_score: float
+    perturbed_text: str
+    original_doom: float
+    attacked_doom: float
     doom_uplift: float
-    attack_strategy: str
-    words_changed: int
-    percent_changed: float
+    original_toxicity: float
+    attacked_toxicity: float
     semantic_similarity: float
-    toxicity_score: float
     passes_moderation: bool
     perplexity_score: float
     attack_duration_seconds: float

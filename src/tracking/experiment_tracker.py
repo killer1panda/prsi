@@ -58,10 +58,11 @@ except ImportError:
 # GPU monitoring
 try:
     import pynvml
-    PYNVML_AVAILABLE = True
     pynvml.nvmlInit()
-except ImportError:
+    PYNVML_AVAILABLE = True
+except Exception:
     PYNVML_AVAILABLE = False
+
 
 
 @dataclass

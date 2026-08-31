@@ -185,7 +185,16 @@ class DataValidator:
         else:
             raise ValueError(f"Unsupported format: {p.suffix}")
 
+    def validate_schema(self, df: pd.DataFrame) -> Tuple[bool, str]:
+        """Public alias for schema check."""
+        return self._check_schema(df)
+
+    def check_label_balance(self, df: pd.DataFrame) -> Tuple[bool, str]:
+        """Public alias for label balance check."""
+        return self._check_label_balance(df)
+
     def _check_schema(self, df: pd.DataFrame) -> Tuple[bool, str]:
+
         """Verify column presence and ordering."""
         missing = set(self.EXPECTED_COLUMNS) - set(df.columns)
         extra = set(df.columns) - set(self.EXPECTED_COLUMNS)

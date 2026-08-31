@@ -52,10 +52,17 @@ class TemporalFeatureExtractor:
         features = {}
         
         # Ensure sorted by time
-        posts = user_posts.sort_values("created_at")
+        posts = user_posts.sort_values("created_at") if "created_at" in user_posts.columns else user_posts
         
+        # Resolve sentiment and engagement columns with fallback
+        sent_col = self.sentiment_col if self.sentiment_col in posts.columns else next((c for c in ["sentiment_polarity", "sentiment", "score"] if c in posts.columns), None)
+
+        sentiment = posts[sent_col].fillna(0).values if sent_col else np.zeros(len(posts))
+
+        eng_col = self.engagement_col if self.engagement_col in posts.columns else next((c for c in ["engagement", "likes", "score", "retweets"] if c in posts.columns), None)
+        engagement = posts[eng_col].fillna(0).values if eng_col else np.zeros(len(posts))
+
         # 1. Sentiment velocity (rate of change)
-        sentiment = posts[self.sentiment_col].fillna(0).values
         if len(sentiment) >= 2:
             features["sentiment_velocity"] = np.mean(np.diff(sentiment))
             features["sentiment_acceleration"] = np.mean(np.diff(np.diff(sentiment))) if len(sentiment) >= 3 else 0.0
@@ -64,7 +71,6 @@ class TemporalFeatureExtractor:
             features["sentiment_acceleration"] = 0.0
         
         # 2. Engagement trend (slope of linear fit)
-        engagement = posts[self.engagement_col].fillna(0).values
         x = np.arange(len(engagement)).reshape(-1, 1)
         if len(engagement) >= 2:
             model = LinearRegression().fit(x, engagement)
@@ -75,7 +81,7 @@ class TemporalFeatureExtractor:
             features["engagement_trend_r2"] = 0.0
         
         # 3. Window-based volatility — Blueprint formula: σ(sentiment_t) / μ(engagement_t)
-        engagement = posts[self.engagement_col].fillna(0).values
+
         for window in self.window_sizes:
             if len(sentiment) >= window:
                 recent_sent = sentiment[-window:]

@@ -20,22 +20,30 @@ class ToxicityAnalyzer:
         if not self.api_key:
             logger.warning("PERSPECTIVE_API_KEY not set. Toxicity analysis will be disabled.")
 
+    def analyze(self, text: str) -> Dict[str, float]:
+        """Convenience method returning toxicity scores."""
+        return self.analyze_toxicity(text)
+
+    def _local_heuristic(self, text: str) -> Dict[str, float]:
+        """Local keyword-based heuristic fallback."""
+        toxic_words = {'hate', 'stupid', 'cancel', 'terrible', 'horrible', 'idiot', 'disgusting', 'kill', 'evil', 'trash', 'scam', 'liar'}
+        words = set(text.lower().split())
+        matches = len(words & toxic_words)
+        score = min(1.0, max(0.05, matches * 0.3))
+        return {
+            "toxicity": score,
+            "toxicity_score": score,
+            "severe_toxicity": score * 0.5,
+            "identity_attack": 0.0,
+            "insult": score * 0.8,
+            "profanity": score * 0.4,
+            "threat": 0.0
+        }
+
     def analyze_toxicity(self, text: str) -> Dict[str, float]:
         """Analyze text for toxicity using Perspective API or local heuristic fallback."""
         if not self.api_key:
-            toxic_words = {'hate', 'stupid', 'cancel', 'terrible', 'horrible', 'idiot', 'disgusting', 'kill', 'evil', 'trash', 'scam', 'liar'}
-            words = set(text.lower().split())
-            matches = len(words & toxic_words)
-            score = min(1.0, max(0.05, matches * 0.3))
-            return {
-                "toxicity": score,
-                "toxicity_score": score,
-                "severe_toxicity": score * 0.5,
-                "identity_attack": 0.0,
-                "insult": score * 0.8,
-                "profanity": score * 0.4,
-                "threat": 0.0
-            }
+            return self._local_heuristic(text)
 
         data = {
             "comment": {"text": text[:3000]},  # API limit
@@ -54,20 +62,22 @@ class ToxicityAnalyzer:
             response = requests.post(
                 f"{self.endpoint}?key={self.api_key}",
                 json=data,
-                timeout=10
+                timeout=5
             )
             response.raise_for_status()
             result = response.json()
 
             scores = {}
-            for attr, data in result["attributeScores"].items():
-                scores[attr.lower()] = data["summaryScore"]["value"]
+            for attr, data_attr in result.get("attributeScores", {}).items():
+                scores[attr.lower()] = data_attr.get("summaryScore", {}).get("value", 0.0)
+            scores["toxicity_score"] = scores.get("toxicity", 0.0)
 
             return scores
 
         except Exception as e:
-            logger.error(f"Perspective API error: {e}")
-            return None
+            logger.warning(f"Perspective API error ({e}). Using local heuristic fallback.")
+            return self._local_heuristic(text)
+
 
     def is_toxic(self, text: str, threshold: float = 0.7) -> bool:
         """Check if text is toxic based on threshold."""

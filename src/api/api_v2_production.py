@@ -361,12 +361,13 @@ class ModelManager:
             from src.features.toxicity import analyze_text_toxicity
             
             for text in texts:
-                sent = analyze_text_sentiment(text)
-                tox = analyze_text_toxicity(text)
+                sent = analyze_text_sentiment(text) or {}
+                tox = analyze_text_toxicity(text) or {}
                 
                 neg = sent.get("sentiment_negative", 0.0)
                 compound = sent.get("sentiment_compound", 0.0)
                 tox_score = tox.get("toxicity_score", 0.0)
+
                 
                 raw_score = (neg * 40.0) + (tox_score * 40.0) + (max(0.0, -compound) * 20.0)
                 score = min(99.0, max(1.0, raw_score * 1.2))
@@ -618,7 +619,14 @@ async def predict_batch(
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON body")
     
-    items = body.get("items", [])
+    if isinstance(body, list):
+        items = [{"text": x} if isinstance(x, str) else x for x in body if x]
+    elif isinstance(body, dict):
+        raw_items = body.get("items") or body.get("texts") or []
+        items = [{"text": x} if isinstance(x, str) else x for x in raw_items if x]
+    else:
+        items = []
+
     if not items:
         raise HTTPException(status_code=422, detail="items array is required")
     
@@ -631,14 +639,23 @@ async def predict_batch(
     texts = []
     metadata = []
     for item in items:
-        text = item.get("text", "").strip()
+        if isinstance(item, dict):
+            text = item.get("text", "").strip()
+            item_id = item.get("id")
+            user_id = item.get("user_id") or item.get("author_id")
+            source = item.get("source")
+        else:
+            text = str(item).strip()
+            item_id, user_id, source = None, None, None
+        
         if text:
             texts.append(text)
             metadata.append({
-                "id": item.get("id"),
-                "user_id": item.get("user_id"),
-                "source": item.get("source")
+                "id": item_id,
+                "user_id": user_id,
+                "source": source
             })
+
     
     if not texts:
         raise HTTPException(status_code=422, detail="No valid texts provided")

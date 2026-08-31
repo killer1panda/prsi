@@ -335,3 +335,8 @@ class ABTestRunner:
         self.status = "rolled_back"
         self.config.traffic_split = 0.0
         logger.info("Rolled back to control model")
+
+
+# Alias for backward compatibility
+ABTestingFramework = ABTestRunner
+

@@ -73,6 +73,13 @@ class SentimentAnalyzer:
             _ = self.distilbert_model
         return self._distilbert_tokenizer
 
+    def analyze(self, text: str) -> Dict[str, float]:
+        """Convenience method returning sentiment scores (VADER fast path)."""
+        vader_res = self.analyze_vader(text)
+        if vader_res:
+            return vader_res
+        return {"compound": 0.0, "pos": 0.0, "neg": 0.0, "neu": 1.0}
+
     def analyze_vader(self, text: str) -> Optional[Dict[str, float]]:
         """Analyze sentiment using VADER.
 
@@ -83,6 +90,7 @@ class SentimentAnalyzer:
             return None
 
         return self.vader.polarity_scores(text)
+
 
     def analyze_transformer(self, text: str) -> Optional[Dict[str, float]]:
         """Analyze sentiment using HuggingFace transformer.

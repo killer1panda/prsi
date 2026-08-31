@@ -35,7 +35,14 @@ class GraphExtractor:
     """Extract graph data from Neo4j for PyG."""
 
     def __init__(self, neo4j=None):
-        self.neo4j = neo4j or get_neo4j()
+        if neo4j is not None:
+            self.neo4j = neo4j
+        else:
+            try:
+                self.neo4j = get_neo4j()
+            except Exception as e:
+                logger.warning(f"Neo4j unavailable for GraphExtractor ({e}). Operating in offline fallback mode.")
+                self.neo4j = None
 
     def extract_user_graph(
         self,
@@ -48,6 +55,10 @@ class GraphExtractor:
             pyg_data: PyTorch Geometric Data object
             user_df: DataFrame with user_id mapping and features
         """
+        if self.neo4j is None:
+            logger.info("GraphExtractor: Neo4j offline. Returning empty graph stub.")
+            return Data(x=torch.zeros((0, 6), dtype=torch.float), edge_index=torch.zeros((2, 0), dtype=torch.long), num_nodes=0), pd.DataFrame(columns=["user_id", "followers", "verified"])
+
         logger.info("Extracting user graph from Neo4j...")
 
         # 1. Get all users with features

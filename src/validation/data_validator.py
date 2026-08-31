@@ -348,13 +348,22 @@ class DataValidator:
             suite.add_expectation(ExpectColumnValuesToBeBetween(column="label", min_value=0, max_value=1))
             suite.add_expectation(ExpectColumnValuesToBeBetween(column="upvote_ratio", min_value=0, max_value=1))
 
-            # Validate
-            validation_results = df.validate(suite)
+            # GE 1.0+ API: use a Validator, not df.validate()
+            # df.validate() is not a Pandas method — it belongs to GE's Validator wrapper
+            datasource = context.sources.add_or_update_pandas("inline_ds")
+            data_asset = datasource.add_dataframe_asset("df_asset")
+            batch_request = data_asset.build_batch_request(dataframe=df)
+            validator = context.get_validator(
+                batch_request=batch_request,
+                expectation_suite=suite,
+            )
+            validation_results = validator.validate()
             success = validation_results.success
             details = f"GX success={success}, results={len(validation_results.results)}"
             return success, details
         except Exception as e:
             return False, f"GX validation error: {e}"
+
 
     def generate_report(self, result: ValidationResult, output_dir: str) -> str:
         """Generate HTML/JSON validation report."""

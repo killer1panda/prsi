@@ -62,7 +62,7 @@ class TemperatureScaler(nn.Module):
         with torch.no_grad():
             scaled = self.forward(torch.tensor(logits, dtype=torch.float32))
             probs = torch.softmax(scaled, dim=-1)
-        return probs.numpy()
+        return probs.cpu().numpy()
 
 
 class PlattScaler:

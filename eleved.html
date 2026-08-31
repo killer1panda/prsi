@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>eleved — Ayurveda, consciously lived.</title>
+
+<style>
+:root{
+  --kora:#D4BFA5;
+  --kora-dark:#C9B399;
+  --gold:#C9A96A;
+  --silver:#B8B8B8;
+  --charcoal:#303030;
+
+  --udaya:#F7C463;
+  --oorja:#E3A488;
+  --deepana:#C98B8B;
+  --sama:#C292A2;
+  --rasa:#A295BA;
+  --vishrama:#7699C4;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--kora);
+  color:var(--charcoal);
+  font-family:system-ui,sans-serif;
+  line-height:1.6;
+  overflow-x:hidden;
+}
+
+section{padding:8rem 6vw}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+
+.announcement{
+  height:36px;
+  overflow:hidden;
+  background:#dbc9b4;
+  border-bottom:1px solid rgba(0,0,0,.08);
+  white-space:nowrap;
+}
+.marquee{
+  display:flex;
+  width:max-content;
+  animation:marquee 28s linear infinite;
+}
+.marquee span{
+  padding-inline:3rem;
+  line-height:36px;
+  font-size:.8rem;
+}
+
+@keyframes marquee{
+  from{transform:translateX(0)}
+  to{transform:translateX(-50%)}
+}
+
+nav{
+  position:sticky;
+  top:0;
+  z-index:100;
+  backdrop-filter:blur(18px);
+  background:rgba(212,191,165,.65);
+  border-bottom:1px solid rgba(0,0,0,.08);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:1rem 4vw;
+}
+
+.logo{
+  font-size:1.6rem;
+  letter-spacing:.18em;
+}
+.logo .v{
+  vertical-align:super;
+  font-size:.7em;
+}
+
+.nav-links{
+  display:flex;
+  gap:2rem;
+  font-size:.92rem;
+}
+
+.hero{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  position:relative;
+  background:
+  radial-gradient(circle at top,var(--kora-dark),var(--kora));
+}
+
+.sunmoon{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  opacity:.18;
+}
+.sunmoon svg{
+  width:60vw;
+  stroke:var(--gold);
+}
+
+.hero-content{
+  position:relative;
+  max-width:900px;
+}
+
+.hero h1{
+  font-size:clamp(3rem,8vw,7rem);
+  line-height:.92;
+  letter-spacing:.02em;
+  margin-bottom:2rem;
+}
+
+.hero p{
+  max-width:540px;
+  margin-bottom:2rem;
+}
+
+.cta-row{
+  display:flex;
+  gap:1rem;
+}
+
+.btn{
+  border:1px solid var(--gold);
+  padding:.9rem 1.4rem;
+}
+
+.link{
+  display:flex;
+  align-items:center;
+}
+
+.corner{
+  position:absolute;
+  right:4vw;
+  bottom:3rem;
+  font-size:.85rem;
+  letter-spacing:.1em;
+}
+
+.manifesto{
+  overflow:hidden;
+  border-top:1px solid rgba(0,0,0,.08);
+  border-bottom:1px solid rgba(0,0,0,.08);
+  padding:2rem 0;
+}
+
+.manifesto-track{
+  display:flex;
+  width:max-content;
+  animation:marquee 40s linear infinite;
+  font-size:2rem;
+  font-style:italic;
+  gap:3rem;
+}
+
+.two-col{
+  display:grid;
+  gap:5rem;
+  grid-template-columns:1fr 1fr;
+  align-items:center;
+}
+
+.circle-image{
+  aspect-ratio:1;
+  border-radius:50%;
+  overflow:hidden;
+}
+
+.placeholder{
+  background:
+  linear-gradient(135deg,#e2d3c0,#c9b399);
+  min-height:100%;
+}
+
+.eyebrow{
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  font-size:.75rem;
+  margin-bottom:1rem;
+}
+
+.quote{
+  margin-top:2rem;
+  padding-top:1rem;
+  border-top:1px solid var(--gold);
+  font-style:italic;
+}
+
+.prahar-scroll{
+  display:flex;
+  gap:1.5rem;
+  overflow:auto;
+  scroll-snap-type:x mandatory;
+  padding-bottom:1rem;
+}
+
+.prahar{
+  scroll-snap-align:start;
+  min-width:320px;
+  background:rgba(255,255,255,.25);
+  padding:2rem;
+  border-top:4px solid;
+}
+
+.product-gallery{
+  display:flex;
+  gap:1.5rem;
+  overflow:auto;
+  cursor:grab;
+}
+
+.product{
+  min-width:320px;
+  background:rgba(255,255,255,.25);
+  padding:1rem;
+}
+
+.product-image{
+  aspect-ratio:4/5;
+  background:linear-gradient(135deg,#e8ddd1,#c7b098);
+  margin-bottom:1rem;
+}
+
+.price{
+  color:var(--gold);
+  margin-top:.5rem;
+}
+
+.menu-list{
+  max-width:1000px;
+  margin:auto;
+}
+
+.menu-item{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px dotted var(--gold);
+  padding:1rem 0;
+}
+
+.ingredients{
+  display:flex;
+  overflow:auto;
+  gap:1rem;
+}
+
+.ingredient{
+  min-width:260px;
+  padding:2rem;
+  background:rgba(255,255,255,.25);
+}
+
+.ritual-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:2rem;
+}
+
+.step{
+  position:relative;
+  padding-top:4rem;
+}
+
+.num{
+  position:absolute;
+  top:0;
+  left:0;
+  font-size:4rem;
+  color:var(--gold);
+}
+
+.artisans{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:2rem;
+}
+
+.artisan{
+  background:rgba(255,255,255,.2);
+  padding:1rem;
+}
+
+.portrait{
+  aspect-ratio:4/5;
+  background:linear-gradient(180deg,#d8c4ab,#baa286);
+  margin-bottom:1rem;
+}
+
+.quote-break{
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  text-align:center;
+}
+
+.quote-break blockquote{
+  font-size:clamp(2rem,5vw,5rem);
+  font-style:italic;
+}
+
+.eatery{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4rem;
+}
+
+.form-grid{
+  display:grid;
+  gap:1rem;
+  grid-template-columns:repeat(2,1fr);
+}
+
+input,select,textarea{
+  width:100%;
+  padding:1rem;
+  border:1px solid transparent;
+  background:#e1d2bf;
+}
+
+input:focus,select:focus,textarea:focus{
+  outline:none;
+  border-color:var(--gold);
+}
+
+textarea{
+  grid-column:1/-1;
+  min-height:120px;
+}
+
+footer{
+  padding:5rem 6vw;
+  border-top:1px solid rgba(0,0,0,.08);
+}
+
+.footer-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:2rem;
+}
+
+.footer-grid h4{
+  margin-bottom:1rem;
+}
+
+.footer-grid a{
+  display:block;
+  margin-bottom:.7rem;
+}
+
+.bottom{
+  margin-top:4rem;
+  display:flex;
+  justify-content:space-between;
+  border-top:1px solid rgba(0,0,0,.08);
+  padding-top:2rem;
+}
+
+.reveal{
+  opacity:0;
+  transform:translateY(24px);
+  transition:.6s ease;
+}
+
+.reveal.visible{
+  opacity:1;
+  transform:none;
+}
+
+@media(max-width:1024px){
+  .two-col,.eatery,.footer-grid,.ritual-grid,.artisans{
+    grid-template-columns:1fr;
+  }
+
+  .nav-links{
+    display:none;
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="announcement">
+  <div class="marquee">
+    <span>Free shipping on Essence orders above ₹2,000 · The RASA menu is now accepting reservations</span>
+    <span>Free shipping on Essence orders above ₹2,000 · The RASA menu is now accepting reservations</span>
+  </div>
+</div>
+
+<nav>
+  <div class="logo">ele<span class="v">v</span>ed</div>
+
+  <div class="nav-links">
+    <a href="#">Philosophy</a>
+    <a href="#">Essence</a>
+    <a href="#">Eatery</a>
+    <a href="#">Dincharya</a>
+    <a href="#">Journal</a>
+  </div>
+
+  <div>⌕ &nbsp; Account &nbsp; Bag (0)</div>
+</nav>
+
+<section class="hero">
+  <div class="sunmoon">
+    <svg viewBox="0 0 500 500" fill="none">
+      <path d="M80 330A180 180 0 0 1 420 330" stroke-width="1.5"/>
+      <circle cx="250" cy="250" r="120" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <div class="hero-content">
+    <h1>
+      Ayurveda is the wisdom.<br>
+      eleved is the practice.
+    </h1>
+
+    <p>
+      Ancient intelligence.
+      Quietly translated for contemporary life.
+    </p>
+
+    <div class="cta-row">
+      <a class="btn">Shop Essence</a>
+      <a class="link">Our Philosophy →</a>
+    </div>
+  </div>
+
+  <div class="corner" id="praharClock"></div>
+</section>
+
+<section class="manifesto">
+  <div class="manifesto-track">
+    <span>Master the moment · Master the day · Master your life</span>
+    <span>Ancient intelligence for modern living</span>
+    <span>No fear-based wellness · No extremes · No nostalgia</span>
+    <span>Master the moment · Master the day · Master your life</span>
+  </div>
+</section>
+
+<section class="two-col reveal">
+  <div class="circle-image">
+    <div class="placeholder"></div>
+  </div>
+
+  <div>
+    <div class="eyebrow">The Brand Idea</div>
+
+    <p>
+      Eleved stands between memory and modernity.
+    </p><br>
+
+    <p>
+      Ayurveda not as retreat.
+      Ayurveda as rhythm.
+    </p><br>
+
+    <p>
+      Measured. Useful.
+      Consciously lived.
+    </p>
+
+    <div class="quote">
+      “A practice belongs to the day it is lived in.”
+    </div>
+  </div>
+</section>
+
+<section class="reveal">
+  <div class="eyebrow">The day, in Ayurvedic wisdom</div>
+  <h2>Dincharya — The Six Prahars</h2>
+
+  <br><br>
+
+  <div class="prahar-scroll">
+    <div class="prahar" style="border-color:var(--udaya)">
+      <h3>Udaya</h3>
+      <small>4–6 am</small>
+      <p>Rise with clarity.</p>
+    </div>
+
+    <div class="prahar" style="border-color:var(--oorja)">
+      <h3>Oorja</h3>
+      <small>6–10 am</small>
+      <p>Gather energy.</p>
+    </div>
+
+    <div class="prahar" style="border-color:var(--deepana)">
+      <h3>Deepana</h3>
+      <small>10 am–2 pm</small>
+      <p>Awaken digestion and focus.</p>
+    </div>
+
+    <div class="prahar" style="border-color:var(--sama)">
+      <h3>Sama</h3>
+      <small>2–6 pm</small>
+      <p>Return to balance.</p>
+    </div>
+
+    <div class="prahar" style="border-color:var(--rasa)">
+      <h3>Rasa</h3>
+      <small>6–8 pm</small>
+      <p>Rejoice in nourishment.</p>
+    </div>
+
+    <div class="prahar" style="border-color:var(--vishrama)">
+      <h3>Vishrama</h3>
+      <small>8 pm–4 am</small>
+      <p>Restore and rest.</p>
+    </div>
+  </div>
+</section>
+
+<section class="reveal">
+  <h2>Curated for each prahar</h2>
+  <p>← drag to explore →</p>
+
+  <br>
+
+  <div class="product-gallery">
+    <div class="product">
+      <div class="product-image"></div>
+      <small>Udaya</small>
+      <h3>Morning Awakening Oil</h3>
+      <div class="price">₹2,400</div>
+    </div>
+
+    <div class="product">
+      <div class="product-image"></div>
+      <small>Deepana</small>
+      <h3>Digestive Blend</h3>
+      <div class="price">₹1,850</div>
+    </div>
+
+    <div class="product">
+      <div class="product-image"></div>
+      <small>Sama</small>
+      <h3>Balance Mist</h3>
+      <div class="price">₹1,200</div>
+    </div>
+
+    <div class="product">
+      <div class="product-image"></div>
+      <small>Vishrama</small>
+      <h3>Night Balm</h3>
+      <div class="price">₹950</div>
+    </div>
+  </div>
+</section>
+
+<section class="menu-list reveal">
+  <div class="menu-item"><span>Deepana Awakening Oil · 100ml</span><span>₹2,400</span></div>
+  <div class="menu-item"><span>RASA Thali — Monsoon</span><span>₹1,850</span></div>
+  <div class="menu-item"><span>Sama Balance Mist · 50ml</span><span>₹1,200</span></div>
+  <div class="menu-item"><span>Vishrama Night Balm · 30g</span><span>₹950</span></div>
+  <div class="menu-item"><span>Gotukola Elixir</span><span>₹1,400</span></div>
+  <div class="menu-item"><span>Bhringraj Tonic</span><span>₹1,650</span></div>
+</section>
+
+<section class="reveal">
+  <h2>Five herbs. Wild-harvested. Cold-processed.</h2>
+  <br>
+
+  <div class="ingredients">
+    <div class="ingredient"><h3>Gotukola</h3><p>Centella asiatica.</p></div>
+    <div class="ingredient"><h3>Bhringraj</h3><p>Eclipta alba.</p></div>
+    <div class="ingredient"><h3>Indian Water Lily</h3><p>Stillness in bloom.</p></div>
+    <div class="ingredient"><h3>Vibhitaki</h3><p>Traditional vitality.</p></div>
+    <div class="ingredient"><h3>Mulethi</h3><p>Soft sweetness.</p></div>
+  </div>
+</section>
+
+<section class="reveal">
+  <h2>The Abhyanga Ritual</h2>
+
+  <div class="ritual-grid">
+    <div class="step"><div class="num">01</div>Warm the oil.</div>
+    <div class="step"><div class="num">02</div>Apply with intention.</div>
+    <div class="step"><div class="num">03</div>Allow absorption.</div>
+    <div class="step"><div class="num">04</div>Complete with rest.</div>
+  </div>
+</section>
+
+<section class="reveal">
+  <h2>The hands behind the practice.</h2>
+
+  <br>
+
+  <div class="artisans">
+    <div class="artisan"><div class="portrait"></div><h3>Anaya</h3><p><em>Vaidya · Formulator</em></p></div>
+    <div class="artisan"><div class="portrait"></div><h3>Dev</h3><p><em>Herbalist</em></p></div>
+    <div class="artisan"><div class="portrait"></div><h3>Meera</h3><p><em>Ritual Designer</em></p></div>
+    <div class="artisan"><div class="portrait"></div><h3>Arjun</h3><p><em>Chef</em></p></div>
+    <div class="artisan"><div class="portrait"></div><h3>Rhea</h3><p><em>Botanical Curator</em></p></div>
+    <div class="artisan"><div class="portrait"></div><h3>Neel</h3><p><em>Craft Lead</em></p></div>
+  </div>
+</section>
+
+<section class="quote-break">
+  <div>
+    <blockquote>
+      “If we master the day,
+      we master our life.”
+    </blockquote>
+
+    <br>
+
+    <div>— The Dincharya Philosophy · Eleved</div>
+  </div>
+</section>
+
+<section class="eatery reveal">
+  <div class="placeholder" style="min-height:500px"></div>
+
+  <div>
+    <h2>Food as medicine. Meals as ritual.</h2>
+    <br>
+    <p>Khan Market · New Delhi</p>
+    <p>8am — 10pm</p>
+    <br>
+    <a class="btn">Reserve your table</a>
+  </div>
+</section>
+
+<section class="reveal">
+  <h2>Reservation</h2>
+
+  <br>
+
+  <form class="form-grid">
+    <input placeholder="First Name">
+    <input placeholder="Last Name">
+    <input placeholder="Email">
+    <input placeholder="Phone">
+    <input type="date">
+    <select><option>Time</option></select>
+    <input placeholder="Guests">
+    <input placeholder="Occasion">
+    <textarea placeholder="Notes"></textarea>
+
+    <button class="btn">Submit</button>
+  </form>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div>
+      <h4>Essence</h4>
+      <a>Udaya</a>
+      <a>Oorja</a>
+      <a>Deepana</a>
+      <a>Sama</a>
+      <a>Rasa</a>
+      <a>Vishrama</a>
+    </div>
+
+    <div>
+      <h4>Explore</h4>
+      <a>Philosophy</a>
+      <a>Ayurveda Guide</a>
+      <a>Dosha Quiz</a>
+      <a>Journal</a>
+    </div>
+
+    <div>
+      <h4>Help</h4>
+      <a>Account</a>
+      <a>Shipping</a>
+      <a>Contact</a>
+      <a>Privacy</a>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div>©️ 2026 eleved · Ayurveda, consciously lived.</div>
+    <div style="color:var(--gold)">Instagram · Twitter · Pinterest</div>
+  </div>
+</footer>
+
+<script>
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      entry.target.classList.add('visible');
+    }
+  });
+},{threshold:.15});
+
+document.querySelectorAll('.reveal')
+.forEach(el=>observer.observe(el));
+
+function updatePrahar(){
+ const d=new Date();
+ const h=d.getHours();
+ const m=d.getMinutes();
+
+ let p="Vishrama";
+
+ if(h>=4 && h<6) p="Prahar I · Udaya";
+ else if(h>=6 && h<10) p="Prahar II · Oorja";
+ else if(h>=10 && h<14) p="Prahar III · Deepana";
+ else if(h>=14 && h<18) p="Prahar IV · Sama";
+ else if(h>=18 && h<20) p="Prahar V · Rasa";
+ else p="Prahar VI · Vishrama";
+
+ document.getElementById("praharClock").textContent =
+ `${p} · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+}
+
+updatePrahar();
+setInterval(updatePrahar,1000);
+</script>
+
+</body>
+</html>

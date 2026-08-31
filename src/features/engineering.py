@@ -145,27 +145,48 @@ class FeatureEngineer:
         Returns:
             X, y arrays
         """
+        # Leakage-free keyword flags used ONLY for target y construction — NOT in X
+        _CANCEL_KWS = ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']
+
         if feature_cols is None:
-            # Default feature set
+            # Default feature set — intentionally excludes has_<keyword> columns
+            # to prevent label leakage (those same keywords define y below)
             feature_cols = [
                 'likes', 'retweets', 'replies', 'quotes',
                 'text_length', 'word_count', 'hashtag_count',
                 'sentiment_polarity', 'sentiment_intensity',
                 'toxicity_toxicity', 'is_toxic',
-                'hour', 'day_of_week'
-            ] + [f'has_{kw}' for kw in ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']]
+                'hour', 'day_of_week',
+            ]
 
-        # Filter to available columns
-        available_cols = [col for col in feature_cols if col in df.columns]
+        # Filter to available columns — explicitly guard against leaky columns
+        leaky_cols = {f'has_{kw}' for kw in _CANCEL_KWS}
+        available_cols = [
+            col for col in feature_cols
+            if col in df.columns and col not in leaky_cols
+        ]
         logger.info(f"Using features: {available_cols}")
+        if set(feature_cols) & leaky_cols:
+            logger.warning(
+                "Leaky keyword-flag columns were requested but removed from X: "
+                + str(set(feature_cols) & leaky_cols)
+            )
 
         X = df[available_cols].fillna(0).values
 
-        # Target: whether it's a cancellation-related post (1) or not (0)
-        # For now, use presence of cancellation keywords as proxy
-        y = df[[f'has_{kw}' for kw in ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']]].any(axis=1).astype(int).values
+        # Target: use doom_score column if available (continuous regression target)
+        # Otherwise fall back to keyword proxy — but keyword flags must NOT be in X
+        if 'doom_score' in df.columns:
+            y = df['doom_score'].fillna(0.0).values
+        elif 'weak_label' in df.columns:
+            y = df['weak_label'].fillna(0.0).values
+        else:
+            # Last resort proxy — derived from keyword presence only
+            kw_cols = [f'has_{kw}' for kw in _CANCEL_KWS if f'has_{kw}' in df.columns]
+            y = df[kw_cols].any(axis=1).astype(int).values if kw_cols else np.zeros(len(df))
 
         return X, y
+
 
 
 def process_dataset_for_ml(input_csv: str, output_csv: str = None, sample_size: int = None) -> pd.DataFrame:

@@ -54,8 +54,10 @@ class MemoryModule(nn.Module):
         super().__init__()
         self.num_nodes = num_nodes
         self.memory_dim = memory_dim
-        self.memory = nn.Parameter(torch.zeros(num_nodes, memory_dim))
-        self.last_update = nn.Parameter(torch.zeros(num_nodes))
+        # Use register_buffer: persistent state, NOT learnable params
+        # nn.Parameter would crash autograd on in-place index assignment
+        self.register_buffer('memory', torch.zeros(num_nodes, memory_dim))
+        self.register_buffer('last_update', torch.zeros(num_nodes))
 
         self.msg_func = nn.Sequential(
             nn.Linear(memory_dim * 2 + 64, memory_dim),  # src_mem + dst_mem + edge_feat
@@ -68,10 +70,14 @@ class MemoryModule(nn.Module):
         return self.memory[node_ids]
 
     def update_memory(self, node_ids: torch.Tensor, messages: torch.Tensor):
-        """Update memory using GRU."""
+        """Update memory using GRU (out-of-place via scatter)."""
         current_mem = self.memory[node_ids]
         updated = self.gru(messages, current_mem)
-        self.memory[node_ids] = updated
+        # Out-of-place scatter to avoid autograd in-place mutation error
+        new_memory = self.memory.clone()
+        new_memory[node_ids] = updated
+        self.memory = new_memory
+
 
     def compute_messages(self, src_ids: torch.Tensor, dst_ids: torch.Tensor,
                          edge_feats: torch.Tensor, timestamps: torch.Tensor) -> torch.Tensor:

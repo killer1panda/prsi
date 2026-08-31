@@ -1,6 +1,8 @@
 """Graph extraction from Neo4j to PyTorch Geometric.
 
 Extracts user-interaction graphs with node features for GraphSAGE training.
+Computes Louvain echo-chamber density per the blueprint specification:
+  echo_chamber_density = in-cluster edges / total edges (per user)
 """
 
 import logging
@@ -10,6 +12,19 @@ import pandas as pd
 import torch
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
+
+# Louvain community detection for echo-chamber density
+try:
+    import networkx as nx
+    import community as community_louvain  # python-louvain package
+    LOUVAIN_AVAILABLE = True
+except ImportError:
+    try:
+        import networkx as nx
+        from networkx.algorithms import community as nx_community
+        LOUVAIN_AVAILABLE = "nx_only"
+    except ImportError:
+        LOUVAIN_AVAILABLE = False
 
 from src.data.neo4j_connector import get_neo4j
 
@@ -102,8 +117,8 @@ class GraphExtractor:
         """Query Neo4j for user nodes with computed features."""
         query = """
         MATCH (u:User)
-        OPTIONAL MATCH (u)-[:POSTED]->(p:Post)
-        WITH u, 
+        OPTIONAL MATCH (u)-[:AUTHORED]->(p:Post)
+        WITH u,
              count(p) as post_count,
              avg(p.sentiment_polarity) as avg_sentiment,
              avg(p.toxicity) as avg_toxicity,
@@ -136,12 +151,22 @@ class GraphExtractor:
             return users
 
     def _get_interaction_edges(self, min_interactions: int) -> List[Dict]:
-        """Query Neo4j for user-user interactions."""
+        """Query Neo4j for user-user interactions.
+
+        Uses the actual relationship types written by build_neo4j_graph_production.py:
+          REPLIED_TO, MENTIONED, CO_SUBREDDIT (not the wrong POSTED/INTERACTED).
+        Weights: REPLIED_TO=1.0, MENTIONED=0.5, CO_SUBREDDIT=0.25
+        """
         query = """
-        MATCH (u1:User)-[r:INTERACTED]->(u2:User)
+        MATCH (u1:User)-[r:REPLIED_TO|MENTIONED|CO_SUBREDDIT]->(u2:User)
         WHERE u1.user_id <> u2.user_id
-        WITH u1.user_id as from_user, u2.user_id as to_user, 
-             sum(r.weight) as total_weight, count(r) as interaction_count
+        WITH u1.user_id as from_user, u2.user_id as to_user,
+             sum(CASE type(r)
+                 WHEN 'REPLIED_TO'   THEN 1.0
+                 WHEN 'MENTIONED'    THEN 0.5
+                 WHEN 'CO_SUBREDDIT' THEN 0.25
+                 ELSE 0.0 END) as total_weight,
+             count(r) as interaction_count
         WHERE interaction_count >= $min_interactions
         RETURN from_user, to_user, total_weight as weight, interaction_count
         """
@@ -158,10 +183,21 @@ class GraphExtractor:
                 })
             return edges
 
+
     def _build_node_features(self, user_df: pd.DataFrame) -> torch.Tensor:
-        """Build normalized node feature matrix."""
+        """Build normalized node feature matrix.
+
+        Feature columns:
+          0: log1p(followers)
+          1: verified
+          2: post_count
+          3: avg_sentiment
+          4: avg_toxicity
+          5: controversy_rate
+          6: echo_chamber_density  ← Blueprint: Louvain in-cluster / total edges
+        """
         feature_cols = [
-            'followers', 'verified', 'post_count', 
+            'followers', 'verified', 'post_count',
             'avg_sentiment', 'avg_toxicity', 'controversy_rate'
         ]
 
@@ -170,12 +206,91 @@ class GraphExtractor:
         # Log-transform followers (highly skewed)
         features[:, 0] = np.log1p(features[:, 0])
 
+        # Append echo-chamber density if available
+        if 'echo_chamber_density' in user_df.columns:
+            ecd = user_df['echo_chamber_density'].fillna(0).values.astype(np.float32).reshape(-1, 1)
+            features = np.hstack([features, ecd])
+
         # Normalize
         mean = features.mean(axis=0)
         std = features.std(axis=0) + 1e-8
         features = (features - mean) / std
 
         return torch.tensor(features, dtype=torch.float)
+
+    def compute_echo_chamber_density(
+        self,
+        user_ids: List[str],
+        edges: List[Dict],
+    ) -> Dict[str, float]:
+        """Compute Louvain echo-chamber density for each user.
+
+        Blueprint formula:
+          echo_chamber_density(u) = |{(u,v) : community(u) == community(v)}| / |{(u,v)}|
+
+        i.e. the fraction of a user's edges that stay within their Louvain community.
+        A density of 1.0 = all interactions are within the same echo chamber.
+
+        Args:
+            user_ids: List of user ID strings (node labels)
+            edges: List of {from_user, to_user, weight} dicts
+
+        Returns:
+            Dict mapping user_id → echo_chamber_density [0, 1]
+        """
+        if not LOUVAIN_AVAILABLE:
+            logger.warning(
+                "Louvain community detection unavailable — install 'python-louvain' or 'networkx'. "
+                "Echo-chamber density will be 0.0 for all users."
+            )
+            return {uid: 0.0 for uid in user_ids}
+
+        if not edges:
+            return {uid: 0.0 for uid in user_ids}
+
+        # Build undirected weighted NetworkX graph
+        G = nx.Graph()
+        G.add_nodes_from(user_ids)
+        for edge in edges:
+            u, v, w = edge['from_user'], edge['to_user'], edge.get('weight', 1.0)
+            if G.has_edge(u, v):
+                G[u][v]['weight'] += w
+            else:
+                G.add_edge(u, v, weight=w)
+
+        # Run Louvain community detection
+        try:
+            if LOUVAIN_AVAILABLE is True:
+                # python-louvain package (best quality)
+                partition = community_louvain.best_partition(G, weight='weight')
+            else:
+                # NetworkX greedy modularity (fallback)
+                communities = nx_community.greedy_modularity_communities(G, weight='weight')
+                partition = {}
+                for cid, comm in enumerate(communities):
+                    for node in comm:
+                        partition[node] = cid
+        except Exception as e:
+            logger.warning(f"Louvain failed: {e}. Returning 0.0 density.")
+            return {uid: 0.0 for uid in user_ids}
+
+        # For each user: fraction of edges that stay within their community
+        density = {}
+        for uid in user_ids:
+            if uid not in G:
+                density[uid] = 0.0
+                continue
+            neighbors = list(G.neighbors(uid))
+            if not neighbors:
+                density[uid] = 0.0
+                continue
+            user_community = partition.get(uid, -1)
+            in_cluster = sum(1 for nb in neighbors if partition.get(nb, -2) == user_community)
+            density[uid] = in_cluster / len(neighbors)  # [0, 1]
+
+        return density
+
+
 
     def _build_node_labels(self, user_df: pd.DataFrame) -> torch.Tensor:
         """Build node labels based on user cancellation risk.

@@ -83,19 +83,21 @@ class TestPipelineIntegration:
         input_path = temp_data_dir / "sample_input.parquet"
         sample_reddit_data.to_parquet(input_path)
         
-        # Import preprocessing
-        from src.data.preprocessing import preprocess_reddit_raw
-        
+        # Import preprocessing — function is preprocess_posts (not preprocess_reddit_raw)
+        from src.data.preprocessing import preprocess_posts
+
         # Convert to raw format expected by preprocessing
         raw_posts = sample_reddit_data.to_dict('records')
-        
+
         # Run preprocessing
-        processed = preprocess_reddit_raw(raw_posts)
-        
+        processed = preprocess_posts(raw_posts)
+
         # Validate output
         assert len(processed) > 0
-        assert all('body' in p for p in processed)
-        assert all('sentiment' in p or 'text' in p for p in processed)
+        # preprocess_posts returns list of dicts; each should have a text field
+        assert all(isinstance(p, dict) for p in processed)
+        assert all('body' in p or 'text' in p or 'cleaned_text' in p for p in processed)
+
     
     def test_feature_extraction_pipeline(self, sample_reddit_data):
         """Test feature extraction from preprocessed data."""

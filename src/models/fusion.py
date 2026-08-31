@@ -213,17 +213,21 @@ class GatedFusion(nn.Module):
         # Compute gate from concatenated raw embeddings
         gate_input = torch.cat([graph_emb, text_emb], dim=-1)
         gate = self.gate(gate_input)  # [batch, hidden]
-        
+
         # Fused representation: weighted combination
         fused = gate * g + (1 - gate) * t
-        
+
         # Joint processing
         joint = self.joint(fused)
-        
+
         # Classify
         logits = self.classifier(joint)
-        
-        return logits, gate  # Return gate for interpretability
+
+        # Store gate for interpretability without breaking the forward contract
+        # Access via model.last_gate after forward() call
+        self.last_gate = gate.detach()
+
+        return logits  # Plain Tensor — callers must not unpack as tuple
 
 
 class TransformerFusion(nn.Module):

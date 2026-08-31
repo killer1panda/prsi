@@ -55,15 +55,16 @@ class NTXentLoss(nn.Module):
         mask = torch.eye(2 * B, device=z.device).bool()
         sim = sim.masked_fill(mask, -9e15)
 
-        # Positive pairs: (i, i+B) and (i+B, i)
+        # Numerical stability: subtract max BEFORE extracting pos_sim
+        # (was previously subtracted AFTER, causing overflow in pos_sim)
+        sim_max, _ = sim.max(dim=1, keepdim=True)
+        sim = sim - sim_max.detach()
+
+        # Positive pairs: (i, i+B) and (i+B, i) — extracted AFTER max-subtraction
         pos_sim = torch.cat([
             torch.diag(sim, B),
             torch.diag(sim, -B)
         ])  # (2B,)
-
-        # Numerical stability
-        sim_max, _ = sim.max(dim=1, keepdim=True)
-        sim = sim - sim_max.detach()
 
         # Denominator: sum over all negatives
         denom = torch.exp(sim).sum(dim=1)
@@ -71,6 +72,7 @@ class NTXentLoss(nn.Module):
         # Loss: -log(exp(pos) / sum(exp(all)))
         loss = -pos_sim + torch.log(denom)
         return loss.mean()
+
 
 
 class UserEmbeddingProjector(nn.Module):

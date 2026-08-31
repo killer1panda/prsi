@@ -74,15 +74,26 @@ class TemporalFeatureExtractor:
             features["engagement_trend"] = 0.0
             features["engagement_trend_r2"] = 0.0
         
-        # 3. Window-based volatility
+        # 3. Window-based volatility — Blueprint formula: σ(sentiment_t) / μ(engagement_t)
+        engagement = posts[self.engagement_col].fillna(0).values
         for window in self.window_sizes:
             if len(sentiment) >= window:
-                recent = sentiment[-window:]
-                features[f"sentiment_volatility_{window}d"] = np.std(recent)
-                features[f"sentiment_mean_{window}d"] = np.mean(recent)
+                recent_sent = sentiment[-window:]
+                recent_eng = engagement[-window:]
+                sent_std = np.std(recent_sent)
+                eng_mean = np.mean(recent_eng)
+                # Blueprint: volatility = σ(sentiment) / μ(engagement), clipped to avoid div/0
+                features[f"sentiment_volatility_{window}d"] = (
+                    sent_std / max(eng_mean, 1e-6)
+                )
+                features[f"sentiment_mean_{window}d"] = np.mean(recent_sent)
             else:
-                features[f"sentiment_volatility_{window}d"] = np.std(sentiment) if len(sentiment) > 1 else 0.0
+                features[f"sentiment_volatility_{window}d"] = (
+                    np.std(sentiment) / max(np.mean(engagement), 1e-6)
+                    if len(sentiment) > 1 else 0.0
+                )
                 features[f"sentiment_mean_{window}d"] = np.mean(sentiment) if len(sentiment) > 0 else 0.0
+
         
         # 4. Posting frequency changes
         if "created_at" in posts.columns:
@@ -109,9 +120,34 @@ class TemporalFeatureExtractor:
             toxicity = posts["toxicity"].fillna(0).values
             features["toxicity_trend"] = np.mean(np.diff(toxicity)) if len(toxicity) >= 2 else 0.0
             features["max_toxicity_recent"] = np.max(toxicity[-7:]) if len(toxicity) >= 7 else np.max(toxicity)
-        
+
+        # 6. Outrage Velocity — Blueprint: Δ(negative_replies) / Δt
+        # Computes the time-derivative of negative reply volume, NOT generic comment count.
+        # negative_replies = replies where sentiment < -0.2 (or column 'negative_replies' if present)
+        if "negative_replies" in posts.columns:
+            neg_replies = posts["negative_replies"].fillna(0).values
+        elif "replies" in posts.columns and "sentiment_polarity" in posts.columns:
+            # Proxy: replies weighted by negative sentiment magnitude
+            neg_mask = posts["sentiment_polarity"].fillna(0) < -0.2
+            neg_replies = (posts["replies"].fillna(0) * neg_mask).values
+        else:
+            neg_replies = None
+
+        if neg_replies is not None and len(neg_replies) >= 2 and "created_at" in posts.columns:
+            times = pd.to_datetime(posts["created_at"], unit="s", errors="coerce")
+            dt_hours = times.diff().dt.total_seconds().fillna(1.0).div(3600.0).values[1:]
+            d_neg = np.diff(neg_replies)  # Δ(negative_replies)
+            # Δneg/Δt per hour — clip dt to avoid division by near-zero
+            dt_safe = np.where(np.abs(dt_hours) < 0.01, 0.01, dt_hours)
+            outrage_velocity = d_neg / dt_safe
+            features["outrage_velocity"] = float(np.mean(outrage_velocity))
+            features["outrage_velocity_peak"] = float(np.max(outrage_velocity))
+        else:
+            features["outrage_velocity"] = 0.0
+            features["outrage_velocity_peak"] = 0.0
+
         return features
-    
+
     def _default_features(self) -> Dict[str, float]:
         """Default features for users with insufficient history."""
         defaults = {
@@ -130,8 +166,11 @@ class TemporalFeatureExtractor:
             "posting_acceleration": 0.0,
             "toxicity_trend": 0.0,
             "max_toxicity_recent": 0.0,
+            "outrage_velocity": 0.0,
+            "outrage_velocity_peak": 0.0,
         }
         return defaults
+
     
     def extract_all_users(self, df: pd.DataFrame) -> pd.DataFrame:
         """Extract temporal features for all users in dataframe."""
@@ -304,25 +343,30 @@ class UserTimelineEncoder(nn.Module):
         Args:
             post_features: [batch, seq_len, post_feature_dim]
             timestamps: [batch, seq_len] — relative time positions
-            mask: [batch, seq_len] — padding mask
-        
+            mask: [batch, seq_len] — 1=valid token, 0=padding (standard HuggingFace convention)
+
         Returns:
             user_embedding: [batch, hidden_dim]
         """
         x = self.post_proj(post_features)  # [B, S, H]
         x = self.temporal_pe(x, timestamps)  # Add temporal encoding
-        
+
         if mask is not None:
-            # Invert mask for transformer (True = mask)
-            mask = ~mask.bool()
-        
-        x = self.transformer(x, src_key_padding_mask=mask)  # [B, S, H]
-        
-        # Mean pooling over valid positions
+            # PyTorch transformer src_key_padding_mask: True = IGNORE (padding)
+            # Our mask: 1 = valid, 0 = pad  →  invert for transformer
+            transformer_mask = ~mask.bool()  # True where padded
+        else:
+            transformer_mask = None
+
+        x = self.transformer(x, src_key_padding_mask=transformer_mask)  # [B, S, H]
+
+        # Mean pooling over VALID (non-padded) positions only
         if mask is not None:
-            mask_expanded = mask.unsqueeze(-1).float()
+            # mask: 1=valid, 0=pad — use directly for pooling
+            mask_expanded = mask.bool().unsqueeze(-1).float()  # [B, S, 1]
             x = (x * mask_expanded).sum(dim=1) / mask_expanded.sum(dim=1).clamp(min=1)
         else:
             x = x.mean(dim=1)
-        
+
         return self.output_proj(x)
+

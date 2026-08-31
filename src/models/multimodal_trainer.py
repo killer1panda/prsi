@@ -14,6 +14,7 @@ from typing import Dict, Optional
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
@@ -25,6 +26,67 @@ import numpy as np
 from src.models.gnn_model import MultimodalDoomPredictor
 
 logger = logging.getLogger(__name__)
+
+
+class FocalLoss(nn.Module):
+    """Focal Loss for class-imbalanced doom score distribution.
+
+    Blueprint specifies Focal Loss (not standard CE) because doom events
+    are rare: most posts are safe (score≈0), extreme cancellations are few.
+    Focal Loss down-weights well-classified easy negatives so the model
+    focuses on hard, rare positive examples.
+
+    FL(p_t) = -α_t * (1 - p_t)^γ * log(p_t)
+
+    Args:
+        gamma: Focusing parameter — higher = more focus on hard examples (default 2.0)
+        alpha: Class weight for positive class (default 0.25 for imbalanced data)
+        reduction: 'mean' | 'sum' | 'none'
+    """
+
+    def __init__(self, gamma: float = 2.0, alpha: float = 0.25, reduction: str = 'mean'):
+        super().__init__()
+        self.gamma = gamma
+        self.alpha = alpha
+        self.reduction = reduction
+
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            logits: [B, C] raw model outputs (pre-softmax) for classification,
+                    or [B] for regression doom scores
+            targets: [B] class indices or [B] float doom scores
+        """
+        if logits.dim() == 1 or logits.shape[-1] == 1:
+            # Regression mode: MSE-based focal weighting
+            logits = logits.squeeze(-1)
+            targets = targets.float()
+            mse = F.mse_loss(logits, targets, reduction='none')
+            # Weight by how surprising the prediction is (like hard example mining)
+            residual = torch.abs(targets - torch.sigmoid(logits))
+            focal_weight = (residual ** self.gamma).detach()
+            loss = focal_weight * mse
+        else:
+            # Classification mode: standard focal loss
+            log_prob = F.log_softmax(logits, dim=-1)
+            prob = torch.exp(log_prob)
+            targets_long = targets.long()
+            log_p_t = log_prob.gather(1, targets_long.unsqueeze(1)).squeeze(1)
+            p_t = prob.gather(1, targets_long.unsqueeze(1)).squeeze(1)
+            # α weighting: α for positive class, (1-α) for negative
+            alpha_t = torch.where(targets_long == 1,
+                                  torch.tensor(self.alpha, device=logits.device),
+                                  torch.tensor(1 - self.alpha, device=logits.device))
+            focal_weight = alpha_t * (1 - p_t) ** self.gamma
+            loss = -focal_weight * log_p_t
+
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        return loss
+
+
 
 
 class DoomDataset(Dataset):
@@ -119,6 +181,10 @@ class MultimodalTrainer:
 
         # Best model tracking
         self.best_val_f1 = 0.0
+
+        # Loss function — Blueprint requires Focal Loss for class imbalance
+        # gamma=2.0: focus on hard examples; alpha=0.25: down-weight easy negatives
+        self.criterion = FocalLoss(gamma=2.0, alpha=0.25)
 
         # Move model to device
         self.model.to(self.device)
@@ -263,7 +329,8 @@ class MultimodalTrainer:
                     edge_weight=getattr(self.graph_data, 'edge_weight', None),
                 )
 
-                loss = nn.functional.cross_entropy(logits, labels)
+                # Focal Loss — blueprint-required for imbalanced doom score distribution
+                loss = self.criterion(logits, labels)
                 loss = loss / self.grad_accum_steps
 
             if self.fp16:

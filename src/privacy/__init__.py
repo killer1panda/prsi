@@ -1,3 +1,13 @@
 """Privacy modules (differential privacy, federated learning)."""
 
-# Placeholder for Phase 5 implementation
+from .dp_trainer import DPDoomTrainer, add_gaussian_noise
+from .fl_simulator import FLSimulator, FederatedSimulator, DoomClient, federated_averaging
+
+__all__ = [
+    "DPDoomTrainer",
+    "add_gaussian_noise",
+    "FLSimulator",
+    "FederatedSimulator",
+    "DoomClient",
+    "federated_averaging",
+]

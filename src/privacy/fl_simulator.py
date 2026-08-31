@@ -25,6 +25,25 @@ except ImportError:
     logger.warning("Flower not installed. FL simulation will use mock implementation.")
 
 
+def federated_averaging(weights_list: List[List[np.ndarray]], sample_counts: Optional[List[int]] = None) -> List[np.ndarray]:
+    """Perform Federated Averaging (FedAvg) across client weight layers."""
+    if not weights_list:
+        return []
+    if sample_counts is None:
+        sample_counts = [1] * len(weights_list)
+    total_samples = max(1, sum(sample_counts))
+    
+    avg_weights = []
+    num_layers = len(weights_list[0])
+    for layer_idx in range(num_layers):
+        layer_avg = np.zeros_like(weights_list[0][layer_idx], dtype=np.float64)
+        for client_idx, client_weights in enumerate(weights_list):
+            weight = sample_counts[client_idx] / total_samples
+            layer_avg += client_weights[layer_idx].astype(np.float64) * weight
+        avg_weights.append(layer_avg.astype(weights_list[0][layer_idx].dtype))
+    return avg_weights
+
+
 class DoomClient(fl.client.NumPyClient if FLOWER_AVAILABLE else object):
     """Flower client for federated learning."""
 
@@ -294,7 +313,9 @@ class FLSimulator:
         logger.info(f"FL results saved to {output_dir}/fl_convergence.csv")
 
         return df
+        
 
+FederatedSimulator = FLSimulator
 
 if __name__ == "__main__":
     print("FL Simulator module. Import and use in training scripts.")

@@ -22,6 +22,17 @@ from src.models.multimodal_trainer import DoomDataset
 logger = logging.getLogger(__name__)
 
 
+def add_gaussian_noise(tensor: torch.Tensor, sigma: float = 1.0, clip_norm: Optional[float] = None) -> torch.Tensor:
+    """Add calibrated Gaussian noise to tensors for differential privacy guarantees."""
+    cloned = tensor.clone()
+    if clip_norm is not None:
+        norm = torch.norm(cloned, p=2)
+        if norm > clip_norm and norm > 0:
+            cloned = cloned * (clip_norm / norm)
+    noise = torch.randn_like(cloned) * sigma
+    return cloned + noise
+
+
 class DPDoomTrainer:
     """Differentially private trainer for multimodal doom predictor.
 

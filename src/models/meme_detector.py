@@ -64,10 +64,22 @@ class MemeDetector:
             try:
                 emb = self.vision_encoder.encode([str(template_file)], use_cache=True)
                 self.template_embeddings[template_file.stem] = emb[0]
+                
+                # Fetch template virality from MongoDB with graceful fallback
+                avg_virality = 0.7
+                try:
+                    from src.data.db_connectors import get_mongodb
+                    mongo = get_mongodb()
+                    doc = mongo.db["meme_templates"].find_one({"template_name": template_file.stem})
+                    if doc and "avg_virality" in doc:
+                        avg_virality = float(doc["avg_virality"])
+                except Exception:
+                    pass
+                    
                 self.template_metadata[template_file.stem] = {
                     "name": template_file.stem,
                     "path": str(template_file),
-                    "avg_virality": 0.7  # Placeholder; should be loaded from DB
+                    "avg_virality": avg_virality
                 }
             except Exception as e:
                 logger.error(f"Failed to load template {template_file}: {e}")

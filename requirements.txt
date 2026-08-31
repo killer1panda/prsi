@@ -36,7 +36,7 @@ fastparquet>=2023.10.0
 polars>=0.20.0
 webdataset>=0.2.48
 zstandard>=0.22.0
-simdjson>=5.0.2
+pysimdjson>=5.0.2
 
 # --- Graph Neural Networks ---
 torch-geometric>=2.4.0

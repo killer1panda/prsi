@@ -48,13 +48,13 @@ class GraphSAGEEncoder(nn.Module):
 
     def forward(self, x, edge_index, edge_weight=None):
         for i, conv in enumerate(self.convs[:-1]):
-            x = conv(x, edge_index, edge_weight=edge_weight)
+            x = conv(x, edge_index)
             x = self.batch_norms[i](x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         # Final layer (no activation, no dropout)
-        x = self.convs[-1](x, edge_index, edge_weight=edge_weight)
+        x = self.convs[-1](x, edge_index)
         x = self.batch_norms[-1](x)
 
         return x

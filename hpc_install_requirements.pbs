@@ -1,0 +1,35 @@
+#!/bin/bash
+#PBS -N install_requirements
+#PBS -q gpu
+#PBS -j oe
+#PBS -l select=1:ncpus=8:ngpus=1
+#PBS -l walltime=02:00:00
+#PBS -o install_requirements.log
+
+echo "Job started at: $(date)"
+echo "Working directory: $PBS_O_WORKDIR"
+echo "Host: $(hostname)"
+
+# Load CUDA
+module load cuda/12.8
+
+# Activate conda
+source /home/soft/anaconda3/bin/activate
+
+# Create environment if it doesn't exist
+conda env list | grep -q psdi_env || conda create -n psdi_env python=3.10 -y
+conda activate psdi_env
+
+# Install base packages via conda
+conda install numpy pandas scikit-learn scipy matplotlib -y
+
+# Install PyTorch with CUDA
+conda install -c pytorch pytorch torchvision torchaudio pytorch-cuda=12.1 -y
+
+# Install requirements
+pip install -r requirements.txt -r requirements-api.txt -r requirements-dashboard.txt -r requirements-dev.txt
+
+# Run validation
+python validate_setup.py
+
+echo "Job completed at: $(date)"

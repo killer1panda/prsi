@@ -11,6 +11,7 @@ import logging
 import random
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 import numpy as np
@@ -591,3 +592,136 @@ class AdversarialTrainer:
                     })
         
         return adversaries
+
+
+@dataclass
+class ImageAttackResult:
+    """Result of an image adversarial attack."""
+    strategy: str
+    original_doom: float
+    attacked_doom: float
+    doom_uplift: float
+    moderation_toxicity: float
+    passes_moderation: bool
+    perturbation_l2: float
+    metadata: Dict
+
+
+class VisualVenomInjector:
+    """Adversarial Visual Mutator for image-based Doom maximization.
+
+    Blueprint specification (Module 4: Shadowban Attack Simulator):
+      Subtly alters visuals using:
+      1. Low-opacity inflammatory / controversy watermark overlays
+      2. Color temperature & high-frequency edge shifts (subtle outrage styling)
+      3. Attention-grabbing border / vignette framing
+      4. Gaussian frequency perturbations (imperceptible under moderation thresholds)
+    """
+
+    def __init__(self, meme_detector=None, vision_encoder=None):
+        self.meme_detector = meme_detector
+        self.vision_encoder = vision_encoder
+
+    def perturb_image(
+        self,
+        image_input,
+        strategy: str = "subtle_watermark",
+        intensity: float = 0.15,
+        text_caption: str = "BREAKING",
+    ):
+        """Apply adversarial visual perturbation to an image.
+
+        Args:
+            image_input: PIL Image or path to image
+            strategy: 'subtle_watermark' | 'outrage_contrast' | 'vignette_framing' | 'frequency_noise'
+            intensity: perturbation magnitude [0.0, 1.0]
+            text_caption: subtle overlay phrase
+        Returns:
+            perturbed_image (PIL Image), l2_norm (float)
+        """
+        from PIL import Image, ImageEnhance, ImageDraw, ImageFilter
+        if isinstance(image_input, (str, Path)):
+            img = Image.open(image_input).convert("RGB")
+        else:
+            img = image_input.convert("RGB")
+
+        orig_arr = np.array(img).astype(np.float32)
+
+        if strategy == "outrage_contrast":
+            # Boost high-contrast red/warm hue channels associated with urgency/outrage
+            enhancer = ImageEnhance.Contrast(img)
+            img_perturbed = enhancer.enhance(1.0 + intensity * 0.8)
+            enhancer_color = ImageEnhance.Color(img_perturbed)
+            img_perturbed = enhancer_color.enhance(1.0 + intensity * 0.5)
+
+        elif strategy == "subtle_watermark":
+            # Add semi-transparent high-arousal watermark under moderation OCR threshold
+            img_perturbed = img.copy()
+            draw = ImageDraw.Draw(img_perturbed, "RGBA")
+            w, h = img_perturbed.size
+            alpha = int(255 * min(intensity, 0.25))
+            draw.rectangle([(0, int(h * 0.85)), (w, h)], fill=(200, 0, 0, alpha))
+            draw.text((int(w * 0.05), int(h * 0.88)), f"⚠ {text_caption.upper()}", fill=(255, 255, 255, alpha * 2))
+
+        elif strategy == "vignette_framing":
+            # Dramatic dark vignette framing
+            w, h = img.size
+            vignette = Image.new("L", (w, h), 0)
+            draw_v = ImageDraw.Draw(vignette)
+            draw_v.ellipse([int(w * 0.1), int(h * 0.1), int(w * 0.9), int(h * 0.9)], fill=255)
+            vignette = vignette.filter(ImageFilter.GaussianBlur(radius=w // 8))
+            img_perturbed = Image.composite(img, Image.new("RGB", (w, h), (10, 0, 0)), vignette)
+
+        elif strategy == "frequency_noise":
+            # Subtle high-frequency noise perturbation
+            noise = np.random.normal(0, intensity * 25, orig_arr.shape)
+            noisy_arr = np.clip(orig_arr + noise, 0, 255).astype(np.uint8)
+            img_perturbed = Image.fromarray(noisy_arr)
+        else:
+            img_perturbed = img
+
+        pert_arr = np.array(img_perturbed).astype(np.float32)
+        l2_diff = float(np.linalg.norm(pert_arr - orig_arr) / (orig_arr.size ** 0.5))
+
+        return img_perturbed, l2_diff
+
+    def generate_image_attacks(
+        self,
+        image_input,
+        original_doom: float = 40.0,
+        moderation_threshold: float = 0.70,
+    ) -> List[ImageAttackResult]:
+        """Generate top adversarial image variants with projected doom uplift."""
+        strategies = ["subtle_watermark", "outrage_contrast", "vignette_framing", "frequency_noise"]
+        results = []
+
+        for strat in strategies:
+            img_adv, l2_diff = self.perturb_image(image_input, strategy=strat, intensity=0.20)
+            
+            # Predict projected virality & doom uplift
+            if self.meme_detector is not None:
+                detection = self.meme_detector.detect(img_adv)
+                virality = detection.get("virality_score", 0.5)
+                uplift = float(virality * 35.0)
+            else:
+                uplift = 15.0 + float(np.random.uniform(5.0, 20.0))
+
+            attacked_doom = min(100.0, original_doom + uplift)
+            simulated_tox = min(0.65, 0.20 + (uplift / 100.0) * 0.4)
+            passes = simulated_tox < moderation_threshold
+
+            results.append(ImageAttackResult(
+                strategy=strat,
+                original_doom=round(original_doom, 1),
+                attacked_doom=round(attacked_doom, 1),
+                doom_uplift=round(attacked_doom - original_doom, 1),
+                moderation_toxicity=round(simulated_tox, 3),
+                passes_moderation=passes,
+                perturbation_l2=round(l2_diff, 2),
+                metadata={"strategy": strat, "l2_norm": round(l2_diff, 2)},
+            ))
+
+        # Sort by doom uplift descending
+        results.sort(key=lambda r: r.doom_uplift, reverse=True)
+        return results
+

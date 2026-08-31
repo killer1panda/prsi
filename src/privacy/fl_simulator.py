@@ -5,7 +5,7 @@ then aggregating via FedAvg using Flower framework.
 """
 
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
 
 import torch

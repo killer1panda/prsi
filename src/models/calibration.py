@@ -114,7 +114,7 @@ class CalibrationAnalyzer:
         
         ece = 0.0
         for lower, upper in zip(bin_lowers, bin_uppers):
-            in_bin = (probs > lower) & (probs <= upper)
+            in_bin = (probs >= lower) & (probs <= upper) if lower == 0.0 else (probs > lower) & (probs <= upper)
             prop_in_bin = in_bin.mean()
             
             if prop_in_bin > 0:
@@ -132,7 +132,7 @@ class CalibrationAnalyzer:
         
         mce = 0.0
         for lower, upper in zip(bin_lowers, bin_uppers):
-            in_bin = (probs > lower) & (probs <= upper)
+            in_bin = (probs >= lower) & (probs <= upper) if lower == 0.0 else (probs > lower) & (probs <= upper)
             if in_bin.sum() > 0:
                 accuracy_in_bin = labels[in_bin].mean()
                 avg_confidence_in_bin = probs[in_bin].mean()
@@ -147,7 +147,8 @@ class CalibrationAnalyzer:
         self.temperature_scaler.fit(val_logits, val_labels)
         
         # Platt scaling
-        val_probs = torch.softmax(torch.tensor(val_logits), dim=-1)[:, 1].numpy()
+        logits_t = torch.as_tensor(val_logits, dtype=torch.float32)
+        val_probs = torch.softmax(logits_t, dim=-1)[:, 1].cpu().numpy()
         self.platt_scaler = PlattScaler()
         self.platt_scaler.fit(val_probs, val_labels)
         
@@ -159,25 +160,27 @@ class CalibrationAnalyzer:
     
     def calibrate(self, logits, method: str = "temperature") -> np.ndarray:
         """Calibrate logits using specified method."""
+        logits_t = torch.as_tensor(logits, dtype=torch.float32)
         if method == "temperature" and self.temperature_scaler:
             return self.temperature_scaler.calibrate(logits)[:, 1]
         elif method == "platt" and self.platt_scaler:
-            probs = torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
+            probs = torch.softmax(logits_t, dim=-1)[:, 1].cpu().numpy()
             return self.platt_scaler.calibrate(probs)
         elif method == "isotonic" and self.isotonic:
-            probs = torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
+            probs = torch.softmax(logits_t, dim=-1)[:, 1].cpu().numpy()
             return self.isotonic.predict(probs)
         else:
             # No calibration
-            return torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
+            return torch.softmax(logits_t, dim=-1)[:, 1].cpu().numpy()
     
     def evaluate(self, logits, labels) -> Dict:
         """Evaluate calibration of all methods."""
         results = {}
+        logits_t = torch.as_tensor(logits, dtype=torch.float32)
         
         for method in ["none", "temperature", "platt", "isotonic"]:
             if method == "none":
-                probs = torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
+                probs = torch.softmax(logits_t, dim=-1)[:, 1].cpu().numpy()
             else:
                 probs = self.calibrate(logits, method)
             
@@ -190,3 +193,66 @@ class CalibrationAnalyzer:
             }
         
         return results
+
+
+class FollowerStratifiedCalibrator:
+    """Stratified calibration head handling edge cases across audience tiers.
+
+    Low-follower (<1k), mid-tier (1k-50k), and high-reach (>50k) accounts
+    exhibit fundamentally different outrage propagation dynamics and base rates.
+    This calibrator fits temperature & Platt scaling per follower stratum.
+    """
+
+    def __init__(self, low_threshold: int = 1000, high_threshold: int = 50000):
+        self.low_threshold = low_threshold
+        self.high_threshold = high_threshold
+        self.scalers = {
+            "low": PlattScaler(),
+            "mid": PlattScaler(),
+            "high": PlattScaler(),
+        }
+        self.global_scaler = PlattScaler()
+        self.is_fitted = False
+
+    def _get_stratum(self, followers: int) -> str:
+        if followers < self.low_threshold:
+            return "low"
+        elif followers <= self.high_threshold:
+            return "mid"
+        else:
+            return "high"
+
+    def fit(self, probs: np.ndarray, labels: np.ndarray, follower_counts: np.ndarray):
+        """Fit stratified scalers on validation data with follower counts."""
+        probs = np.asarray(probs, dtype=np.float32)
+        labels = np.asarray(labels, dtype=np.int64)
+        follower_counts = np.asarray(follower_counts, dtype=np.int64)
+
+        self.global_scaler.fit(probs, labels)
+
+        for stratum in ["low", "mid", "high"]:
+            if stratum == "low":
+                mask = follower_counts < self.low_threshold
+            elif stratum == "mid":
+                mask = (follower_counts >= self.low_threshold) & (follower_counts <= self.high_threshold)
+            else:
+                mask = follower_counts > self.high_threshold
+
+            if mask.sum() >= 10 and len(np.unique(labels[mask])) > 1:
+                self.scalers[stratum].fit(probs[mask], labels[mask])
+            else:
+                # Fall back to global scaler if stratum data is sparse
+                self.scalers[stratum] = self.global_scaler
+
+        self.is_fitted = True
+        logger.info("FollowerStratifiedCalibrator fitted across reach tiers.")
+
+    def calibrate_single(self, prob: float, followers: int) -> float:
+        """Calibrate a single probability given the user's follower count."""
+        if not self.is_fitted:
+            return float(prob)
+        stratum = self._get_stratum(followers)
+        scaler = self.scalers.get(stratum, self.global_scaler)
+        calibrated = scaler.calibrate(np.array([prob]))
+        return float(calibrated[0])
+

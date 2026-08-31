@@ -14,18 +14,21 @@ import pandas as pd
 
 from src.models.gnn_model import MultimodalDoomPredictor
 from src.features.graph_extractor import GraphExtractor
+from src.models.calibration import FollowerStratifiedCalibrator
+from src.models.multilingual import MultilingualConfig, MultilingualEncoder
 
 logger = logging.getLogger(__name__)
 
 
 class IntegratedDoomPredictor:
-    """Production predictor combining GNN + NLP + tabular features."""
+    """Production predictor combining GNN + NLP + tabular + multilingual + calibration features."""
 
     def __init__(
         self,
         model_path: str = "models/multimodal_doom/best_model.pt",
         config_path: str = "models/multimodal_doom/model_config.pt",
         device: str = None,
+        enable_multilingual: bool = True,
     ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
@@ -33,12 +36,53 @@ class IntegratedDoomPredictor:
         self.user_to_idx = {}
         self.model_path = model_path
         self.config_path = config_path
+        self.enable_multilingual = enable_multilingual
+
+        # Follower-stratified calibration head (handles low-follower vs influencer edge cases)
+        self.calibrator = FollowerStratifiedCalibrator(low_threshold=1000, high_threshold=50000)
+
+        # Multilingual / Hinglish code-switching handler
+        self._multilingual_encoder = None
 
         # Load model if paths exist
         if Path(model_path).exists() and Path(config_path).exists():
             self.load_model()
         else:
             logger.warning(f"Model not found at {model_path}. Predictor not ready.")
+
+    @property
+    def multilingual_encoder(self):
+        """Lazy loader for multilingual / Hinglish encoder."""
+        if self._multilingual_encoder is None and self.enable_multilingual:
+            try:
+                # Use lightweight config for inference
+                cfg = MultilingualConfig(device=self.device)
+                self._multilingual_encoder = MultilingualEncoder(cfg)
+            except Exception as e:
+                logger.warning(f"Could not load full MultilingualEncoder backbone ({e}). Using regex language detector.")
+                # Minimal fallback object with detect_language and preprocess methods
+                class RegexLanguageDetector:
+                    def __init__(self):
+                        import re
+                        self.patterns = {
+                            "roman_hindi": re.compile(r'\b(kya|nahi|hai|main|tu|aap|kaise|kyun|bahut|achha|bura|bhai|yaar|desh|modi|bjp|congress)\b', re.I),
+                            "hindi_script": re.compile(r'[\u0900-\u097F]+'),
+                            "english": re.compile(r'\b(the|is|are|was|were|have|has|had|do|does|did|will|would|could|should)\b', re.I),
+                        }
+                    def detect_language(self, text: str) -> str:
+                        has_hi = bool(self.patterns["hindi_script"].search(text))
+                        has_rh = bool(self.patterns["roman_hindi"].search(text))
+                        has_en = bool(self.patterns["english"].search(text))
+                        if has_hi and has_en: return "mixed"
+                        if has_hi: return "hi"
+                        if has_rh: return "hinglish"
+                        return "en"
+                    def preprocess(self, texts: list) -> list:
+                        import re
+                        return [re.sub(r'(.)\1{3,}', r'\1\1\1', t.lower().strip()) for t in texts]
+                self._multilingual_encoder = RegexLanguageDetector()
+        return self._multilingual_encoder
+
 
     def load_model(self):
         """Load trained multimodal model."""
@@ -146,10 +190,21 @@ class IntegratedDoomPredictor:
         """Predict cancellation risk for a single post.
 
         Returns:
-            Dict with prediction, probability, and feature breakdown.
+            Dict with prediction, probability, calibrated probability, language, and feature breakdown.
         """
         if self.model is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
+
+        # ── Multilingual & Hinglish handling ─────────────────────────────────
+        language = "en"
+        processed_text = text
+        if self.enable_multilingual and self.multilingual_encoder is not None:
+            try:
+                language = self.multilingual_encoder.detect_language(text)
+                if language in ("hi", "hinglish", "mixed"):
+                    processed_text = self.multilingual_encoder.preprocess([text])[0]
+            except Exception as e:
+                logger.debug(f"Language detection error: {e}")
 
         # ── Graph-data None guard ────────────────────────────────────────────
         # graph_data is None when the predictor is instantiated without a
@@ -161,7 +216,7 @@ class IntegratedDoomPredictor:
                 "Call build_graph_from_posts() to enable full GNN inference.",
                 author_id,
             )
-            return self._text_only_predict(text, author_id, followers, verified)
+            return self._text_only_predict(processed_text, author_id, followers, verified, language=language)
 
         # ── Ensure user exists in graph (add new node if unseen) ────────────
         if author_id not in self.user_to_idx:
@@ -173,7 +228,7 @@ class IntegratedDoomPredictor:
         pred, prob = self.model.predict(
             x=self.graph_data.x,
             edge_index=self.graph_data.edge_index,
-            text=text,
+            text=processed_text,
             user_idx=user_idx,
             device=self.device,
         )
@@ -182,12 +237,12 @@ class IntegratedDoomPredictor:
         embeddings = self.model.get_multimodal_embeddings(
             x=self.graph_data.x,
             edge_index=self.graph_data.edge_index,
-            text=text,
+            text=processed_text,
             user_idx=user_idx,
             device=self.device,
         )
 
-        return self._build_result(pred, prob, embeddings)
+        return self._build_result(pred, prob, embeddings, followers=followers, language=language)
 
     def _text_only_predict(
         self,
@@ -195,6 +250,7 @@ class IntegratedDoomPredictor:
         author_id: str = "anonymous",
         followers: int = 0,
         verified: bool = False,
+        language: str = "en",
     ) -> Dict[str, Any]:
         """Text-only fallback when graph_data is unavailable.
 
@@ -230,32 +286,51 @@ class IntegratedDoomPredictor:
             device=self.device,
         )
 
-        result = self._build_result(pred, prob, embeddings)
+        result = self._build_result(pred, prob, embeddings, followers=followers, language=language)
         result["inference_mode"] = "text_only"
         return result
 
-    def _build_result(self, pred: int, prob: float, embeddings: Dict) -> Dict[str, Any]:
+    def _build_result(
+        self,
+        pred: int,
+        prob: float,
+        embeddings: Dict,
+        followers: int = 0,
+        language: str = "en",
+    ) -> Dict[str, Any]:
         """Construct standardised result dict from prediction outputs."""
-        doom_score = int(prob * 100)
+        # Follower-stratified calibration
+        calibrated_prob = self.calibrator.calibrate_single(prob, followers) if hasattr(self, "calibrator") else prob
+        doom_score = int(calibrated_prob * 100)
 
-        if prob > 0.7:
+        if calibrated_prob > 0.7:
             risk_level = "CRITICAL"
-        elif prob > 0.4:
+        elif calibrated_prob > 0.4:
             risk_level = "HIGH"
-        elif prob > 0.2:
+        elif calibrated_prob > 0.2:
             risk_level = "MODERATE"
         else:
             risk_level = "LOW"
 
+        follower_stratum = (
+            "low_follower" if followers < 1000
+            else ("mid_reach" if followers <= 50000 else "high_influencer")
+        )
+
         return {
             "prediction": pred,
-            "probability": prob,
+            "probability": round(prob, 4),
+            "calibrated_probability": round(calibrated_prob, 4),
             "doom_score": doom_score,
             "risk_level": risk_level,
+            "language": language,
+            "is_hinglish": language in ("hi", "hinglish", "mixed"),
+            "follower_stratum": follower_stratum,
             "graph_embedding_norm": float(np.linalg.norm(embeddings.get("graph_embedding", [0]))),
             "text_embedding_norm": float(np.linalg.norm(embeddings.get("text_embedding", [0]))),
             "inference_mode": "full_multimodal",
         }
+
 
     def predict_batch(self, texts: list, author_ids: list) -> list:
         """Predict for a batch of posts."""

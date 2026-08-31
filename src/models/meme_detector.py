@@ -170,3 +170,100 @@ class MemeDetector:
         self.template_embeddings[name] = emb[0]
         self.template_metadata[name] = metadata or {"name": name}
         logger.info(f"Added meme template: {name}")
+
+    def compute_stream_exposure(self, posts: List[Dict]) -> Dict[str, any]:
+        """Aggregate timeline meme exposure for a user stream.
+
+        Blueprint specification:
+          Computes frequency of high-virality memes, average virality,
+          and composite meme exposure index across the user's timeline.
+
+        Args:
+            posts: List of post dicts (may contain 'image', 'image_path', or pre-computed 'meme_data')
+
+        Returns:
+            Dict containing meme exposure metrics:
+              - total_posts: int
+              - image_posts_count: int
+              - meme_count: int
+              - meme_frequency: float [0, 1]
+              - high_virality_count: int
+              - high_virality_frequency: float [0, 1]
+              - avg_virality: float [0, 1]
+              - peak_virality: float [0, 1]
+              - meme_exposure_index: float [0, 1]
+              - top_templates: List[str]
+        """
+        total_posts = len(posts)
+        if total_posts == 0:
+            return {
+                "total_posts": 0,
+                "image_posts_count": 0,
+                "meme_count": 0,
+                "meme_frequency": 0.0,
+                "high_virality_count": 0,
+                "high_virality_frequency": 0.0,
+                "avg_virality": 0.0,
+                "peak_virality": 0.0,
+                "meme_exposure_index": 0.0,
+                "top_templates": [],
+            }
+
+        image_posts = 0
+        meme_count = 0
+        high_virality_count = 0
+        virality_scores = []
+        template_counts: Dict[str, int] = {}
+
+        for post in posts:
+            img = post.get("image") or post.get("image_path") or post.get("image_url")
+            if not img and "meme_data" not in post:
+                continue
+
+            image_posts += 1
+
+            if "meme_data" in post:
+                detection = post["meme_data"]
+            else:
+                try:
+                    detection = self.detect(img)
+                except Exception as e:
+                    logger.debug(f"Error detecting meme for post {post.get('id', '')}: {e}")
+                    continue
+
+            if detection.get("is_meme", False):
+                meme_count += 1
+                v_score = float(detection.get("virality_score", 0.0))
+                virality_scores.append(v_score)
+
+                if v_score >= self.config.virality_threshold:
+                    high_virality_count += 1
+
+                m_type = detection.get("meme_type", "unknown")
+                if m_type and m_type != "original":
+                    template_counts[m_type] = template_counts.get(m_type, 0) + 1
+
+        denom = max(1, image_posts)
+        meme_frequency = meme_count / denom
+        high_virality_freq = high_virality_count / denom
+        avg_virality = float(np.mean(virality_scores)) if virality_scores else 0.0
+        peak_virality = float(np.max(virality_scores)) if virality_scores else 0.0
+
+        # Composite meme exposure index
+        exposure_index = 0.6 * high_virality_freq + 0.4 * avg_virality
+
+        sorted_templates = sorted(template_counts.items(), key=lambda x: x[1], reverse=True)
+        top_templates = [t[0] for t in sorted_templates[:5]]
+
+        return {
+            "total_posts": total_posts,
+            "image_posts_count": image_posts,
+            "meme_count": meme_count,
+            "meme_frequency": round(meme_frequency, 4),
+            "high_virality_count": high_virality_count,
+            "high_virality_frequency": round(high_virality_freq, 4),
+            "avg_virality": round(avg_virality, 4),
+            "peak_virality": round(peak_virality, 4),
+            "meme_exposure_index": round(exposure_index, 4),
+            "top_templates": top_templates,
+        }

@@ -28,33 +28,50 @@ except ImportError:
 
 
 class SentimentAnalyzer:
-    """Multi-backend sentiment analyzer with DistilBERT."""
+    """Multi-backend sentiment analyzer with lazy loading."""
 
     def __init__(self):
         self.vader = None
-        self.transformer_pipeline = None
-        self.distilbert_model = None
-        self.distilbert_tokenizer = None
+        self._transformer_pipeline = None
+        self._distilbert_model = None
+        self._distilbert_tokenizer = None
 
         if VADER_AVAILABLE:
-            self.vader = SentimentIntensityAnalyzer()
-
-        if TRANSFORMERS_AVAILABLE:
             try:
-                # RoBERTa pipeline
-                self.transformer_pipeline = pipeline(
+                self.vader = SentimentIntensityAnalyzer()
+            except Exception as e:
+                logger.warning(f"VADER init error: {e}")
+
+    @property
+    def transformer_pipeline(self):
+        """Lazy load RoBERTa pipeline on demand."""
+        if self._transformer_pipeline is None and TRANSFORMERS_AVAILABLE:
+            try:
+                self._transformer_pipeline = pipeline(
                     "sentiment-analysis",
                     model="cardiffnlp/twitter-roberta-base-sentiment-latest",
                     return_all_scores=True
                 )
-
-                # DistilBERT for multimodal analysis
-                self.distilbert_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-                self.distilbert_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-
-                logger.info("Loaded DistilBERT and RoBERTa models")
             except Exception as e:
-                logger.warning(f"Could not load transformer models: {e}")
+                logger.warning(f"Could not load RoBERTa pipeline: {e}")
+        return self._transformer_pipeline
+
+    @property
+    def distilbert_model(self):
+        """Lazy load DistilBERT model on demand."""
+        if self._distilbert_model is None and TRANSFORMERS_AVAILABLE:
+            try:
+                self._distilbert_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+                self._distilbert_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+            except Exception as e:
+                logger.warning(f"Could not load DistilBERT model: {e}")
+        return self._distilbert_model
+
+    @property
+    def distilbert_tokenizer(self):
+        if self._distilbert_tokenizer is None and TRANSFORMERS_AVAILABLE:
+            _ = self.distilbert_model
+        return self._distilbert_tokenizer
 
     def analyze_vader(self, text: str) -> Optional[Dict[str, float]]:
         """Analyze sentiment using VADER.
@@ -119,51 +136,34 @@ class SentimentAnalyzer:
             logger.error(f"DistilBERT analysis failed: {e}")
             return None
 
-    def analyze_combined(self, text: str) -> Dict[str, Any]:
-        """Analyze sentiment using all available methods.
+    def analyze_combined(self, text: str, include_transformers: bool = False) -> Dict[str, Any]:
+        """Analyze sentiment using VADER with optional transformer enhancement.
 
         Returns:
-            Dict containing vader, transformer, and distilbert results
+            Dict containing vader, sentiment_compound, overall_sentiment, etc.
         """
+        vader_res = self.analyze_vader(text) or {'compound': 0.0, 'pos': 0.0, 'neg': 0.0, 'neu': 1.0}
+        compound = vader_res.get('compound', 0.0)
+
         result = {
-            'vader': self.analyze_vader(text),
-            'transformer': self.analyze_transformer(text),
-            'distilbert': self.analyze_distilbert(text),
+            'vader': vader_res,
+            'sentiment_compound': compound,
             'text_length': len(text)
         }
 
-        # Determine overall sentiment using multimodal approach
-        if result['distilbert']:
-            # Use DistilBERT as primary for multimodal analysis
-            scores = result['distilbert']
-            pos_score = scores.get('LABEL_1', 0)
-            neg_score = scores.get('LABEL_0', 0)
-            if pos_score > 0.6:
-                result['overall_sentiment'] = 'positive'
-            elif neg_score > 0.6:
-                result['overall_sentiment'] = 'negative'
-            else:
-                result['overall_sentiment'] = 'neutral'
-        elif result['vader']:
-            # Fallback to VADER
-            compound = result['vader']['compound']
-            if compound >= 0.05:
-                result['overall_sentiment'] = 'positive'
-            elif compound <= -0.05:
-                result['overall_sentiment'] = 'negative'
-            else:
-                result['overall_sentiment'] = 'neutral'
-        elif result['transformer']:
-            # Use transformer if others not available
-            scores = result['transformer']
-            if scores.get('LABEL_2', 0) > scores.get('LABEL_0', 0) and scores.get('LABEL_2', 0) > scores.get('LABEL_1', 0):
-                result['overall_sentiment'] = 'positive'
-            elif scores.get('LABEL_0', 0) > scores.get('LABEL_1', 0):
-                result['overall_sentiment'] = 'negative'
-            else:
-                result['overall_sentiment'] = 'neutral'
+        if include_transformers:
+            result['transformer'] = self.analyze_transformer(text)
+            result['distilbert'] = self.analyze_distilbert(text)
         else:
-            result['overall_sentiment'] = 'unknown'
+            result['transformer'] = None
+            result['distilbert'] = None
+
+        if compound >= 0.05:
+            result['overall_sentiment'] = 'positive'
+        elif compound <= -0.05:
+            result['overall_sentiment'] = 'negative'
+        else:
+            result['overall_sentiment'] = 'neutral'
 
         return result
 

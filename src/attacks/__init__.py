@@ -1,3 +1,15 @@
-"""Attack simulator modules."""
+"""Adversarial Attack Simulator modules."""
 
-# Placeholder for Phase 4 implementation
+from .adversarial_production import (
+    ProductionAdversarialGenerator,
+    ProductionAdversarialGenerator as AdversarialGenerator,
+    AttackResult,
+    DoomModelWrapper,
+)
+
+__all__ = [
+    "ProductionAdversarialGenerator",
+    "AdversarialGenerator",
+    "AttackResult",
+    "DoomModelWrapper",
+]

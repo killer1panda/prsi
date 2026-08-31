@@ -20,14 +20,22 @@ class ToxicityAnalyzer:
         if not self.api_key:
             logger.warning("PERSPECTIVE_API_KEY not set. Toxicity analysis will be disabled.")
 
-    def analyze_toxicity(self, text: str) -> Optional[Dict[str, float]]:
-        """Analyze text for toxicity using Perspective API.
-
-        Returns:
-            Dict with toxicity scores for various attributes.
-        """
+    def analyze_toxicity(self, text: str) -> Dict[str, float]:
+        """Analyze text for toxicity using Perspective API or local heuristic fallback."""
         if not self.api_key:
-            return None
+            toxic_words = {'hate', 'stupid', 'cancel', 'terrible', 'horrible', 'idiot', 'disgusting', 'kill', 'evil', 'trash', 'scam', 'liar'}
+            words = set(text.lower().split())
+            matches = len(words & toxic_words)
+            score = min(1.0, max(0.05, matches * 0.3))
+            return {
+                "toxicity": score,
+                "toxicity_score": score,
+                "severe_toxicity": score * 0.5,
+                "identity_attack": 0.0,
+                "insult": score * 0.8,
+                "profanity": score * 0.4,
+                "threat": 0.0
+            }
 
         data = {
             "comment": {"text": text[:3000]},  # API limit

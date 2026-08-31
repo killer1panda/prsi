@@ -14,6 +14,7 @@ from collections import defaultdict
 
 import numpy as np
 import pandas as pd
+import torch
 import redis
 
 logger = logging.getLogger(__name__)
@@ -65,10 +66,18 @@ class FeatureStore:
 
     def __init__(self, redis_host: str = "localhost", redis_port: int = 6379,
                  redis_db: int = 0, offline_path: str = "data/feature_store"):
-        self.redis_client = redis.Redis(
-            host=redis_host, port=redis_port, db=redis_db,
-            decode_responses=False, socket_connect_timeout=5
-        )
+        self.redis_client = None
+        self._in_memory_online = {}
+        try:
+            client = redis.Redis(
+                host=redis_host, port=redis_port, db=redis_db,
+                decode_responses=False, socket_connect_timeout=1
+            )
+            client.ping()
+            self.redis_client = client
+        except Exception as e:
+            logger.warning(f"Redis offline ({e}); FeatureStore operating with in-memory online store.")
+
         self.offline_path = Path(offline_path)
         self.offline_path.mkdir(parents=True, exist_ok=True)
 
@@ -90,64 +99,77 @@ class FeatureStore:
     def push_online(self, entity_type: str, entity_id: str, 
                     feature_view: str, features: Dict[str, Any],
                     timestamp: Optional[datetime] = None):
-        """
-        Push features to online store (Redis) for low-latency serving.
-
-        Args:
-            entity_type: e.g., "user", "post"
-            entity_id: entity identifier
-            feature_view: registered feature view name
-            features: Dict of feature_name -> value
-            timestamp: observation timestamp
-        """
+        """Push features to online store (Redis or in-memory fallback)."""
         ts = timestamp or datetime.utcnow()
         ts_str = ts.isoformat()
         view = self.feature_views.get(feature_view)
         ttl = view.ttl if view else 86400
 
-        pipe = self.redis_client.pipeline()
+        if self.redis_client is not None:
+            try:
+                pipe = self.redis_client.pipeline()
+                for feat_name, value in features.items():
+                    key = self._make_key(entity_type, entity_id, feature_view, feat_name)
+                    payload = {
+                        "value": self._serialize(value),
+                        "timestamp": ts_str,
+                        "version": view.version if view else "unknown"
+                    }
+                    pipe.set(key, json.dumps(payload), ex=ttl)
+                pipe.execute()
+                logger.debug(f"Pushed {len(features)} features to Redis for {entity_type}:{entity_id}")
+                return
+            except Exception as e:
+                logger.warning(f"Redis write error ({e}), falling back to in-memory store")
+                self.redis_client = None
+
         for feat_name, value in features.items():
             key = self._make_key(entity_type, entity_id, feature_view, feat_name)
-            payload = {
+            self._in_memory_online[key] = {
                 "value": self._serialize(value),
                 "timestamp": ts_str,
                 "version": view.version if view else "unknown"
             }
-            pipe.setex(key, ttl, json.dumps(payload))
-
-        pipe.execute()
-        logger.debug(f"Pushed {len(features)} features to online store for {entity_type}:{entity_id}")
 
     def get_online(self, entity_type: str, entity_id: str,
                    feature_view: str, feature_names: Optional[List[str]] = None) -> Dict[str, Any]:
-        """
-        Fetch features from online store.
-
-        Returns:
-            Dict of feature_name -> value (stale features return None)
-        """
+        """Fetch features from online store."""
         view = self.feature_views.get(feature_view)
         if feature_names is None and view:
             feature_names = view.features
         elif feature_names is None:
             feature_names = []
 
-        pipe = self.redis_client.pipeline()
-        keys = []
+        if self.redis_client is not None:
+            try:
+                pipe = self.redis_client.pipeline()
+                keys = []
+                for feat_name in feature_names:
+                    key = self._make_key(entity_type, entity_id, feature_view, feat_name)
+                    keys.append((feat_name, key))
+                    pipe.get(key)
+
+                results = pipe.execute()
+                output = {}
+                for (feat_name, _), raw in zip(keys, results):
+                    if raw is None:
+                        output[feat_name] = None
+                    else:
+                        payload = json.loads(raw)
+                        output[feat_name] = self._deserialize(payload["value"])
+                return output
+            except Exception as e:
+                logger.warning(f"Redis read error ({e}), falling back to in-memory store")
+                self.redis_client = None
+
+        output = {}
         for feat_name in feature_names:
             key = self._make_key(entity_type, entity_id, feature_view, feat_name)
-            keys.append((feat_name, key))
-            pipe.get(key)
-
-        results = pipe.execute()
-        output = {}
-        for (feat_name, _), raw in zip(keys, results):
-            if raw is None:
-                output[feat_name] = None
-            else:
-                payload = json.loads(raw)
+            if key in self._in_memory_online:
+                payload = self._in_memory_online[key]
                 output[feat_name] = self._deserialize(payload["value"])
-
+            else:
+                output[feat_name] = None
         return output
 
     def write_offline(self, df: pd.DataFrame, feature_view: str,

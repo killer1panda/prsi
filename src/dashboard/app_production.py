@@ -446,7 +446,7 @@ with tab3:
             return ""
         
         st.dataframe(
-            df.style.applymap(color_risk, subset=["doom_score"]),
+            df.style.map(color_risk, subset=["doom_score"]),
             use_container_width=True,
             hide_index=True
         )

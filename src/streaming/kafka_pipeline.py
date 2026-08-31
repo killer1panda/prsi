@@ -26,6 +26,7 @@ class KafkaConfig:
     auto_offset_reset: str = "latest"
     max_poll_records: int = 100
     session_timeout_ms: int = 30000
+    max_poll_interval_ms: int = 300000
     heartbeat_interval_ms: int = 10000
 
 
@@ -44,7 +45,8 @@ class KafkaPipeline:
             "bootstrap.servers": self.config.bootstrap_servers,
             "group.id": self.config.consumer_group,
             "auto.offset.reset": self.config.auto_offset_reset,
-            "max.poll.interval.ms": self.config.session_timeout_ms,
+            "session.timeout.ms": self.config.session_timeout_ms,
+            "max.poll.interval.ms": self.config.max_poll_interval_ms,
             "heartbeat.interval.ms": self.config.heartbeat_interval_ms,
             "enable.auto.commit": True,
             "auto.commit.interval.ms": 5000,

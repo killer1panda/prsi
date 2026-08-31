@@ -51,6 +51,7 @@ class DoomModelWrapper(ModelWrapper if TEXTATTACK_AVAILABLE else object):
     
     def __init__(self, predictor):
         self.predictor = predictor
+        self.model = getattr(predictor, "model", predictor)
     
     def __call__(self, text_input_list):
         """TextAttack expects list of texts, returns list of predictions."""
@@ -58,7 +59,7 @@ class DoomModelWrapper(ModelWrapper if TEXTATTACK_AVAILABLE else object):
         for text in text_input_list:
             result = self.predictor.predict(text, author_id="attack_target")
             # TextAttack expects [negative_prob, positive_prob]
-            prob = result['probability']
+            prob = result.get('probability', 0.5)
             results.append([1 - prob, prob])
         return np.array(results)
 
@@ -79,29 +80,40 @@ class ProductionAdversarialGenerator:
         self.use_textattack = use_textattack and TEXTATTACK_AVAILABLE
         self.max_iterations = max_iterations
         self.population_size = population_size
-        
-        # Build TextAttack recipes if available
-        if self.use_textattack:
-            self._build_textattack_recipes()
+        self._textfooler = None
+        self._bae = None
+        self.wrapper = None
         
         # Custom strategy pool
         self.custom_strategies = self._build_custom_strategies()
         
         logger.info(f"ProductionAdversarialGenerator: TextAttack={self.use_textattack}")
     
-    def _build_textattack_recipes(self):
-        """Build TextAttack attack recipes."""
-        self.wrapper = DoomModelWrapper(self.predictor)
-        
-        # TextFooler: WordNet synonym swap with USE constraint
-        self.textfooler = TextFoolerJin2019.build(self.wrapper)
-        
-        # BAE: BERT-based adversarial examples
-        try:
-            self.bae = BAEGarg2019.build(self.wrapper)
-        except Exception:
-            self.bae = None
-            logger.warning("BAE attack not available")
+    @property
+    def textfooler(self):
+        """Lazy build TextFooler recipe."""
+        if self._textfooler is None and self.use_textattack:
+            try:
+                if self.wrapper is None:
+                    self.wrapper = DoomModelWrapper(self.predictor)
+                self._textfooler = TextFoolerJin2019.build(self.wrapper)
+            except Exception as e:
+                logger.warning(f"TextFooler build error: {e}")
+                self._textfooler = None
+        return self._textfooler
+
+    @property
+    def bae(self):
+        """Lazy build BAE recipe."""
+        if self._bae is None and self.use_textattack:
+            try:
+                if self.wrapper is None:
+                    self.wrapper = DoomModelWrapper(self.predictor)
+                self._bae = BAEGarg2019.build(self.wrapper)
+            except Exception as e:
+                logger.warning(f"BAE build error: {e}")
+                self._bae = None
+        return self._bae
     
     def _build_custom_strategies(self) -> Dict[str, Callable]:
         """Build custom mutation strategies."""
@@ -285,6 +297,7 @@ class ProductionAdversarialGenerator:
         toxicity_budget: float = 0.7,
         use_genetic: bool = True,
         min_semantic_similarity: float = 0.6,
+        strategy: str = "combined",
     ) -> List[AttackResult]:
         """Generate adversarial variants."""
         baseline = self.predictor.predict(text, author_id)
@@ -292,8 +305,8 @@ class ProductionAdversarialGenerator:
         
         candidates = []
         
-        # 1. Try TextAttack if available
-        if self.use_textattack:
+        # 1. Try TextAttack if explicitly requested and available
+        if self.use_textattack and strategy in ["textattack", "all"]:
             try:
                 ta_variants = self._textattack_generate(text, original_doom, author_id, 
                                                         toxicity_budget, max_variants)

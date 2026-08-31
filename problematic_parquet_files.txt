@@ -1,0 +1,2987 @@
+Problematic Parquet Files Report
+======================================================================
+Total parquet files scanned: 745
+Valid parquet files: 0
+Problematic files: 745
+======================================================================
+
+File: /home/vivek.120542/cyberbullying-instagram-tiktok/train.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/tum-nlp-sexism-socialmedia-balanced/data/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/tum-nlp-sexism-socialmedia-balanced/data/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/tum-nlp-sexism-socialmedia-balanced/data/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00005-of-00012-4b75052c0c475c0a.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/test-00001-of-00002-65b50d8b221dc302.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00001-of-00012-1641f1b88ab62b50.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00004-of-00012-73700c4e0ed6bd81.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/validation-00002-of-00003-83fc3a1fe43b2172.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00003-of-00012-f3bcdfc2b6350732.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/validation-00001-of-00003-fa9a659fc3420de4.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00007-of-00012-3e1d8e32936b9a93.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00006-of-00012-61854ec8bc78cd15.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00002-of-00012-c177282501e4ae11.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00000-of-00012-55d6f9a8b95baa08.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00008-of-00012-33cfdb9d7b1c776d.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00010-of-00012-f9608b19fa6591b0.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/validation-00000-of-00003-e796668597e70a31.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00011-of-00012-b0322b53fb9065d1.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/train-00009-of-00012-4483fde8e3219952.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/multilingual-twitter-collective-violence-dataset/data/test-00000-of-00002-f6736c4d45e5d0f4.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_96.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_406.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_387.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_309.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_33.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_507.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_522.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_12.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_425.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_325.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_221.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_331.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_296.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_104.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_55.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_532.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_185.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_194.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_92.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_440.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_37.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_148.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_29.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_490.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_386.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_48.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_454.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_176.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_9.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_120.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_65.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_297.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_390.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_470.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_243.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_196.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_434.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_318.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_395.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_380.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_1.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_118.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_131.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_504.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_282.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_350.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_164.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_311.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_230.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_321.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_368.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_182.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_64.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_112.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_521.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_324.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_435.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_134.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_336.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_339.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_509.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_389.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_69.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_495.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_97.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_184.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_102.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_45.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_186.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_417.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_356.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_245.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_429.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_525.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_508.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_126.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_323.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_446.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_519.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_174.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_119.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_183.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_28.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_149.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_277.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_489.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_488.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_307.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_59.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_24.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_352.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_46.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_424.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_124.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_70.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_478.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_409.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_93.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_346.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_372.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_79.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_127.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_291.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_13.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_26.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_433.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_539.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_195.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_485.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_460.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_335.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_144.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_391.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_256.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_347.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_168.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_152.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_358.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_68.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_312.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_455.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_499.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_253.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_320.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_38.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_137.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_189.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_400.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_512.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_359.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_7.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_132.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_159.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_20.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_290.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_50.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_308.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_376.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_453.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_107.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_510.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_396.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_462.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_91.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_487.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_444.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_288.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_327.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_501.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_373.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_384.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_51.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_109.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_263.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_353.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_74.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_361.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_484.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_198.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_281.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_57.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_167.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_233.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_472.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_78.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_67.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_401.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_143.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_32.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_513.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_254.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_161.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_393.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_411.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_235.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_52.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_316.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_63.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_515.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_246.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_42.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_19.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_229.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_85.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_355.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_128.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_151.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_303.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_503.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_422.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_295.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_427.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_468.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_232.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_264.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_302.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_217.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_190.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_172.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_270.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_279.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_313.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_449.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_283.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_360.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_133.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_247.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_255.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_206.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_201.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_385.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_268.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_456.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_481.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_349.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_345.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_459.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_533.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_436.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_89.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_506.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_163.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_371.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_466.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_271.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_403.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_493.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_187.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_526.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_43.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_203.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_16.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_426.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_306.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_257.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_40.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_241.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_500.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_39.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_11.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_269.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_367.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_4.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_319.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_292.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_394.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_197.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_486.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_415.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_351.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_99.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_193.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_101.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_15.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_192.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_113.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_330.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_212.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_171.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_404.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_374.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_71.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_114.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_244.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_314.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_47.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_228.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_511.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_304.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_251.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_375.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_530.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_210.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_177.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_191.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_259.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_142.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_418.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_463.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_450.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_200.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_398.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_473.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_275.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_523.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_103.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_461.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_528.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_154.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_146.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_516.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_155.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_514.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_0.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_94.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_73.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_317.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_22.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_111.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_524.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_75.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_147.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_366.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_334.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_285.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_140.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_340.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_226.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_213.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_156.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_169.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_49.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_399.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_3.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_158.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_252.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_442.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_175.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_378.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_260.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_423.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_451.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_207.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_248.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_474.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_240.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_502.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_529.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_338.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_492.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_178.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_479.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_150.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_139.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_413.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_457.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_82.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_299.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_342.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_328.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_354.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_518.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_477.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_341.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_267.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_416.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_215.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_469.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_276.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_5.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_261.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_242.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_227.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_41.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_35.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_284.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_443.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_362.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_274.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_98.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_237.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_483.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_293.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_202.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_23.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_116.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_105.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_135.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_381.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_430.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_428.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_305.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_2.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_448.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_204.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_344.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_294.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_497.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_337.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_36.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_224.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_464.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_527.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_14.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_388.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_301.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_465.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_84.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_407.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_475.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_412.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_272.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_130.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_6.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_83.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_364.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_225.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_218.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_31.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_77.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_471.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_100.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_333.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_534.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_117.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_363.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_106.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_123.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_541.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_482.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_60.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_505.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_452.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_397.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_315.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_160.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_491.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_236.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_209.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_88.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_234.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_431.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_129.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_17.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_34.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_10.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_80.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_258.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_162.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_432.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_56.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_44.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_419.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_392.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_262.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_379.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_536.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_538.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_180.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_90.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_61.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_382.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_286.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_231.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_357.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_421.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_441.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_145.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_53.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_27.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_72.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_223.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_265.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_170.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_280.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_188.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_437.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_535.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_166.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_520.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_408.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_494.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_208.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_377.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_81.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_476.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_326.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_211.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_370.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_121.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_365.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_249.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_58.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_153.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_289.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_300.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_287.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_95.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_205.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_214.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_54.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_540.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_542.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_157.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_141.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_402.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_369.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_445.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_414.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_66.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_165.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_179.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_273.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_447.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_86.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_220.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_125.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_238.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_30.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_222.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_8.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_480.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_18.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_138.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_517.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_216.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_25.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_458.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_405.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_310.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_410.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_348.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_343.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_239.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_219.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_467.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_76.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_298.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_496.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_278.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_62.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_322.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_110.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_498.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_122.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_439.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_531.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_537.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_181.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_136.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_173.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_329.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_115.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_199.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_21.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_266.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_250.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_108.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_332.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_438.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_420.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_383.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/exorde-social-media-one-month-2024/data_87.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_ar__Prop2Hate-Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_ar__Prop2Hate-Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_ar__Prop2Hate-Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_degree_zh__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_degree_zh__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_degree_zh__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_zh__Multi3Hate/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_zh__Multi3Hate/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_zh__Multi3Hate/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/stereotype_en__MAMI/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/stereotype_en__MAMI/train-00000-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/stereotype_en__MAMI/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/stereotype_en__MAMI/train-00001-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/stereotype_en__MAMI/train-00002-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/stereotype_en__MAMI/train-00003-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sarcasm_bn__BanglaAbuseMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sarcasm_bn__BanglaAbuseMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sarcasm_bn__BanglaAbuseMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/objectification_en__MAMI/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/objectification_en__MAMI/train-00000-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/objectification_en__MAMI/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/objectification_en__MAMI/train-00001-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/objectification_en__MAMI/train-00002-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/objectification_en__MAMI/train-00003-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/political_ro__RoMemes/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/political_ro__RoMemes/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/political_ro__RoMemes/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_bn__MUTE/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_bn__MUTE/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_bn__MUTE/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/humour_en__memotion/train-00001-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/humour_en__memotion/train-00000-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/humour_en__memotion/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/humour_en__memotion/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/deepfake_ro__RoMemes/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/deepfake_ro__RoMemes/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/deepfake_ro__RoMemes/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/test-00000-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/train-00004-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/train-00005-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/train-00006-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/train-00001-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/train-00002-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/test-00001-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/train-00003-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en_FHM/train-00000-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_category_en__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_category_en__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_category_en__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/violence_en__MAMI/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/violence_en__MAMI/train-00000-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/violence_en__MAMI/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/violence_en__MAMI/train-00001-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/violence_en__MAMI/train-00002-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/violence_en__MAMI/train-00003-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__Multi3Hate/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__Multi3Hate/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__Multi3Hate/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_hi__Multi3Hate/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_hi__Multi3Hate/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_hi__Multi3Hate/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/metaphor_occurrence_zh__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/metaphor_occurrence_zh__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/metaphor_occurrence_zh__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Harmful_Covid_en__HarMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Harmful_Covid_en__HarMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Harmful_Covid_en__HarMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/intention_detection_en__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/intention_detection_en__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/intention_detection_en__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Target_en__HarMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Target_en__HarMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Target_en__HarMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/overall_sentiment_en__memotion/train-00001-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/overall_sentiment_en__memotion/train-00000-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/overall_sentiment_en__memotion/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/overall_sentiment_en__memotion/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MIMIC_Islamophpbia/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MIMIC_Islamophpbia/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MIMIC_Islamophpbia/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/metaphor_occurrence_en__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/metaphor_occurrence_en__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/metaphor_occurrence_en__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/toxic_ru__Toxic_Memes_Detection_Dataset/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/toxic_ru__Toxic_Memes_Detection_Dataset/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/toxic_ru__Toxic_Memes_Detection_Dataset/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/misogynous_en__MAMI/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/misogynous_en__MAMI/train-00000-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/misogynous_en__MAMI/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/misogynous_en__MAMI/train-00001-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/misogynous_en__MAMI/train-00002-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/misogynous_en__MAMI/train-00003-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/intention_detection_zh__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/intention_detection_zh__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/intention_detection_zh__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/propoganda_ar_ArMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/propoganda_ar_ArMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/propoganda_ar_ArMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/abuse_bn__BanglaAbuseMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/abuse_bn__BanglaAbuseMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/abuse_bn__BanglaAbuseMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensiveness_detection_zh__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensiveness_detection_zh__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensiveness_detection_zh__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/motivational_en__memotion/train-00001-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/motivational_en__memotion/train-00000-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/motivational_en__memotion/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/motivational_en__memotion/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/emotion_ro__RoMemes/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/emotion_ro__RoMemes/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/emotion_ro__RoMemes/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Harmful_en__HarMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Harmful_en__HarMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Harmful_en__HarMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensive_en__memotion/train-00001-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensive_en__memotion/train-00000-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensive_en__memotion/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensive_en__memotion/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensiveness_detection_en__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensiveness_detection_en__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/offensiveness_detection_en__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/train-00002-of-00005.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/test-00000-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/train-00001-of-00005.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/train-00004-of-00005.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/train-00003-of-00005.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/test-00001-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_en__MMHS/train-00000-of-00005.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_category_zh__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_category_zh__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_category_zh__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_ro__RoMemes/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_ro__RoMemes/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_ro__RoMemes/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_de__Multi3Hate/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_de__Multi3Hate/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_de__Multi3Hate/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Target_Covid_en__HarMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Target_Covid_en__HarMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Target_Covid_en__HarMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/shaming_en__MAMI/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/shaming_en__MAMI/train-00000-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/shaming_en__MAMI/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/shaming_en__MAMI/train-00001-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/shaming_en__MAMI/train-00002-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/shaming_en__MAMI/train-00003-of-00004.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_es__Multi3Hate/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_es__Multi3Hate/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Hateful_es__Multi3Hate/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/vulgar_bn__BanglaAbuseMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/vulgar_bn__BanglaAbuseMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/vulgar_bn__BanglaAbuseMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_bn__BanglaAbuseMeme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_bn__BanglaAbuseMeme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_bn__BanglaAbuseMeme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sarcasm_en__memotion/train-00001-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sarcasm_en__memotion/train-00000-of-00002.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sarcasm_en__memotion/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sarcasm_en__memotion/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Misogyny_Categories_hi_en__MIMIC2024/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Misogyny_Categories_hi_en__MIMIC2024/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Misogyny_Categories_hi_en__MIMIC2024/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_degree_en__MET_Meme/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_degree_en__MET_Meme/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/sentiment_degree_en__MET_Meme/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Misogyny_hi_en__MIMIC2024/validation-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Misogyny_hi_en__MIMIC2024/test-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/MemeLens/Misogyny_hi_en__MIMIC2024/train-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/train-00004-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/test_unseen-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/train-00005-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/dev_seen-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/train-00006-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/train-00001-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/train-00002-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/test_seen-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/dev_unseen-00000-of-00001.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/train-00003-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+
+File: /home/vivek.120542/hateful_memes/data/train-00000-of-00007.parquet
+  Size: 0.00 MB
+  Error: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
+

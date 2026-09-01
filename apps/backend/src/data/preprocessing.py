@@ -27,7 +27,7 @@ class DataPreprocessor:
         "\U0001f680-\U0001f6ff"  # transport & map symbols
         "\U0001f1e0-\U0001f1ff"  # flags
         "\U00002702-\U000027b0"
-        "\U000024c2-\U0001f251"
+        "\U000024c2-\U000024ff"
         "]+",
         flags=re.UNICODE,
     )
@@ -105,7 +105,7 @@ class DataPreprocessor:
             Anonymized text
         """
         # Replace email addresses
-        text = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL]", text)
+        text = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "[EMAIL]", text)
 
         # Replace phone numbers
         text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[PHONE]", text)

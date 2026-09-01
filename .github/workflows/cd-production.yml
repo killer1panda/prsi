@@ -14,6 +14,9 @@ on:
           - staging
           - production
 
+permissions:
+  contents: read
+
 jobs:
   docker-build-push:
     name: Build & Push Container Images

@@ -6,6 +6,9 @@ on:
   pull_request:
     paths: [ "apps/web/**", "apps/mobile/**" ]
 
+permissions:
+  contents: read
+
 jobs:
   web-dashboard-ci:
     name: Next.js Web CI

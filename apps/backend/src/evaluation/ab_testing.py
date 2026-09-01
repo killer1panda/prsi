@@ -51,7 +51,7 @@ class TrafficRouter:
         Returns:
             "control" or "treatment"
         """
-        hash_val = int(hashlib.md5(user_id.encode()).hexdigest(), 16) % 65535
+        hash_val = int(hashlib.sha256(user_id.encode()).hexdigest(), 16) % 65535
         return "treatment" if hash_val < self.split_point else "control"
 
     def get_model_version(self, user_id: str) -> str:

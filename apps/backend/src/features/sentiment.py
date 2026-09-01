@@ -21,8 +21,12 @@ except ImportError:
 
 try:
     import torch
-    from transformers import (AutoModelForSequenceClassification,
-                              AutoTokenizer, BitsAndBytesConfig, pipeline)
+    from transformers import (
+        AutoModelForSequenceClassification,
+        AutoTokenizer,
+        BitsAndBytesConfig,
+        pipeline,
+    )
 
     TRANSFORMERS_AVAILABLE = True
 except ImportError:

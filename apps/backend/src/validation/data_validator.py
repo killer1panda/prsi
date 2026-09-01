@@ -43,9 +43,12 @@ try:
     import great_expectations as gx
     from great_expectations.core.expectation_suite import ExpectationSuite
     from great_expectations.expectations import (
-        ExpectColumnPairValuesToBeEqual, ExpectColumnValuesToBeBetween,
-        ExpectColumnValuesToBeInSet, ExpectColumnValuesToNotBeNull,
-        ExpectTableColumnsToMatchOrderedList)
+        ExpectColumnPairValuesToBeEqual,
+        ExpectColumnValuesToBeBetween,
+        ExpectColumnValuesToBeInSet,
+        ExpectColumnValuesToNotBeNull,
+        ExpectTableColumnsToMatchOrderedList,
+    )
 
     GX_AVAILABLE = True
 except ImportError:

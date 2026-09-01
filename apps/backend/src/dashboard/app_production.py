@@ -509,8 +509,7 @@ with tab3:
         network_df = None
         try:
             import networkx as nx
-            from src.features.graph_extractor import (LOUVAIN_AVAILABLE,
-                                                      GraphExtractor)
+            from src.features.graph_extractor import LOUVAIN_AVAILABLE, GraphExtractor
 
             extractor = GraphExtractor()
             pyg_data, user_df = extractor.extract_user_graph(max_users=500)

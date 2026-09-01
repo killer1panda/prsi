@@ -23,13 +23,17 @@ try:
     from textattack import Attack
     from textattack.attack_recipes import BAEGarg2019, TextFoolerJin2019
     from textattack.constraints.pre_transformation import StopwordModification
-    from textattack.constraints.semantics.sentence_encoders import \
-        UniversalSentenceEncoder
+    from textattack.constraints.semantics.sentence_encoders import (
+        UniversalSentenceEncoder,
+    )
     from textattack.goal_functions import UntargetedClassification
     from textattack.models.wrappers import ModelWrapper
     from textattack.search_methods import BeamSearch, GreedyWordSwapWIR
-    from textattack.transformations import (WordSwapEmbedding,
-                                            WordSwapMaskedLM, WordSwapWordNet)
+    from textattack.transformations import (
+        WordSwapEmbedding,
+        WordSwapMaskedLM,
+        WordSwapWordNet,
+    )
 
     TEXTATTACK_AVAILABLE = True
 except ImportError:

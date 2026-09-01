@@ -12,8 +12,7 @@ import time
 import uuid
 from typing import Any, Dict
 
-from confluent_kafka import (Consumer, KafkaError, KafkaException, Message,
-                             Producer)
+from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
 
 # Configure logging
 logging.basicConfig(

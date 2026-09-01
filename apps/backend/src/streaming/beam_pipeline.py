@@ -8,12 +8,16 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional
 
 import apache_beam as beam
-from apache_beam.options.pipeline_options import (PipelineOptions,
-                                                  SetupOptions,
-                                                  StandardOptions)
-from apache_beam.transforms.trigger import (AccumulationMode,
-                                            AfterProcessingTime,
-                                            AfterWatermark)
+from apache_beam.options.pipeline_options import (
+    PipelineOptions,
+    SetupOptions,
+    StandardOptions,
+)
+from apache_beam.transforms.trigger import (
+    AccumulationMode,
+    AfterProcessingTime,
+    AfterWatermark,
+)
 from apache_beam.transforms.window import FixedWindows, SlidingWindows
 
 logger = logging.getLogger(__name__)

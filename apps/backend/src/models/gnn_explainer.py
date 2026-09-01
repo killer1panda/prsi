@@ -70,8 +70,12 @@ logger = logging.getLogger(__name__)
 try:
     from torch_geometric.data import Data
     from torch_geometric.explain import Explainer, GNNExplainer
-    from torch_geometric.explain.config import (MaskType, ModelConfig,
-                                                ModelMode, ModelTaskLevel)
+    from torch_geometric.explain.config import (
+        MaskType,
+        ModelConfig,
+        ModelMode,
+        ModelTaskLevel,
+    )
     from torch_geometric.utils import k_hop_subgraph
 
     PYG_EXPLAIN = True

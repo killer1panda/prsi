@@ -22,15 +22,27 @@ import httpx
 import numpy as np
 import pandas as pd
 import redis.asyncio as aioredis
-from fastapi import (BackgroundTasks, Depends, FastAPI, HTTPException, Request,
-                     Response, status)
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge, Histogram,
-                               generate_latest)
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from starlette.middleware.base import BaseHTTPMiddleware
 
 

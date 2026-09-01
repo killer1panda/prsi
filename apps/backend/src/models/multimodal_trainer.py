@@ -17,8 +17,12 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.metrics import (accuracy_score, classification_report, f1_score,
-                             roc_auc_score)
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    f1_score,
+    roc_auc_score,
+)
 from src.models.gnn_model import MultimodalDoomPredictor
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP

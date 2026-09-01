@@ -23,13 +23,21 @@ import pyarrow.parquet as pq
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.metrics import (accuracy_score, precision_recall_fscore_support,
-                             roc_auc_score)
+from sklearn.metrics import (
+    accuracy_score,
+    precision_recall_fscore_support,
+    roc_auc_score,
+)
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import (AutoModel, AutoModelForSequenceClassification,
-                          AutoTokenizer, DataCollatorWithPadding, Trainer,
-                          TrainingArguments)
+from transformers import (
+    AutoModel,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    DataCollatorWithPadding,
+    Trainer,
+    TrainingArguments,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -52,32 +52,54 @@ from tqdm import tqdm
 # TextAttack imports
 try:
     from textattack import Attack, Attacker
-    from textattack.attack_recipes import (BAEGarg2019, DeepWordBugGao2018,
-                                           InputReductionFeng2018,
-                                           MorpheusTan2020, Pruthi2019,
-                                           PWWSRen2019, TextFoolerJin2019)
-    from textattack.constraints.grammaticality import (GPT2Perplexity,
-                                                       LanguageTool,
-                                                       PartOfSpeech)
-    from textattack.constraints.post_transformation import (RepeatModification,
-                                                            StopwordInsertion)
+    from textattack.attack_recipes import (
+        BAEGarg2019,
+        DeepWordBugGao2018,
+        InputReductionFeng2018,
+        MorpheusTan2020,
+        Pruthi2019,
+        PWWSRen2019,
+        TextFoolerJin2019,
+    )
+    from textattack.constraints.grammaticality import (
+        GPT2Perplexity,
+        LanguageTool,
+        PartOfSpeech,
+    )
+    from textattack.constraints.post_transformation import (
+        RepeatModification,
+        StopwordInsertion,
+    )
     from textattack.constraints.pre_transformation import (
-        MaxWordIndexModification, StopwordModification)
+        MaxWordIndexModification,
+        StopwordModification,
+    )
     from textattack.constraints.semantics import WordEmbeddingDistance
     from textattack.constraints.semantics.sentence_encoders import (
-        SentenceBERT, UniversalSentenceEncoder)
+        SentenceBERT,
+        UniversalSentenceEncoder,
+    )
     from textattack.datasets import Dataset
-    from textattack.goal_functions import (TargetedClassification,
-                                           UntargetedClassification)
-    from textattack.models.wrappers import (HuggingFaceModelWrapper,
-                                            ModelWrapper)
-    from textattack.search_methods import (BeamSearch, GeneticAlgorithm,
-                                           GreedyWordSwapWIR,
-                                           ParticleSwarmOptimization)
+    from textattack.goal_functions import (
+        TargetedClassification,
+        UntargetedClassification,
+    )
+    from textattack.models.wrappers import HuggingFaceModelWrapper, ModelWrapper
+    from textattack.search_methods import (
+        BeamSearch,
+        GeneticAlgorithm,
+        GreedyWordSwapWIR,
+        ParticleSwarmOptimization,
+    )
     from textattack.transformations import (
-        WordSwapChangeCase, WordSwapEmbedding, WordSwapMaskedLM,
-        WordSwapRandomCharacterDeletion, WordSwapRandomCharacterInsertion,
-        WordSwapRandomCharacterSubstitution, WordSwapWordNet)
+        WordSwapChangeCase,
+        WordSwapEmbedding,
+        WordSwapMaskedLM,
+        WordSwapRandomCharacterDeletion,
+        WordSwapRandomCharacterInsertion,
+        WordSwapRandomCharacterSubstitution,
+        WordSwapWordNet,
+    )
 
     TEXTATTACK_AVAILABLE = True
 except ImportError as e:

@@ -69,8 +69,10 @@ class TestModelPipeline:
 
     def test_distilbert_forward(self):
         """Test DistilBERT model forward pass."""
-        from transformers import (DistilBertForSequenceClassification,
-                                  DistilBertTokenizer)
+        from transformers import (
+            DistilBertForSequenceClassification,
+            DistilBertTokenizer,
+        )
 
         model = DistilBertForSequenceClassification.from_pretrained(
             "distilbert-base-uncased", num_labels=2

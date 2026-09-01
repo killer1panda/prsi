@@ -26,8 +26,9 @@ try:
     from textattack.attack_recipes import TextFoolerJin2019
     from textattack.augmentation import EasyDataAugmenter
     from textattack.constraints.pre_transformation import StopwordModification
-    from textattack.constraints.semantics.sentence_encoders import \
-        UniversalSentenceEncoder
+    from textattack.constraints.semantics.sentence_encoders import (
+        UniversalSentenceEncoder,
+    )
     from textattack.transformations import WordSwapEmbedding, WordSwapWordNet
 
     TEXTATTACK_AVAILABLE = True

@@ -102,8 +102,7 @@ class TestToxicityClassifier:
     @pytest.mark.asyncio
     async def test_rule_based_toxicity(self):
         """Test rule-based toxicity detection."""
-        from src.attacks.toxicity_classifier import \
-            ProductionToxicityClassifier
+        from src.attacks.toxicity_classifier import ProductionToxicityClassifier
 
         classifier = ProductionToxicityClassifier(use_ensemble=False)
         await classifier.initialize()
@@ -122,8 +121,7 @@ class TestToxicityClassifier:
     @pytest.mark.asyncio
     async def test_hate_speech_detection(self):
         """Test hate speech pattern detection."""
-        from src.attacks.toxicity_classifier import \
-            ProductionToxicityClassifier
+        from src.attacks.toxicity_classifier import ProductionToxicityClassifier
 
         classifier = ProductionToxicityClassifier(use_ensemble=False)
         await classifier.initialize()
@@ -138,8 +136,7 @@ class TestToxicityClassifier:
     @pytest.mark.asyncio
     async def test_caching(self):
         """Test toxicity prediction caching."""
-        from src.attacks.toxicity_classifier import \
-            ProductionToxicityClassifier
+        from src.attacks.toxicity_classifier import ProductionToxicityClassifier
 
         classifier = ProductionToxicityClassifier(use_ensemble=False)
         await classifier.initialize()
@@ -201,7 +198,9 @@ class TestNeo4jPopulation:
     async def test_user_creation(self, sample_twitter_data):
         """Test user node creation in Neo4j."""
         from src.data.populate_neo4j_production import (
-            Neo4jConfig, ProductionNeo4jPopulator)
+            Neo4jConfig,
+            ProductionNeo4jPopulator,
+        )
 
         config = Neo4jConfig(
             uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
@@ -226,7 +225,9 @@ class TestNeo4jPopulation:
     async def test_edge_creation(self, sample_twitter_data):
         """Test edge creation in Neo4j."""
         from src.data.populate_neo4j_production import (
-            Neo4jConfig, ProductionNeo4jPopulator)
+            Neo4jConfig,
+            ProductionNeo4jPopulator,
+        )
 
         config = Neo4jConfig(
             uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),

@@ -14,8 +14,11 @@ import torch
 import torch.nn as nn
 from PIL import Image
 from qwen_vl_utils import process_vision_info
-from transformers import (AutoProcessor, BitsAndBytesConfig,
-                          Qwen2VLForConditionalGeneration)
+from transformers import (
+    AutoProcessor,
+    BitsAndBytesConfig,
+    Qwen2VLForConditionalGeneration,
+)
 
 logger = logging.getLogger(__name__)
 

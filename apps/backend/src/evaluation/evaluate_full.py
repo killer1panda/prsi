@@ -21,12 +21,22 @@ import pandas as pd
 import seaborn as sns
 import torch
 from sklearn.calibration import calibration_curve
-from sklearn.metrics import (accuracy_score, average_precision_score,
-                             brier_score_loss, classification_report,
-                             cohen_kappa_score, confusion_matrix, f1_score,
-                             log_loss, matthews_corrcoef,
-                             precision_recall_curve, precision_score,
-                             recall_score, roc_auc_score, roc_curve)
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    brier_score_loss,
+    classification_report,
+    cohen_kappa_score,
+    confusion_matrix,
+    f1_score,
+    log_loss,
+    matthews_corrcoef,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

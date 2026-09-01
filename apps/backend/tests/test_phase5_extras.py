@@ -4,10 +4,8 @@ import numpy as np
 import pytest
 import torch
 from PIL import Image
-from src.attacks.adversarial_production import (ImageAttackResult,
-                                                VisualVenomInjector)
-from src.models.calibration import (CalibrationAnalyzer,
-                                    FollowerStratifiedCalibrator)
+from src.attacks.adversarial_production import ImageAttackResult, VisualVenomInjector
+from src.models.calibration import CalibrationAnalyzer, FollowerStratifiedCalibrator
 from src.models.meme_detector import MemeDetector
 from src.privacy.fl_simulator import federated_averaging
 

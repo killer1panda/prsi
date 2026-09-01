@@ -19,8 +19,14 @@ logger = logging.getLogger(__name__)
 
 # Try Prometheus
 try:
-    from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge,
-                                   Histogram, Info, generate_latest)
+    from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        Counter,
+        Gauge,
+        Histogram,
+        Info,
+        generate_latest,
+    )
 
     PROMETHEUS_AVAILABLE = True
 except ImportError:

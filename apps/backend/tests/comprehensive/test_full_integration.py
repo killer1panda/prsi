@@ -391,8 +391,7 @@ class TestAdversarialRobustness:
 
     def test_attack_generation(self):
         """Test adversarial example generation."""
-        from src.attacks.adversarial_production import \
-            ProductionAdversarialGenerator
+        from src.attacks.adversarial_production import ProductionAdversarialGenerator
 
         # Mock predictor
         class MockPredictor:

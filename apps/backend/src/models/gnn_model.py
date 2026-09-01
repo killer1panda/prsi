@@ -13,8 +13,7 @@ import torch.nn.functional as F
 from peft import LoraConfig, TaskType, get_peft_model
 from src.models.hypergraph_gnn import HypergraphHGNN
 from src.models.temporal_gnn import CTDGAHawkesEncoder
-from transformers import (AutoModelForCausalLM, AutoTokenizer,
-                          BitsAndBytesConfig)
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 logger = logging.getLogger(__name__)
 

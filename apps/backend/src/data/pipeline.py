@@ -49,8 +49,7 @@ class DataCollectionPipeline:
         """Lazy load Twitter scraper."""
         if self._twitter is None:
             try:
-                from src.data.scrapers.twitter_scraper import \
-                    create_twitter_scraper
+                from src.data.scrapers.twitter_scraper import create_twitter_scraper
 
                 self._twitter = create_twitter_scraper()
             except (
@@ -68,8 +67,7 @@ class DataCollectionPipeline:
         """Lazy load Reddit scraper."""
         if self._reddit is None:
             try:
-                from src.data.scrapers.reddit_scraper import \
-                    create_reddit_scraper
+                from src.data.scrapers.reddit_scraper import create_reddit_scraper
 
                 self._reddit = create_reddit_scraper()
             except (
@@ -87,8 +85,7 @@ class DataCollectionPipeline:
         """Lazy load Instagram scraper."""
         if self._instagram is None:
             try:
-                from src.data.scrapers.instagram_scraper import \
-                    create_instagram_scraper
+                from src.data.scrapers.instagram_scraper import create_instagram_scraper
 
                 self._instagram = create_instagram_scraper()
             except (

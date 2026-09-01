@@ -185,7 +185,9 @@ def verify_all():
     # ---------------------------------------------------------
     print("\n[5/7] Testing Shadowban Attack Simulator (Text Mutations & Visual Venom)...")
     from src.attacks.adversarial_production import (
-        ProductionAdversarialGenerator, VisualVenomInjector)
+        ProductionAdversarialGenerator,
+        VisualVenomInjector,
+    )
 
     class MockPredictor:
         def predict(self, text, author_id="target"):

@@ -33,9 +33,11 @@ def test_section(name):
 # 1. Conformal Predictor Test
 test_section("Conformalized Quantile Regression (CQR) & Finite-Sample Bounds")
 try:
-    from src.models.conformal_predictor import (ConformalPredictor,
-                                                QuantileLoss,
-                                                QuantileNeuralNetwork)
+    from src.models.conformal_predictor import (
+        ConformalPredictor,
+        QuantileLoss,
+        QuantileNeuralNetwork,
+    )
 
     cqr = ConformalPredictor(alpha=0.10)
     y_cal = np.random.uniform(20, 80, size=100)
@@ -75,9 +77,11 @@ except Exception as e:
 # 3. Hypergraph GNN & CTDGA Hawkes Process Test
 test_section("Hypergraph Neural Network (HGNN) & Continuous-Time Hawkes GAT")
 try:
-    from src.models.hypergraph_gnn import (ContinuousTimeHawkesGAT,
-                                           FrontierHypergraphGNN,
-                                           HypergraphConv)
+    from src.models.hypergraph_gnn import (
+        ContinuousTimeHawkesGAT,
+        FrontierHypergraphGNN,
+        HypergraphConv,
+    )
 
     hgnn = FrontierHypergraphGNN(in_features=6, hidden_dim=32, out_dim=32)
     x = torch.randn(10, 6)
@@ -99,8 +103,10 @@ except Exception as e:
 # 4. Causal Outrage DML & Counterfactual Rewriter Test
 test_section("Pearlian Double ML (DML) & Causal Counterfactual Rewriter")
 try:
-    from src.models.causal_outrage import (CounterfactualDeescalationRewriter,
-                                           DoubleMachineLearningEstimator)
+    from src.models.causal_outrage import (
+        CounterfactualDeescalationRewriter,
+        DoubleMachineLearningEstimator,
+    )
 
     dml = DoubleMachineLearningEstimator(n_splits=3)
     X = np.random.randn(60, 5)

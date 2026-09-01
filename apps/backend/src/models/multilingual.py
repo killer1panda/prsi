@@ -12,8 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from peft import LoraConfig, TaskType, get_peft_model
-from transformers import (AutoModelForCausalLM, AutoTokenizer,
-                          BitsAndBytesConfig)
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 logger = logging.getLogger(__name__)
 

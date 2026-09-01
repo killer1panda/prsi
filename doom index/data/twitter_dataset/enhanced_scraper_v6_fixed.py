@@ -55,7 +55,7 @@ async def get_fresh_bearer(session: httpx.AsyncClient) -> str:
         if r.status_code == 200:
             # Use the guest token from response headers
             return r.headers.get('x-guest-token', '')
-    except:
+    except json.JSONDecodeError as e:
         pass
     
     return None
@@ -120,7 +120,7 @@ async def search_graphql_v2(session: httpx.AsyncClient, query: str, cursor: str 
         
         return {"error": None, "data": response.json()}
         
-    except Exception as e:
+    except httpx.RequestError as e:
         return {"error": str(e), "data": None}
 
 
@@ -148,7 +148,7 @@ async def search_standard(session: httpx.AsyncClient, query: str, cursor: str = 
         
         return {"error": None, "data": response.json()}
         
-    except Exception as e:
+    except httpx.RequestError as e:
         return {"error": str(e), "data": None}
 
 
@@ -188,7 +188,7 @@ def extract_tweets_standard(data: Dict) -> tuple:
                 parsed = urllib.parse.parse_qs(next_results[1:])
                 next_cursor = parsed.get("max_id", [None])[0]
     
-    except Exception as e:
+    except RuntimeError as e:
         print(f"    Parse error: {e}")
     
     return tweets, next_cursor
@@ -247,7 +247,7 @@ async def scrape_fixed_graphql():
             session = create_session(cf)
             sessions.append(session)
             print(f"  ✓ {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ {cf}: {e}")
     
     if not sessions:
@@ -293,7 +293,7 @@ async def scrape_fixed_graphql():
                 print(f"    Total: +{len(tweets)} tweets")
                 break
                 
-            except Exception as e:
+            except RuntimeError as e:
                 if "429" in str(e):
                     print(f"    ⚠️ Rate limit, waiting...")
                     await asyncio.sleep(10)

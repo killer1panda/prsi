@@ -4,6 +4,7 @@ Then use those cookies with twikit for scraping.
 """
 
 import json
+from selenium.common.exceptions import TimeoutException
 import time
 import os
 from selenium import webdriver
@@ -88,7 +89,7 @@ def login_and_get_cookies():
             time.sleep(1)
             driver.find_element(By.CSS_SELECTOR, "button[role='button']").click()
             time.sleep(3)
-        except:
+        except TimeoutException as e:
             pass
         
         # Enter password
@@ -117,7 +118,7 @@ def login_and_get_cookies():
         
         return True
         
-    except Exception as e:
+    except json.JSONDecodeError as e:
         print(f"Error during login: {e}")
         # Take screenshot for debugging
         driver.save_screenshot("login_error.png")

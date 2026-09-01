@@ -64,7 +64,7 @@ const graphNodes = Array.from({ length: 20 }).map((_, i) => ({
   threat: Math.random() > 0.7 ? "high" : "low"
 }));
 
-export default function ThreatIntelligenceDashboard() {
+const LiveScoreDisplay = () => {
   const [liveScore, setLiveScore] = useState(94.2);
 
   useEffect(() => {
@@ -77,6 +77,15 @@ export default function ThreatIntelligenceDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  return (
+    <div className="text-7xl font-black text-rose-500 tracking-tighter flex items-baseline">
+      {liveScore.toFixed(1)}
+      <span className="text-2xl text-rose-900 ml-2">/ 100</span>
+    </div>
+  );
+};
+
+export default function ThreatIntelligenceDashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-mono flex flex-col selection:bg-rose-500/30">
       {/* Top Navbar */}
@@ -230,10 +239,7 @@ export default function ThreatIntelligenceDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center py-8">
-              <div className="text-7xl font-black text-rose-500 tracking-tighter flex items-baseline">
-                {liveScore.toFixed(1)}
-                <span className="text-2xl text-rose-900 ml-2">/ 100</span>
-              </div>
+              <LiveScoreDisplay />
               <p className="text-sm text-rose-400/80 mt-4 font-medium uppercase tracking-widest text-center">
                 Critical Threshold Exceeded
               </p>

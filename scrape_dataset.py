@@ -177,8 +177,8 @@ async def scrape_dataset():
                     "created_at": str(user.created_at) if hasattr(user, 'created_at') and user.created_at else "",
                     "source": "user_info"
                 })
-            except:
-                pass
+            except Exception as e:
+                print(f"  ✗ Error fetching info for @{username}: {e}")
             
             # Get user tweets
             tweets = await client.get_user_tweets(username, tweet_type="Tweets", count=20)

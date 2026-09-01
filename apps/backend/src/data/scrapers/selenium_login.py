@@ -12,6 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
 # Credentials
 EMAIL = "vaasha038@gmail.com"
@@ -88,7 +89,7 @@ def login_and_get_cookies():
             time.sleep(1)
             driver.find_element(By.CSS_SELECTOR, "button[role='button']").click()
             time.sleep(3)
-        except:
+        except Exception as e:
             pass
         
         # Enter password
@@ -117,6 +118,12 @@ def login_and_get_cookies():
         
         return True
         
+    except (TimeoutException, WebDriverException) as e:
+        print(f"Driver/Timeout error during login: {e}")
+        # Take screenshot for debugging
+        driver.save_screenshot("login_error.png")
+        print("Screenshot saved to login_error.png")
+        return False
     except Exception as e:
         print(f"Error during login: {e}")
         # Take screenshot for debugging

@@ -13,8 +13,8 @@ from pathlib import Path
 
 
 def download_mistral7b():
-    """Download DistilBERT base uncased."""
-    print("Downloading DistilBERT base uncased...")
+    """Download Mistral-7B-Instruct-v0.3."""
+    print("Downloading Mistral-7B-Instruct-v0.3...")
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3")
@@ -30,8 +30,8 @@ def download_sentiment_models():
 
     from transformers import pipeline
 
-    # DistilBERT sentiment
-    print("  - DistilBERT sentiment")
+    # Mistral sentiment
+    print("  - Mistral sentiment")
     pipeline("sentiment-analysis", model="mistralai/Mistral-7B-Instruct-v0.3-finetuned-sst-2-english")
 
     # RoBERTa sentiment (if used)

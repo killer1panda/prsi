@@ -117,19 +117,20 @@ class SentimentAnalyzer:
         try:
             results = self.transformer_pipeline(text[:512])  # Limit input length
             # The pipeline may return a list of dicts or a list of list of dicts
-            if isinstance(results, list) and len(results) > 0:
-                # If first element is a list, iterate over it
+            if not results:
+                return None
+            
+            if isinstance(results, list):
                 if isinstance(results[0], list):
                     seq = results[0]
                 else:
                     seq = results
                 scores = {}
                 for result in seq:
-                    # Each result is a dict with 'label' and 'score'
-                    scores[result['label']] = result['score']
-                return scores
-            else:
-                return None
+                    if isinstance(result, dict) and 'label' in result and 'score' in result:
+                        scores[result['label']] = result['score']
+                return scores if scores else None
+            return None
         except Exception as e:
             logger.error(f"Transformer analysis failed: {e}")
             return None

@@ -93,7 +93,7 @@ def login_and_get_cookies():
         try:
             next_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Next')]")
             next_btn.click()
-        except:
+        except Exception as e:
             driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
         
         time.sleep(2)
@@ -110,7 +110,7 @@ def login_and_get_cookies():
             try:
                 next_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Next')]")
                 next_btn.click()
-            except:
+            except Exception as e:
                 driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
             
             time.sleep(2)
@@ -130,7 +130,7 @@ def login_and_get_cookies():
         try:
             login_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Log in')]")
             login_btn.click()
-        except:
+        except Exception as e:
             driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
         
         print("[SELENIUM] Waiting for login...")

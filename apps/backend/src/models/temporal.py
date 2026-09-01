@@ -143,7 +143,8 @@ class TemporalFeatureExtractor:
             times = pd.to_datetime(posts["created_at"], unit="s", errors="coerce")
             dt_hours = times.diff().dt.total_seconds().fillna(1.0).div(3600.0).values[1:]
             d_neg = np.diff(neg_replies)  # Δ(negative_replies)
-            # Δneg/Δt per hour — clip dt to avoid division by near-zero
+            # Safe division for decay rates (minimum 0.01 hours to avoid infinite velocity)
+            dt_hours = np.nan_to_num(dt_hours, nan=1.0)
             dt_safe = np.where(np.abs(dt_hours) < 0.01, 0.01, dt_hours)
             outrage_velocity = d_neg / dt_safe
             features["outrage_velocity"] = float(np.mean(outrage_velocity))

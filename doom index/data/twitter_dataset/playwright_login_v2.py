@@ -4,6 +4,7 @@ Try x.com and with proxy support.
 """
 
 import asyncio
+import httpx
 import json
 from playwright.async_api import async_playwright
 
@@ -57,7 +58,7 @@ async def login_and_get_cookies():
             # Try x.com first
             try:
                 await page.goto("https://x.com/i/flow/login", timeout=60000)
-            except:
+            except httpx.RequestError as e:
                 print("x.com failed, trying twitter.com...")
                 await page.goto("https://twitter.com/i/flow/login", timeout=60000)
             
@@ -77,7 +78,7 @@ async def login_and_get_cookies():
                     "input[autocomplete='username']", 
                     timeout=15000
                 )
-            except:
+            except RuntimeError as e:
                 # Try alternative selectors
                 username_input = await page.wait_for_selector(
                     "input[type='text']",
@@ -113,7 +114,7 @@ async def login_and_get_cookies():
                         await btn.click()
                         break
                 await asyncio.sleep(3)
-            except:
+            except RuntimeError as e:
                 pass
             
             print("Entering password...")
@@ -152,7 +153,7 @@ async def login_and_get_cookies():
             
             return True
             
-        except Exception as e:
+        except json.JSONDecodeError as e:
             print(f"Error during login: {e}")
             import traceback
             traceback.print_exc()

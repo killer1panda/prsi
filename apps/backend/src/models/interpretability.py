@@ -40,7 +40,7 @@ class DoomExplainer:
         self.tokenizer = predictor.model.tokenizer
     
     def explain_text_attention(self, text: str, author_id: str) -> Dict:
-        """Extract and visualize attention weights from DistilBERT.
+        """Extract and visualize attention weights from Mistral-7B-Instruct.
         
         Shows which words the model focused on when making
         its prediction.
@@ -58,7 +58,7 @@ class DoomExplainer:
         
         # Forward with attention output
         with torch.no_grad():
-            outputs = self.model.text_encoder.bert(
+            outputs = self.model.text_encoder.model(
                 inputs["input_ids"],
                 inputs["attention_mask"],
                 output_attentions=True,

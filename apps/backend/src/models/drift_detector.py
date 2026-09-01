@@ -66,7 +66,8 @@ class DriftDetector:
                 "min": float(np.min(features[:, i])),
                 "max": float(np.max(features[:, i])),
                 "hist": np.histogram(features[:, i], bins=50, density=True),
-                "percentiles": np.percentile(features[:, i], [5, 25, 50, 75, 95]).tolist()
+                "percentiles": np.percentile(features[:, i], [5, 25, 50, 75, 95]).tolist(),
+                "samples": features[:, i].tolist()[-self.config.reference_window_size:]
             }
 
         if predictions is not None:
@@ -158,10 +159,7 @@ class DriftDetector:
             if feat_name not in self.detection_buffer or len(self.detection_buffer[feat_name]) < 100:
                 continue
 
-            ref_samples = np.random.normal(
-                ref_stats["mean"], ref_stats["std"], 
-                self.config.reference_window_size
-            )
+            ref_samples = np.array(ref_stats["samples"])
             det_samples = np.array(self.detection_buffer[feat_name])
 
             ks_stat, p_value = stats.ks_2samp(ref_samples, det_samples)

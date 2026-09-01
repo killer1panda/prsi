@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MemeDetectorConfig:
+    """Configuration for the MemeDetector model, defining thresholds and weights."""
     template_dir: str = "data/meme_templates"
     similarity_threshold: float = 0.82
     virality_threshold: float = 0.65

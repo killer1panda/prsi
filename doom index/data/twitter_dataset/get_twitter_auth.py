@@ -5,6 +5,7 @@ Uses Playwright to login and extract fresh tokens for GraphQL queries.
 """
 
 import asyncio
+import httpx
 import json
 import time
 from datetime import datetime
@@ -192,7 +193,7 @@ class TwitterAuthenticator:
                             self.cookies[c['name']] = c['value']
                             if c['name'] == 'ct0':
                                 self.ct0 = c['value']
-                    except:
+                    except httpx.RequestError as e:
                         pass
             
             self.page.on('response', handle_response)
@@ -207,10 +208,10 @@ class TwitterAuthenticator:
             # Try different selectors for username field
             try:
                 await self.page.fill('input[autocomplete="username"]', TWITTER_USERNAME)
-            except:
+            except httpx.RequestError as e:
                 try:
                     await self.page.fill('input[type="text"]', TWITTER_USERNAME)
-                except:
+                except httpx.RequestError as e:
                     await self.page.fill('input[name="text"]', TWITTER_USERNAME)
             
             await self.page.wait_for_timeout(500)
@@ -218,7 +219,7 @@ class TwitterAuthenticator:
             # Click next
             try:
                 await self.page.click('button:has-text("Next")')
-            except:
+            except RuntimeError as e:
                 await self.page.keyboard.press('Enter')
             
             await self.page.wait_for_timeout(1500)
@@ -230,10 +231,10 @@ class TwitterAuthenticator:
                 await self.page.wait_for_timeout(500)
                 try:
                     await self.page.click('button:has-text("Next")')
-                except:
+                except RuntimeError as e:
                     await self.page.keyboard.press('Enter')
                 await self.page.wait_for_timeout(1500)
-            except Exception as e:
+            except RuntimeError as e:
                 print(f"[AUTH] Email step skipped: {e}")
             
             # Enter password
@@ -245,19 +246,19 @@ class TwitterAuthenticator:
                 # Click login
                 try:
                     await self.page.click('button:has-text("Log in")')
-                except:
+                except RuntimeError as e:
                     await self.page.keyboard.press('Enter')
                 
                 print("[AUTH] Waiting for login...")
                 await self.page.wait_for_timeout(5000)
-            except Exception as e:
+            except RuntimeError as e:
                 print(f"[AUTH] Password error: {e}")
             
             # Wait for home page
             try:
                 await self.page.wait_for_url('https://twitter.com/home', timeout=10000)
                 print("[AUTH] ✓ Logged in successfully!")
-            except:
+            except RuntimeError as e:
                 # Check if we're logged in
                 current_url = self.page.url
                 print(f"[AUTH] Current URL: {current_url}")
@@ -280,7 +281,7 @@ class TwitterAuthenticator:
             try:
                 await self.page.goto('https://twitter.com/explore', wait_until='networkidle')
                 await self.page.wait_for_timeout(2000)
-            except:
+            except RuntimeError as e:
                 pass
             
             # Save auth data

@@ -41,7 +41,7 @@ class GraphAttentionNetwork(nn.Module):
         self.device = torch.device(config.device)
 
         # Input projection if needed
-        self.input_proj = nn.Linear(config.in_channels, config.hidden_channels).to(self.device)
+        self.input_proj = nn.Linear(config.in_channels, config.hidden_channels)
 
         # GAT layers
         self.convs = nn.ModuleList()
@@ -49,7 +49,7 @@ class GraphAttentionNetwork(nn.Module):
         self.residuals = nn.ModuleList()
 
         for i in range(config.num_layers):
-            in_ch = config.hidden_channels if i > 0 else config.hidden_channels
+            in_ch = config.hidden_channels if i > 0 else config.in_channels
             out_ch = config.hidden_channels if i < config.num_layers - 1 else config.out_channels
 
             # Last layer uses single head for stability
@@ -66,14 +66,14 @@ class GraphAttentionNetwork(nn.Module):
                     edge_dim=config.edge_dim,
                     add_self_loops=True,
                     bias=True
-                ).to(self.device)
+                )
             )
 
-            self.bns.append(BatchNorm(out_ch).to(self.device))
+            self.bns.append(BatchNorm(out_ch))
 
             # Residual projection if dimensions change
             if in_ch != out_ch:
-                self.residuals.append(nn.Linear(in_ch, out_ch).to(self.device))
+                self.residuals.append(nn.Linear(in_ch, out_ch))
             else:
                 self.residuals.append(nn.Identity())
 

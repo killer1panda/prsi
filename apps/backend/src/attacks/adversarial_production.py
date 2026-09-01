@@ -428,7 +428,7 @@ class ProductionAdversarialGenerator:
                     else:
                         fit = -1.0
                     fitness.append(fit)
-                except:
+                except Exception as e:
                     fitness.append(-1.0)
             
             # Track best

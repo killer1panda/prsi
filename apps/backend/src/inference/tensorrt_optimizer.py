@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """TensorRT Optimization Engine for H100 Inference.
 
-Converts ONNX/DistilBERT models to TensorRT engines with:
+Converts ONNX/Mistral-7B-Instruct models to TensorRT engines with:
 - FP16 precision (2x throughput on H100)
 - INT8 quantization with calibration (4x throughput)
 - Dynamic batching support

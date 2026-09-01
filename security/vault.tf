@@ -40,8 +40,20 @@ resource "vault_kv_secret_v2" "api_secret" {
   delete_all_versions = true
   data_json = jsonencode(
     {
-      "db_password" = "super-secret-password",
-      "api_key"     = "api-secret-key"
+      "db_password" = var.db_password,
+      "api_key"     = var.api_key
     }
   )
+}
+
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "api_key" {
+  description = "API key"
+  type        = string
+  sensitive   = true
 }

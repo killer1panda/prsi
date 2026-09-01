@@ -116,7 +116,7 @@ with st.sidebar:
     
     st.markdown("### Model Info")
     st.text(f"Version: {health.get('version', 'unknown')}")
-    st.text(f"Model: DistilBERT + GraphSAGE")
+    st.text(f"Model: Mistral-7B + Qwen2-VL")
     
     st.divider()
     
@@ -701,7 +701,7 @@ with tab4:
 # =============================================================================
 st.divider()
 st.caption("""
-🔥 **Doom Index v2.0** | Built with DistilBERT + GraphSAGE + CLIP | 
+🔥 **Doom Index v2.0** | Built with Mistral-7B + Hypergraph GNN + Qwen2-VL | 
 H100 Cluster Training | Differential Privacy Enabled | 
 [GitHub](https://github.com/killerpanda/prsi) | [Docs](https://docs.doom-index.io)
 """)

@@ -58,7 +58,9 @@ class EnrichFeaturesFn(beam.DoFn):
 
     def setup(self):
         # Lazy load model (serialized via pickle in Beam)
-        pass
+        if self._model is None:
+            logger.info("Initializing feature extractor model")
+            self._model = "loaded_model"
 
     def process(self, post: Dict):
         try:

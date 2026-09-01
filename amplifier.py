@@ -5,17 +5,17 @@ Goal: Maximize Doom Score to find the model's ceiling.
 """
 import torch
 import random
-from transformers import DistilBertTokenizer
-from scripts.train_text_baseline_v2 import DoomDistilBert
+from transformers import AutoTokenizer
+from scripts.train_text_baseline_v2 import DoomMistral
 
 class DoomAmplifier:
     def __init__(self, model_path):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+        self.tokenizer = AutoTokenizer.from_pretrained('mistralai/Mistral-7B-Instruct-v0.3')
         
         # Load Model
         ckpt = torch.load(model_path, map_location=self.device, weights_only=True)
-        self.model = DoomDistilBert().to(self.device)
+        self.model = DoomMistral().to(self.device)
         self.model.load_state_dict(ckpt['model_state_dict'])
         self.model.eval()
         

@@ -104,17 +104,13 @@ class TestPipelineIntegration:
         texts = sample_reddit_data['body'].tolist()
         
         # Import feature extractor
-        try:
-            from src.features.engineering import extract_features
-            
-            features = extract_features(texts)
-            
-            assert features is not None
-            assert len(features) == len(texts)
-            assert features.shape[1] > 0  # Has features
-            
-        except ImportError:
-            pytest.skip("Feature engineering module not available")
+        from src.features.engineering import extract_features
+        
+        features = extract_features(texts)
+        
+        assert features is not None
+        assert len(features) == len(texts)
+        assert features.shape[1] > 0  # Has features
     
     def test_model_inference_pipeline(self):
         """Test model inference with sample inputs."""
@@ -155,35 +151,28 @@ class TestPipelineIntegration:
         if not os.getenv("NEO4J_PASSWORD"):
             pytest.skip("Neo4j not configured")
         
-        try:
-            from src.data.neo4j_connector import Neo4jConnector
-            
-            # Connect
-            connector = Neo4jConnector()
-            
-            # Test simple query
-            with connector.driver.session(database=connector.database) as session:
-                result = session.run("RETURN 1 as test")
-                record = result.single()
-                assert record["test"] == 1
-            
-        except Exception as e:
-            pytest.skip(f"Neo4j connection failed: {e}")
+        from src.data.neo4j_connector import Neo4jConnector
+        
+        # Connect
+        connector = Neo4jConnector()
+        
+        # Test simple query
+        with connector.driver.session(database=connector.database) as session:
+            result = session.run("RETURN 1 as test")
+            record = result.single()
+            assert record["test"] == 1
 class TestAPIEndpoints:
     """Test API endpoints with realistic payloads."""
     
     @pytest.fixture
     def api_client(self):
         """Create test API client."""
-        try:
-            import os
-            os.environ["API_KEYS"] = "test-key"
-            from fastapi.testclient import TestClient
-            from src.api.api_v2_production import app, config
-            config.require_auth = False
-            return TestClient(app)
-        except ImportError:
-            pytest.skip("FastAPI or src.api.api_v2_production not available")
+        import os
+        os.environ["API_KEYS"] = "test-key"
+        from fastapi.testclient import TestClient
+        from src.api.api_v2_production import app, config
+        config.require_auth = False
+        return TestClient(app)
     
     def test_health_endpoint(self, api_client):
         """Test health check endpoint."""
@@ -252,12 +241,9 @@ class TestLoadSimulation:
     
     def test_sequential_load(self, load_test_config):
         """Test sequential request load."""
-        try:
-            from fastapi.testclient import TestClient
-            from src.api.api_v2_production import app, config
-            config.require_auth = False
-        except ImportError:
-            pytest.skip("FastAPI not available")
+        from fastapi.testclient import TestClient
+        from src.api.api_v2_production import app, config
+        config.require_auth = False
         
         client = TestClient(app)
         
@@ -302,13 +288,10 @@ class TestLoadSimulation:
     
     def test_concurrent_load(self, load_test_config):
         """Test concurrent user load."""
-        try:
-            from fastapi.testclient import TestClient
-            from src.api.api_v2_production import app, config
-            config.require_auth = False
-            from concurrent.futures import ThreadPoolExecutor
-        except ImportError:
-            pytest.skip("Required modules not available")
+        from fastapi.testclient import TestClient
+        from src.api.api_v2_production import app, config
+        config.require_auth = False
+        from concurrent.futures import ThreadPoolExecutor
         
         client = TestClient(app)
         results = {"success": 0, "failed": 0, "latencies": []}
@@ -413,26 +396,18 @@ class TestAdversarialRobustness:
         original_text = "This is a benign statement"
         
         # Generate attacks
-        try:
-            results = generator.generate_attacks(original_text, num_variants=3)
-            
-            assert len(results) > 0
-            for result in results:
-                assert result.variant_text != original_text
-                assert hasattr(result, 'doom_uplift')
-                
-        except Exception as e:
-            pytest.skip(f"Attack generation failed: {e}")
+        results = generator.generate_attacks(original_text, num_variants=3)
+        
+        assert len(results) > 0
+        for result in results:
+            assert result.variant_text != original_text
+            assert hasattr(result, 'doom_uplift')
     
     def test_defense_robustness(self):
         """Test model robustness against attacks."""
         # This would test adversarial training effectiveness
-        # For now, verify the adversarial training module exists
-        try:
-            from src.attacks.adversarial_training import AdversarialTrainer
-            assert AdversarialTrainer is not None
-        except ImportError:
-            pytest.skip("Adversarial training module not available")
+        from src.attacks.adversarial_training import AdversarialTrainer
+        assert AdversarialTrainer is not None
 
 
 class TestPerformanceBenchmarks:

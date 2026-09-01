@@ -73,10 +73,8 @@ class MemoryModule(nn.Module):
         """Update memory using GRU (out-of-place via scatter)."""
         current_mem = self.memory[node_ids]
         updated = self.gru(messages, current_mem)
-        # Out-of-place scatter to avoid autograd in-place mutation error
-        new_memory = self.memory.clone()
-        new_memory[node_ids] = updated
-        self.memory = new_memory
+        # In-place assign with detach to avoid autograd graph issues on buffers
+        self.memory[node_ids] = updated.detach()
 
 
     def compute_messages(self, src_ids: torch.Tensor, dst_ids: torch.Tensor,
@@ -217,3 +215,17 @@ class TemporalGraphNetwork(nn.Module):
 
     def reset_memory(self):
         self.memory.reset()
+
+
+from .hypergraph_gnn import ContinuousTimeHawkesGAT
+
+class CTDGAHawkesEncoder(nn.Module):
+    """CTDGA Encoder using Hawkes point processes."""
+    def __init__(self, node_dim: int = 128, time_dim: int = 32, num_heads: int = 4):
+        super().__init__()
+        self.hawkes_gat = ContinuousTimeHawkesGAT(node_dim=node_dim, time_dim=time_dim, num_heads=num_heads)
+        
+    def forward(self, target_node_emb, neighbor_embs, time_deltas):
+        # hawkes_gat returns out, instant_intensity
+        out, intensity = self.hawkes_gat(target_node_emb, neighbor_embs, time_deltas)
+        return out

@@ -421,7 +421,7 @@ class ProductionNeo4jPopulator:
                 if isinstance(targets, str):
                     try:
                         targets = json.loads(targets)
-                    except:
+                    except Exception as e:
                         targets = []
                 
                 for target in targets[:100]:  # Limit per user
@@ -671,7 +671,7 @@ class ProductionNeo4jPopulator:
         for fmt in formats:
             try:
                 return datetime.strptime(str(ts), fmt)
-            except:
+            except Exception as e:
                 continue
         
         return None

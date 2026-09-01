@@ -284,7 +284,7 @@ async def scrape_keyword_fast(client: Client, keyword: str, media_dir: Path) -> 
             # Small delay between batches
             await asyncio.sleep(DELAY_BETWEEN_KEYWORDS)
         
-    except Exception as e:
+    except RuntimeError as e:
         error_str = str(e)
         if '429' in error_str or 'Rate limit' in error_str:
             print(f"    ⚠️ Rate limited!")
@@ -314,7 +314,7 @@ async def scrape_with_exponential_backoff():
             client = create_client(cf)
             clients.append(client)
             print(f"  ✓ Loaded: {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ Failed: {cf}")
     
     if not clients:
@@ -379,7 +379,7 @@ async def scrape_with_exponential_backoff():
                 print(f"    +{len(tweets)} tweets, +{len(replies)} replies, +{media} media")
                 break
                 
-            except Exception as e:
+            except RuntimeError as e:
                 if '429' in str(e):
                     print(f"    ⚠️ Rate limit! Waiting {backoff}s (retry {retry+1})...")
                     await asyncio.sleep(backoff)
@@ -405,7 +405,7 @@ async def scrape_with_exponential_backoff():
         for t in timeline:
             all_tweets.append(parse_tweet_basic(t, 'timeline'))
         print(f"    +{len(timeline)} timeline tweets")
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"    ⚠️ Timeline error: {e}")
     
     # Save

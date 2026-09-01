@@ -33,7 +33,13 @@ class InMemoryCollection:
     def find(self, query: Dict[str, Any] = None):
         class Cursor(list):
             def limit(self, n):
-                return self[:n]
+                return Cursor(self[:n])
+            def sort(self, *args, **kwargs):
+                return self
+            def skip(self, n):
+                return Cursor(self[n:])
+            def count(self):
+                return len(self)
         return Cursor(self.docs)
         
     def find_one(self, query: Dict[str, Any] = None):
@@ -162,53 +168,10 @@ class MongoDBConnector:
             self.client.close()
             logger.info("MongoDB connection closed")
 
-
-class Neo4jConnector:
-    """Neo4j graph database manager with offline fallback."""
-    
-    def __init__(
-        self,
-        uri: str = None,
-        user: str = "neo4j",
-        password: str = "password",
-    ):
-        self.uri = uri or get_env_var("NEO4J_URI", "bolt://localhost:7687")
-        self.user = user
-        self.password = password
-        self.driver = None
-        self.is_online = False
-        
-        try:
-            from neo4j import GraphDatabase
-            self.driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
-            self.driver.verify_connectivity()
-            self.is_online = True
-            logger.info(f"Connected to Neo4j at {self.uri}")
-        except Exception as e:
-            logger.warning(f"Neo4j offline ({e}); operating in in-memory graph mode.")
-            self.driver = None
-            self.is_online = False
-            
-    def run_query(self, query: str, parameters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        if not self.is_online or not self.driver:
-            return []
-        try:
-            with self.driver.session() as session:
-                result = session.run(query, parameters or {})
-                return [record.data() for record in result]
-        except Exception as e:
-            logger.error(f"Neo4j query error: {e}")
-            return []
-            
-    def close(self):
-        if self.driver:
-            self.driver.close()
-
+from src.data.neo4j_connector import Neo4jConnector, get_neo4j
 
 # Singleton instances
 _mongodb_instance = None
-_neo4j_instance = None
-
 
 def get_mongodb() -> MongoDBConnector:
     """Get MongoDB connector singleton."""
@@ -216,11 +179,3 @@ def get_mongodb() -> MongoDBConnector:
     if _mongodb_instance is None:
         _mongodb_instance = MongoDBConnector()
     return _mongodb_instance
-
-
-def get_neo4j() -> Neo4jConnector:
-    """Get Neo4j connector singleton."""
-    global _neo4j_instance
-    if _neo4j_instance is None:
-        _neo4j_instance = Neo4jConnector()
-    return _neo4j_instance

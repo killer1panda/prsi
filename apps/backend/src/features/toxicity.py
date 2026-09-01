@@ -87,15 +87,15 @@ class ToxicityAnalyzer:
         return scores.get("toxicity", 0) > threshold
 
 
-# Global analyzer instance
-_toxicity_analyzer = None
+import threading
+
+_local = threading.local()
 
 def get_toxicity_analyzer() -> ToxicityAnalyzer:
-    """Get or create global toxicity analyzer instance."""
-    global _toxicity_analyzer
-    if _toxicity_analyzer is None:
-        _toxicity_analyzer = ToxicityAnalyzer()
-    return _toxicity_analyzer
+    """Get or create thread-local toxicity analyzer instance."""
+    if not hasattr(_local, "analyzer") or _local.analyzer is None:
+        _local.analyzer = ToxicityAnalyzer()
+    return _local.analyzer
 
 def analyze_text_toxicity(text: str) -> Optional[Dict[str, float]]:
     """Convenience function to analyze text toxicity."""

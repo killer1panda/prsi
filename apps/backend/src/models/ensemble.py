@@ -69,9 +69,11 @@ class DoomEnsemble:
                 logger.debug(f"RF prediction failed: {e}")
         
         # Multimodal
-        if self.multimodal_predictor:
+        if self.multimodal_predictor and features and "x" in features:
             try:
-                mm_pred = self.multimodal_predictor.predict(text, author_id)
+                mm_pred = self.multimodal_predictor.predict(
+                    features["x"], features["edge_index"], text, features.get("user_idx", 0)
+                )
                 predictions["multimodal"] = {
                     "prob": mm_pred["probability"],
                     "pred": mm_pred["prediction"],

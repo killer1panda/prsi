@@ -241,7 +241,7 @@ def plot_comparison_table(output_path):
 def generate_report(metrics, output_path):
     """Generate JSON report."""
     report = {
-        'model': 'MultimodalDoomPredictor (GraphSAGE + DistilBERT)',
+        'model': 'MultimodalDoomPredictor (GraphSAGE + Mistral-7B)',
         'metrics': {k: float(v) for k, v in metrics.items()},
         'interpretation': {
             'accuracy': 'Overall correctness',

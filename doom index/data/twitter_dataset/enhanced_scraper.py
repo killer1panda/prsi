@@ -114,7 +114,7 @@ async def download_media(media_list: List[Any], tweet_id: str, media_dir: Path) 
                         })
                         print(f"    📷 Downloaded: {filename}")
                         
-        except Exception as e:
+        except httpx.RequestError as e:
             print(f"    ⚠️ Media download error: {e}")
             continue
     
@@ -143,7 +143,7 @@ async def get_tweet_replies(client: Client, tweet_id: str, max_replies: int = 10
                     'retweets': t.retweet_count,
                 })
                 
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"    ⚠️ Error getting replies: {e}")
     
     return replies
@@ -271,7 +271,7 @@ async def scrape_with_replies_and_media():
                 # Small delay between tweets
                 await asyncio.sleep(0.5)
                 
-        except Exception as e:
+        except RuntimeError as e:
             print(f"    ⚠️ Error: {e}")
             await asyncio.sleep(5)  # Wait on error
         
@@ -286,13 +286,13 @@ async def scrape_with_replies_and_media():
         timeline_data = [parse_tweet(t, 'timeline') for t in timeline]
         all_tweets.extend(timeline_data)
         print(f"    Timeline: {len(timeline_data)} tweets")
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"    ⚠️ Timeline error: {e}")
     
     try:
         trends = await client.get_trends(category='trending')
         print(f"    Trends: {len(trends)} topics")
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"    ⚠️ Trends error: {e}")
         trends = []
     

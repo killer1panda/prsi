@@ -156,7 +156,7 @@ async def get_tweet_replies(client: Client, tweet_id: str, max_replies: int = 5)
             if str(t.id) != str(tweet_id):
                 replies.append(parse_reply_basic(t, tweet_id, ''))
                 
-    except Exception as e:
+    except Exception as e: # twikit error
         pass  # Silently handle
     
     return replies
@@ -187,7 +187,7 @@ async def download_media(media_list: List[Any], tweet_id: str, media_dir: Path) 
                             f.write(response.content)
                         downloaded += 1
                         
-        except Exception as e:
+        except httpx.RequestError as e:
             continue
     
     return downloaded
@@ -226,7 +226,7 @@ async def scrape_keyword(client: Client, keyword: str, media_dir: Path) -> tuple
             # Small delay between tweets
             await asyncio.sleep(0.5)
             
-    except Exception as e:
+    except RuntimeError as e:
         error_msg = str(e)
         if '429' in error_msg or 'Rate limit' in error_msg:
             print(f"    ⚠️ Rate limited! Waiting {RATE_LIMIT_BACKOFF}s...")
@@ -251,7 +251,7 @@ async def scrape_with_rate_limit_handling():
             client = create_client(cf)
             clients.append(client)
             print(f"  ✓ Loaded: {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ Failed: {cf} - {e}")
     
     if not clients:
@@ -319,7 +319,7 @@ async def scrape_with_rate_limit_handling():
                 print(f"    +{len(tweets)} tweets, +{len(replies)} replies")
                 break
                 
-            except Exception as e:
+            except RuntimeError as e:
                 if '429' in str(e) or 'Rate limit' in str(e):
                     wait_time = RATE_LIMIT_BACKOFF * (retry + 1)
                     print(f"    ⚠️ Rate limit! Waiting {wait_time}s... (attempt {retry+1}/{max_retries})")
@@ -348,7 +348,7 @@ async def scrape_with_rate_limit_handling():
         for t in timeline:
             all_tweets.append(parse_tweet_basic(t, 'timeline'))
         print(f"    Timeline: {len(timeline)} tweets")
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"    ⚠️ Timeline error: {e}")
     
     # Save final data

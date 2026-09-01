@@ -157,18 +157,18 @@ class DeepSpeedConfig:
         logger.info(f"DeepSpeed config written to {path}")
 
     @classmethod
-    def for_h100_4gpu(cls, model_size: str = "distilbert") -> "DeepSpeedConfig":
+    def for_h100_4gpu(cls, model_size: str = "mistral_7b_qlora") -> "DeepSpeedConfig":
         """Factory method for 4x H100 80GB node configuration.
 
         Args:
-            model_size: One of "distilbert", "bert_base", "bert_large"
+            model_size: One of "mistral_7b_qlora", "bert_base", "bert_large"
         """
         configs = {
-            "distilbert": {
+            "mistral_7b_qlora": {
                 "train_micro_batch_size_per_gpu": 64,
                 "gradient_accumulation_steps": 2,
                 "zero_optimization": {
-                    "stage": 2,  # DistilBERT fits in H100 VRAM, ZeRO-2 sufficient
+                    "stage": 2,  # Mistral fits in H100 VRAM with QLoRA, ZeRO-2 sufficient
                     "offload_optimizer": {"device": "none"},
                     "offload_param": {"device": "none"},
                     "overlap_comm": True,
@@ -215,7 +215,7 @@ class DeepSpeedConfig:
         return base
 
     @classmethod
-    def for_h100_multinode(cls, nodes: int = 2, gpus_per_node: int = 4, model_size: str = "distilbert") -> "DeepSpeedConfig":
+    def for_h100_multinode(cls, nodes: int = 2, gpus_per_node: int = 4, model_size: str = "mistral_7b_qlora") -> "DeepSpeedConfig":
         """Factory method for multi-node H100 cluster.
 
         Args:
@@ -309,11 +309,11 @@ def generate_all_configs(output_dir: str = "configs/training") -> List[str]:
     generated = []
 
     scenarios = [
-        ("ds_h100_4gpu_distilbert.json", DeepSpeedConfig.for_h100_4gpu("distilbert")),
+        ("ds_h100_4gpu_mistral_7b_qlora.json", DeepSpeedConfig.for_h100_4gpu("mistral_7b_qlora")),
         ("ds_h100_4gpu_bert_base.json", DeepSpeedConfig.for_h100_4gpu("bert_base")),
         ("ds_h100_4gpu_bert_large.json", DeepSpeedConfig.for_h100_4gpu("bert_large")),
-        ("ds_h100_2node_distilbert.json", DeepSpeedConfig.for_h100_multinode(2, 4, "distilbert")),
-        ("ds_h100_4node_distilbert.json", DeepSpeedConfig.for_h100_multinode(4, 4, "distilbert")),
+        ("ds_h100_2node_mistral_7b_qlora.json", DeepSpeedConfig.for_h100_multinode(2, 4, "mistral_7b_qlora")),
+        ("ds_h100_4node_mistral_7b_qlora.json", DeepSpeedConfig.for_h100_multinode(4, 4, "mistral_7b_qlora")),
     ]
 
     for filename, config in scenarios:

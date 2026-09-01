@@ -102,8 +102,14 @@ def create_synthetic_graph(num_users: int):
     # Remove self-loops
     mask = edge_index[0] != edge_index[1]
     edge_index = edge_index[:, mask]
+    
+    # Generate additional data for the new GNN architecture
+    edge_type = torch.randint(0, 5, (edge_index.size(1),))
+    
+    # Create random hyperedges (simulating conversations)
+    hyperedge_index = edge_index.clone() # naive approach
 
-    data = Data(x=x, edge_index=edge_index, num_nodes=num_users)
+    data = Data(x=x, edge_index=edge_index, num_nodes=num_users, edge_type=edge_type, hyperedge_index=hyperedge_index)
     return data
 
 

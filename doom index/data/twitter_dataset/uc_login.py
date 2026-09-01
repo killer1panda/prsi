@@ -3,6 +3,7 @@ Use undetected-chromedriver to login to Twitter/X and extract cookies.
 """
 
 import json
+from selenium.common.exceptions import TimeoutException
 import time
 import os
 import undetected_chromedriver as uc
@@ -65,7 +66,7 @@ def login_and_get_cookies():
                     btn.click()
                     break
             time.sleep(3)
-        except:
+        except TimeoutException as e:
             pass
         
         # Enter password
@@ -102,7 +103,7 @@ def login_and_get_cookies():
         
         return True
         
-    except Exception as e:
+    except json.JSONDecodeError as e:
         print(f"Error during login: {e}")
         import traceback
         traceback.print_exc()
@@ -111,7 +112,7 @@ def login_and_get_cookies():
         try:
             driver.save_screenshot("login_error.png")
             print("Screenshot saved to login_error.png")
-        except:
+        except json.JSONDecodeError as e:
             pass
         return False
         

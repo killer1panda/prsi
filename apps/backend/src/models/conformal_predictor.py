@@ -117,8 +117,11 @@ class ConformalPredictor:
 
         # Stratified calibration by reach tiers
         if followers_array is not None and len(followers_array) == n:
+            tier_func = np.vectorize(self._get_reach_tier)
+            tiers = tier_func(followers_array)
+
             for tier in self.reach_thresholds.keys():
-                mask = np.array([self._get_reach_tier(f) == tier for f in followers_array])
+                mask = (tiers == tier)
                 if np.sum(mask) >= 15:
                     tier_scores = e_scores[mask]
                     n_tier = len(tier_scores)

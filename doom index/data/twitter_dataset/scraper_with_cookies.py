@@ -67,7 +67,7 @@ async def main():
                     "replies": tweet.reply_count,
                     "is_retweet": tweet.retweeted_tweet is not None if hasattr(tweet, 'retweeted_tweet') else False
                 })
-        except Exception as e:
+        except Exception as e: # twikit error
             print(f"   ✗ Timeline failed: {e}")
         
         # Search for tweets
@@ -86,7 +86,7 @@ async def main():
                     "likes": tweet.favorite_count,
                     "retweets": tweet.retweet_count
                 })
-        except Exception as e:
+        except Exception as e: # twikit error
             print(f"   ✗ Search failed: {e}")
         
         # Get trending topics
@@ -101,7 +101,7 @@ async def main():
                     "domain": trend.domain_context,
                     "tweets_count": trend.tweets_count
                 })
-        except Exception as e:
+        except Exception as e: # twikit error
             print(f"   ✗ Trending failed: {e}")
         
         # Save all data to JSON
@@ -136,7 +136,7 @@ async def main():
         print(f"Search results: {len(all_data['search_results'])}")
         print(f"Trending topics: {len(all_data['trending_topics'])}")
         
-    except Exception as e:
+    except json.JSONDecodeError as e:
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()

@@ -31,6 +31,7 @@ from typing import Any, Dict, Generator, Iterable, List, Optional
 
 from loguru import logger
 from tqdm import tqdm
+import httpx
 
 from src.config import get_env_var
 
@@ -629,6 +630,9 @@ class TwitterScraper:
                 tweets = loop.run_until_complete(_runner())
             finally:
                 loop.close()
+        except httpx.RequestError as exc:
+            logger.error(f"Network error searching tweets via Twikit: {exc}")
+            tweets = []
         except Exception as exc:  # pragma: no cover - network dependent
             logger.error(f"Error searching tweets via Twikit: {exc}")
             tweets = []
@@ -681,6 +685,9 @@ class TwitterScraper:
                 tweets = loop.run_until_complete(_runner())
             finally:
                 loop.close()
+        except httpx.RequestError as exc:
+            logger.error(f"Network error fetching user timeline via Twikit: {exc}")
+            tweets = []
         except Exception as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching user timeline via Twikit: {exc}")
             tweets = []
@@ -728,6 +735,9 @@ class TwitterScraper:
                 replies = loop.run_until_complete(_runner())
             finally:
                 loop.close()
+        except httpx.RequestError as exc:
+            logger.error(f"Network error fetching tweet replies via Twikit: {exc}")
+            replies = []
         except Exception as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching tweet replies via Twikit: {exc}")
             replies = []
@@ -777,6 +787,9 @@ class TwitterScraper:
                 trends = loop.run_until_complete(_runner())
             finally:
                 loop.close()
+        except httpx.RequestError as exc:
+            logger.error(f"Network error fetching trends via Twikit: {exc}")
+            trends = []
         except Exception as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching trends via Twikit: {exc}")
             trends = []

@@ -98,7 +98,7 @@ class ONNXDoomPredictor:
         opset_version: int = 14,
         dynamic_axes: bool = True,
     ):
-        """Export DistilBERT text encoder to ONNX."""
+        """Export Mistral-7B-Instruct text encoder to ONNX."""
         if not ONNX_AVAILABLE:
             logger.error("ONNX not available for export")
             return
@@ -119,7 +119,7 @@ class ONNXDoomPredictor:
         
         # Export only the text encoder
         torch.onnx.export(
-            self.model.text_encoder.bert,
+            self.model.text_encoder.model,
             (dummy_input_ids, dummy_attention),
             output_path,
             input_names=input_names,

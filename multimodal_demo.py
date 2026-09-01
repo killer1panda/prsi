@@ -38,7 +38,7 @@ def demonstrate_multimodal_analysis():
     for i, text in enumerate(test_texts, 1):
         print(f"\n🔍 Text {i}: {text[:100]}{'...' if len(text) > 100 else ''}")
 
-        # Sentiment Analysis (DistilBERT + VADER + RoBERTa)
+        # Sentiment Analysis (Mistral-7B + VADER + Qwen2-VL)
         sentiment = analyze_text_sentiment(text)
         if sentiment:
             print(f"   🤖 Sentiment: {sentiment.get('overall_sentiment', 'unknown').upper()}")
@@ -102,9 +102,9 @@ def demonstrate_multimodal_analysis():
 
     print("\n🎉 Multimodal Analysis Complete!")
     print("=" * 50)
-    print("✅ DistilBERT: Fast, efficient sentiment analysis")
+    print("✅ Mistral-7B: Advanced semantic reasoning")
     print("✅ VADER: Rule-based sentiment for social media")
-    print("✅ RoBERTa: Deep learning for nuanced understanding")
+    print("✅ Qwen2-VL: Vision-language understanding")
     print("✅ Perspective API: Toxicity and content moderation")
     print("✅ RandomForest: ML prediction for cancellation events")
     print("\n🚀 System ready for production deployment!")

@@ -101,7 +101,7 @@ async def scrape_keyword(api: API, keyword: str, seen_ids: set) -> list:
             if count % 100 == 0:
                 print(f"      +{count} tweets collected")
                 
-    except Exception as e:
+    except RuntimeError as e:
         print(f"    ⚠️ Error: {str(e)[:80]}")
     
     print(f"    '{keyword}': +{count} tweets")
@@ -129,7 +129,7 @@ async def main():
                 cookies=cookies_str
             )
             print(f"  ✓ Added {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             pass  # Account may already exist
     
     # Try login
@@ -137,7 +137,7 @@ async def main():
     try:
         await api.pool.login_all()
         print("  ✓ Login done")
-    except Exception as e:
+    except RuntimeError as e:
         print(f"  ⚠️ Login issue (will try anyway): {str(e)[:50]}")
     
     # Load existing data
@@ -164,7 +164,7 @@ async def main():
         try:
             tweets = await scrape_keyword(api, keyword, seen_ids)
             all_tweets.extend(tweets)
-        except Exception as e:
+        except RuntimeError as e:
             print(f"    ⚠️ Error: {str(e)[:60]}")
         
         if (i + 1) % 3 == 0:

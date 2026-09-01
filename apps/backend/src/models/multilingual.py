@@ -10,14 +10,15 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import XLMRobertaTokenizer, XLMRobertaModel, AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from peft import get_peft_model, LoraConfig, TaskType
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class MultilingualConfig:
-    model_name: str = "xlm-roberta-base"  # or "ai4bharat/indic-bert"
+    model_name: str = "mistralai/Mistral-7B-Instruct-v0.3"
     max_length: int = 256
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     freeze_layers: int = 8  # Freeze first N transformer layers
@@ -37,16 +38,29 @@ class MultilingualEncoder(nn.Module):
         self.device = torch.device(self.config.device)
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
-        self.backbone = AutoModel.from_pretrained(self.config.model_name).to(self.device)
-
-        # Freeze lower layers for transfer learning stability
-        if self.config.freeze_layers > 0:
-            for param in self.backbone.embeddings.parameters():
-                param.requires_grad = False
-            for layer in self.backbone.encoder.layer[:self.config.freeze_layers]:
-                for param in layer.parameters():
-                    param.requires_grad = False
-
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
+        base_model = AutoModelForCausalLM.from_pretrained(
+            self.config.model_name,
+            quantization_config=bnb_config,
+            device_map="auto"
+        )
+        lora_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            target_modules=["q_proj", "v_proj"],
+            lora_dropout=0.05,
+            bias="none",
+            task_type=TaskType.CAUSAL_LM,
+        )
+        self.backbone = get_peft_model(base_model, lora_config)
+        
         hidden_size = self.backbone.config.hidden_size
         self.projection = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
@@ -127,8 +141,15 @@ class MultilingualEncoder(nn.Module):
             return_tensors="pt"
         ).to(self.device)
 
-        outputs = self.backbone(**inputs)
-        pooled = outputs.last_hidden_state[:, 0, :]  # CLS token
+        outputs = self.backbone(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            output_hidden_states=True
+        )
+        last_hidden = outputs.hidden_states[-1]
+        seq_lengths = inputs["attention_mask"].sum(dim=-1) - 1
+        batch_size = last_hidden.size(0)
+        pooled = last_hidden[torch.arange(batch_size, device=last_hidden.device), seq_lengths]
 
         embeddings = self.projection(pooled)
         embeddings = F.normalize(embeddings, p=2, dim=-1)
@@ -141,8 +162,11 @@ class MultilingualEncoder(nn.Module):
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         """Forward pass for training."""
-        outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
-        pooled = outputs.last_hidden_state[:, 0, :]
+        outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask, output_hidden_states=True)
+        last_hidden = outputs.hidden_states[-1]
+        seq_lengths = attention_mask.sum(dim=-1) - 1
+        batch_size = last_hidden.size(0)
+        pooled = last_hidden[torch.arange(batch_size, device=last_hidden.device), seq_lengths]
         return self.projection(pooled)
 
     def save(self, path: str):

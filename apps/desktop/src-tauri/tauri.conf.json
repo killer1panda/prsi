@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https: data:; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost"
+      "csp": "default-src 'self'; img-src 'self' asset: https://*.doomindex.com data:; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost"
     },
     "updater": {
       "active": true,

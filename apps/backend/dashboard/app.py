@@ -48,7 +48,7 @@ try:
         st.sidebar.info(f"🖥️ GPUs: {health['cuda_devices']}")
     else:
         st.sidebar.warning("⚠️ Model not loaded")
-except:
+except requests.exceptions.RequestException as e:
     st.sidebar.error("❌ API unreachable")
 
 # ── Main Header ─────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ with tab1:
                         "text_embedding_norm": result.get("text_embedding_norm"),
                     })
 
-            except Exception as e:
+            except requests.exceptions.RequestException as e:
                 st.error(f"Analysis failed: {e}")
 
 # ── Tab 2: Attack Simulator ─────────────────────────────────────────────────
@@ -313,7 +313,7 @@ with tab2:
                 else:
                     st.warning("No valid variants generated within toxicity budget.")
 
-            except Exception as e:
+            except requests.exceptions.RequestException as e:
                 st.error(f"Attack simulation failed: {e}")
 
 # ── Tab 3: Leaderboard ──────────────────────────────────────────────────────
@@ -368,7 +368,7 @@ with tab3:
         fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
         st.plotly_chart(fig, use_container_width=True)
 
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         st.error(f"Could not load leaderboard: {e}")
         st.info("Showing mock data for demo purposes.")
 

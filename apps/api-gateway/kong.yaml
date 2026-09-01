@@ -1,7 +1,7 @@
 _format_version: "3.0"
 services:
   - name: doom-backend
-    url: http://doom-backend:8000
+    url: http://doom-backend-svc:80
     routes:
       - name: doom-backend-route
         paths:

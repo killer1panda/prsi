@@ -173,10 +173,14 @@ class VisionEncoder(nn.Module):
                 )
 
             # visual_outputs: (total_patches, hidden_size=3584)
-            # Mean-pool across all patch tokens to get a pooled vision vector
-            pooled = visual_outputs.mean(dim=0, keepdim=True)  # (1, 3584)
+            # Pool per image using image_grid_thw
+            patch_counts = inputs.get("image_grid_thw").prod(dim=1).tolist() if inputs.get("image_grid_thw") is not None else [visual_outputs.size(0)]
+            pooled_list = []
+            for img_patches in torch.split(visual_outputs, patch_counts):
+                pooled_list.append(img_patches.mean(dim=0, keepdim=True))
+            pooled = torch.cat(pooled_list, dim=0)  # (batch_size, 3584)
 
-            projected = self.projection(pooled.float())  # (1, projection_dim)
+            projected = self.projection(pooled.float())  # (batch_size, projection_dim)
             projected = nn.functional.normalize(projected, p=2, dim=-1)
 
             all_embeddings.append(projected)

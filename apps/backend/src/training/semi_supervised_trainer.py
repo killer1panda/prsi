@@ -195,7 +195,7 @@ class SemiSupervisedDoomClassifier:
         accuracy = accuracy_score(labels, preds)
         try:
             auc = roc_auc_score(labels, probs)
-        except:
+        except Exception as e:
             auc = 0.5
         
         return {

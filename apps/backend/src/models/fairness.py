@@ -73,8 +73,9 @@ class FairnessAnalyzer:
             yt = y_true[mask]
             yp = y_pred[mask]
 
-            if len(np.unique(yt)) < 2:
-                continue
+            if len(np.unique(yt)) < 2 and len(yt) > 0:
+                # Handle cases with only one class gracefully if needed
+                pass
 
             tn, fp, fn, tp = confusion_matrix(yt, yp, labels=[0, 1]).ravel()
 

@@ -268,7 +268,7 @@ async def scrape_keyword_fast(client, keyword, media_dir, seen_ids) -> tuple:
             print(f"    Processed {min(i+batch_size, len(tweets))}/{len(tweets)} tweets...")
             await asyncio.sleep(DELAY_BETWEEN_KEYWORDS)
         
-    except Exception as e:
+    except RuntimeError as e:
         if '429' in str(e) or 'Rate limit' in str(e):
             print(f"    ⚠️ Rate limited!")
             raise
@@ -298,7 +298,7 @@ async def scrape_production_grade():
             client = create_client(cf)
             clients.append(client)
             print(f"  ✓ {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ {cf}: {e}")
     
     if not clients:
@@ -363,7 +363,7 @@ async def scrape_production_grade():
                 print(f"    +{len(tweets)} tweets, +{len(replies)} replies, +{media} media")
                 break
                 
-            except Exception as e:
+            except RuntimeError as e:
                 if '429' in str(e):
                     print(f"    ⚠️ Rate limit! Waiting {backoff}s...")
                     await asyncio.sleep(backoff)
@@ -390,7 +390,7 @@ async def scrape_production_grade():
                 seen_ids.add(str(t.id))
                 all_tweets.append(parse_tweet_basic(t, 'timeline'))
         print(f"    +{len(timeline)} timeline tweets")
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"    ⚠️ Error: {e}")
     
     # Final save

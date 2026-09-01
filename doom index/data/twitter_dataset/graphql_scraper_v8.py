@@ -88,7 +88,7 @@ async def search_tweets_mobile(session: httpx.AsyncClient, keyword: str, cursor:
     try:
         response = await session.get(url, params=params)
         return {'status': response.status_code, 'data': response.json() if response.status_code == 200 else response.text}
-    except Exception as e:
+    except httpx.RequestError as e:
         return {'status': 0, 'error': str(e)}
 
 
@@ -120,7 +120,7 @@ async def search_tweets_graphql(session: httpx.AsyncClient, keyword: str, cursor
             return {'status': 429, 'error': 'Rate limited'}
         else:
             return {'status': response.status_code, 'error': response.text[:200]}
-    except Exception as e:
+    except json.JSONDecodeError as e:
         return {'status': 0, 'error': str(e)}
 
 
@@ -163,7 +163,7 @@ def parse_tweets(data: dict, keyword: str) -> list:
                     'keyword': keyword,
                 })
     
-    except Exception as e:
+    except RuntimeError as e:
         print(f"    Parse error: {e}")
     
     return tweets
@@ -213,7 +213,7 @@ async def scrape_keyword(session: httpx.AsyncClient, keyword: str, seen_ids: set
                         break
                     if cursor:
                         break
-        except:
+        except RuntimeError as e:
             pass
         
         if not cursor:
@@ -238,7 +238,7 @@ async def main():
             cookies = load_cookies(cf)
             all_cookies.append(cookies)
             print(f"  ✓ {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ {cf}: {e}")
     
     if not all_cookies:

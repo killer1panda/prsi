@@ -38,15 +38,18 @@ def federated_averaging(weights_list: List[List[np.ndarray]], sample_counts: Opt
         return []
     if sample_counts is None:
         sample_counts = [1] * len(weights_list)
-    total_samples = max(1, sum(sample_counts))
+    total_samples = sum(sample_counts)
+    if total_samples == 0:
+        return []
     
     avg_weights = []
     num_layers = len(weights_list[0])
     for layer_idx in range(num_layers):
         layer_avg = np.zeros_like(weights_list[0][layer_idx], dtype=np.float64)
         for client_idx, client_weights in enumerate(weights_list):
-            weight = sample_counts[client_idx] / total_samples
-            layer_avg += client_weights[layer_idx].astype(np.float64) * weight
+            if layer_idx < len(client_weights) and client_weights[layer_idx].shape == layer_avg.shape:
+                weight = sample_counts[client_idx] / total_samples
+                layer_avg += client_weights[layer_idx].astype(np.float64) * weight
         avg_weights.append(layer_avg.astype(weights_list[0][layer_idx].dtype))
     return avg_weights
 
@@ -84,12 +87,12 @@ class DoomClient(fl.client.NumPyClient if FLOWER_AVAILABLE else object):
 
     def get_parameters(self, config: Dict[str, Scalar]) -> List[np.ndarray]:
         """Return model parameters as numpy arrays."""
-        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
+        return [val.cpu().numpy() for _, val in {k: v for k, v in self.model.state_dict().items() if 'lora' in k}.items()]
 
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set model parameters from numpy arrays."""
         state_dict = {}
-        for (name, _), param in zip(self.model.state_dict().items(), parameters):
+        for (name, _), param in zip({k: v for k, v in self.model.state_dict().items() if 'lora' in k}.items(), parameters):
             state_dict[name] = torch.tensor(param)
         self.model.load_state_dict(state_dict, strict=False)
 
@@ -238,7 +241,7 @@ class FLSimulator:
             num_classes=2,
             dropout=0.3,
         )
-        client_model.load_state_dict(self.model.state_dict())
+        client_model.load_state_dict({k: v for k, v in self.model.state_dict().items() if 'lora' in k})
 
         return DoomClient(
             client_id=client_id,

@@ -81,7 +81,7 @@ async def login_and_get_cookies():
                         await btn.click()
                         break
                 await asyncio.sleep(3)
-            except:
+            except RuntimeError as e:
                 pass
             
             print("Entering password...")
@@ -119,7 +119,7 @@ async def login_and_get_cookies():
             
             return True
             
-        except Exception as e:
+        except json.JSONDecodeError as e:
             print(f"Error during login: {e}")
             import traceback
             traceback.print_exc()

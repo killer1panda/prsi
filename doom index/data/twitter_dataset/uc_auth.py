@@ -5,6 +5,7 @@ This should bypass bot detection.
 """
 
 import time
+from selenium.common.exceptions import TimeoutException
 import json
 from pathlib import Path
 from datetime import datetime
@@ -42,7 +43,7 @@ def login_and_get_cookies():
             username_input = WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'input[autocomplete="username"]'))
             )
-        except:
+        except TimeoutException as e:
             username_input = driver.find_element(By.CSS_SELECTOR, 'input[name="text"]')
         
         username_input.click()
@@ -54,7 +55,7 @@ def login_and_get_cookies():
         try:
             next_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Next')]")
             next_btn.click()
-        except:
+        except TimeoutException as e:
             driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
         
         time.sleep(3)
@@ -71,11 +72,11 @@ def login_and_get_cookies():
             try:
                 next_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Next')]")
                 next_btn.click()
-            except:
+            except TimeoutException as e:
                 driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
             
             time.sleep(3)
-        except Exception as e:
+        except TimeoutException as e:
             print(f"[UC] Email step skipped: {e}")
         
         # Enter password
@@ -84,7 +85,7 @@ def login_and_get_cookies():
             password_input = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="password"]'))
             )
-        except:
+        except TimeoutException as e:
             password_input = driver.find_element(By.CSS_SELECTOR, 'input[name="password"]')
         
         password_input.send_keys(TWITTER_PASSWORD)
@@ -95,7 +96,7 @@ def login_and_get_cookies():
         try:
             login_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Log in')]")
             login_btn.click()
-        except:
+        except TimeoutException as e:
             driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
         
         print("[UC] Waiting for login...")
@@ -147,7 +148,7 @@ if __name__ == '__main__':
         print(f"Total cookies: {len(cookies)}")
         print(f"\nSaved to: {OUTPUT_DIR / 'uc_cookies.json'}")
         
-    except Exception as e:
+    except RuntimeError as e:
         print(f"\nERROR: {e}")
         import traceback
         traceback.print_exc()

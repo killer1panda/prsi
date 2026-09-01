@@ -118,7 +118,7 @@ class DoomInferenceWorker:
         """Mock inference function."""
         # Extract text or content from input
         content = data.get("text", "")
-        source_id = data.get("id", str(uuid.uuid4()))
+        source_id = data.get("user_id", str(uuid.uuid4()))
         
         # Mock logic
         doom_score = 0.85 if "doom" in content.lower() else 0.15

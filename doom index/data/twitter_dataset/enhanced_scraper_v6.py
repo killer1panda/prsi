@@ -115,7 +115,7 @@ async def search_graphql(session: httpx.AsyncClient, query: str, cursor: str = N
         
         return {"error": None, "data": response.json()}
         
-    except Exception as e:
+    except json.JSONDecodeError as e:
         return {"error": str(e), "data": None}
 
 
@@ -185,7 +185,7 @@ def extract_tweets_from_response(data: Dict) -> tuple:
                     if value:
                         next_cursor = value
     
-    except Exception as e:
+    except RuntimeError as e:
         print(f"    ⚠️ Parse error: {e}")
     
     return tweets, next_cursor
@@ -252,7 +252,7 @@ async def scrape_with_graphql():
             session = create_session(cf)
             sessions.append(session)
             print(f"  ✓ {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ {cf}: {e}")
     
     if not sessions:
@@ -299,7 +299,7 @@ async def scrape_with_graphql():
                 print(f"    Total: +{len(tweets)} tweets")
                 break
                 
-            except Exception as e:
+            except RuntimeError as e:
                 if "429" in str(e):
                     print(f"    ⚠️ Rate limit, waiting...")
                     await asyncio.sleep(10)
@@ -319,7 +319,7 @@ async def scrape_with_graphql():
         session = sessions[0]
         tweets, _ = await search_graphql(session, "", cursor=None)
         # Timeline is different, skip for now
-    except Exception as e:
+    except RuntimeError as e:
         print(f"    ⚠️ Timeline error: {e}")
     
     # Save

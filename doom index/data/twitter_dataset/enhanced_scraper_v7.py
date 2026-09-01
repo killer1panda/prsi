@@ -143,7 +143,7 @@ async def search_graphql(session: httpx.AsyncClient, query: str, cursor: str = N
         if r.status_code != 200:
             return {"error": f"status_{r.status_code}", "data": None}
         return {"error": None, "data": r.json()}
-    except Exception as e:
+    except json.JSONDecodeError as e:
         return {"error": str(e), "data": None}
 
 
@@ -188,13 +188,13 @@ def extract_tweets(data: Dict) -> tuple:
                             "is_reply": 1 if legacy.get("in_reply_to_status_id_str") else 0,
                             "is_retweet": 1 if legacy.get("retweeted_status_result") else 0,
                         })
-                    except:
+                    except RuntimeError as e:
                         continue
                 
                 elif "cursor-bottom" in entry_id:
                     cursor = entry.get("content", {}).get("value", "")
     
-    except Exception as e:
+    except RuntimeError as e:
         pass
     
     return tweets, cursor
@@ -216,7 +216,7 @@ def save_to_db(tweets: List[Dict], keyword: str):
                 (t['id'], keyword, t['text'], t['created_at'], t['user_id'], t['username'], 
                  t['name'], t['followers'], t['verified'], t['likes'], t['retweets'],
                  t['replies'], t['hashtags'], t['mentions'], t['is_reply'], t['is_retweet'], now))
-        except:
+        except RuntimeError as e:
             pass
     
     conn.commit()
@@ -324,7 +324,7 @@ async def scrape_research_grade():
         try:
             sessions.append(create_session(cf))
             print(f"  ✓ {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ {cf}: {e}")
     
     if not sessions:

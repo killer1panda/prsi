@@ -269,7 +269,7 @@ class TestNeo4jPopulation:
             stats = await populator.get_graph_statistics()
             assert stats.get('user_count', 0) >= 2
             
-        except Exception as e:
+        except (Exception, ImportError) as e:
             pytest.skip(f"Neo4j not available: {e}")
         finally:
             await populator.close()
@@ -305,7 +305,7 @@ class TestNeo4jPopulation:
                 record = result.single()
                 assert record['edge_count'] >= 1
             
-        except Exception as e:
+        except (Exception, ImportError) as e:
             pytest.skip(f"Neo4j not available: {e}")
         finally:
             await populator.close()
@@ -372,7 +372,7 @@ class TestLoadPerformance:
                     headers={'X-API-Key': 'test_key'}
                 ) as response:
                     return response.status
-            except:
+            except aiohttp.ClientError as e:
                 return None
         
         async with aiohttp.ClientSession() as session:

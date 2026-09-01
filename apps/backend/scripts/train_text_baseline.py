@@ -8,7 +8,7 @@ Optimized for HPC H100 cluster
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from transformers import DistilBertTokenizer, DistilBertModel, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoTokenizer, AutoModel, AdamW, get_linear_schedule_with_warmup
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -45,19 +45,19 @@ class DoomTextDataset(Dataset):
             'doom_score': torch.tensor(self.doom_scores[idx], dtype=torch.float32)
         }
 
-class DoomDistilBert(nn.Module):
+class DoomMistral(nn.Module):
     def __init__(self, dropout=0.3):
         super().__init__()
-        self.bert = DistilBertModel.from_pretrained('distilbert-base-uncased')
+        self.bert = AutoModel.from_pretrained('mistralai/Mistral-7B-Instruct-v0.3')
         self.dropout = nn.Dropout(dropout)
-        self.fc1 = nn.Linear(768, 256)
+        self.fc1 = nn.Linear(4096, 256)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 1)
         self.sigmoid = nn.Sigmoid()
     
     def forward(self, input_ids, attention_mask):
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-        pooled = outputs.last_hidden_state[:, 0, :]  # CLS token
+        pooled = outputs.last_hidden_state.mean(dim=1)
         x = self.dropout(pooled)
         x = self.fc1(x)
         x = self.relu(x)
@@ -189,7 +189,7 @@ def main():
     print(f"  Test:  {len(test_df):,}")
     
     # Tokenizer
-    tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+    tokenizer = AutoTokenizer.from_pretrained('mistralai/Mistral-7B-Instruct-v0.3')
     
     # Datasets
     train_dataset = DoomTextDataset(
@@ -217,7 +217,7 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
     
     # Model
-    model = DoomDistilBert().to(device)
+    model = DoomMistral().to(device)
     criterion = nn.BCELoss()
     optimizer = AdamW(model.parameters(), lr=args.lr)
     

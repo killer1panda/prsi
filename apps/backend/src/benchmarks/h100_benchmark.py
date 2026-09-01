@@ -155,7 +155,9 @@ class H100Profiler:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        if exc_type is not None:
+            logger.error(f"H100Profiler encountered an error: {exc_val}")
+        return False
 
     def snapshot(self) -> Optional[GPUMetrics]:
         if self._handle is None:

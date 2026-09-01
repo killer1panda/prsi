@@ -1,7 +1,7 @@
-"""GraphSAGE + Multimodal Fusion Model.
+"""Graph Neural Network + Multimodal Fusion Model.
 
-Hypergraph HGNN + CompGCN for user network embeddings + Mistral-7B-Instruct with 4-bit QLoRA
-for text embeddings, fused via MLP for final cancellation prediction.
+Hypergraph HGNN + CompGCN + CTDGA (Hawkes Process) for user network embeddings
++ Mistral-7B-Instruct with 4-bit QLoRA for text embeddings, fused via MLP for final cancellation prediction.
 """
 
 import logging
@@ -10,59 +10,56 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import SAGEConv, global_mean_pool
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, TaskType
+
+from src.models.hypergraph_gnn import HypergraphHGNN
+from src.models.temporal_gnn import CTDGAHawkesEncoder
 
 logger = logging.getLogger(__name__)
 
 
-class GraphSAGEEncoder(nn.Module):
-    """GraphSAGE encoder for user network embeddings."""
+class CompGCNEncoder(nn.Module):
+    """CompGCN encoder for typed relational edges."""
 
     def __init__(
         self,
         in_channels: int = 6,
         hidden_channels: int = 128,
         out_channels: int = 128,
+        num_relations: int = 5,
         num_layers: int = 2,
         dropout: float = 0.3,
     ):
         super().__init__()
-
-        self.convs = nn.ModuleList()
-        self.batch_norms = nn.ModuleList()
+        self.in_proj = nn.Linear(in_channels, hidden_channels)
+        self.rel_embs = nn.Parameter(torch.Tensor(num_relations, hidden_channels))
+        nn.init.xavier_uniform_(self.rel_embs)
+        
+        self.layers = nn.ModuleList()
+        for _ in range(num_layers):
+            self.layers.append(nn.Linear(hidden_channels * 2, hidden_channels))
+            
+        self.out_proj = nn.Linear(hidden_channels, out_channels)
         self.dropout = dropout
 
-        # First layer
-        self.convs.append(SAGEConv(in_channels, hidden_channels))
-        self.batch_norms.append(nn.BatchNorm1d(hidden_channels))
-
-        # Hidden layers
-        for _ in range(num_layers - 2):
-            self.convs.append(SAGEConv(hidden_channels, hidden_channels))
-            self.batch_norms.append(nn.BatchNorm1d(hidden_channels))
-
-        # Output layer
-        self.convs.append(SAGEConv(hidden_channels, out_channels))
-        self.batch_norms.append(nn.BatchNorm1d(out_channels))
-
-    def forward(self, x, edge_index, edge_weight=None):
-        for i, conv in enumerate(self.convs[:-1]):
-            x = conv(x, edge_index)
-            x = self.batch_norms[i](x)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
-
-        # Final layer (no activation, no dropout)
-        x = self.convs[-1](x, edge_index)
-        x = self.batch_norms[-1](x)
-
-        return x
-
-    def get_embeddings(self, x, edge_index, edge_weight=None):
-        """Get node embeddings without final activation."""
-        return self.forward(x, edge_index, edge_weight)
+    def forward(self, x, edge_index, edge_type):
+        x = F.relu(self.in_proj(x))
+        for layer in self.layers:
+            row, col = edge_index
+            rel_feat = self.rel_embs[edge_type]
+            
+            # Message passing with relation embedding
+            msg = torch.cat([x[row], rel_feat], dim=-1)
+            msg = F.relu(layer(msg))
+            
+            # Aggregation
+            out = torch.zeros_like(x)
+            out.index_add_(0, col, msg)
+            
+            x = x + F.dropout(out, p=self.dropout, training=self.training)
+            
+        return self.out_proj(x)
 
 
 class TextEncoder(nn.Module):
@@ -180,7 +177,7 @@ class FusionMLP(nn.Module):
 class MultimodalDoomPredictor(nn.Module):
     """End-to-end multimodal doom predictor.
 
-    Combines GraphSAGE (user network) + Mistral-7B QLoRA (text) + Fusion MLP.
+    Combines Hypergraph HGNN + CompGCN + CTDGA (user network) + Mistral-7B QLoRA (text) + Fusion MLP.
     """
 
     def __init__(
@@ -197,13 +194,31 @@ class MultimodalDoomPredictor(nn.Module):
     ):
         super().__init__()
 
-        self.graph_encoder = GraphSAGEEncoder(
+        self.hypergraph_encoder = HypergraphHGNN(
             in_channels=graph_in_channels,
             hidden_channels=graph_hidden,
             out_channels=graph_out,
             num_layers=graph_layers,
             dropout=dropout,
         )
+        
+        self.compgcn_encoder = CompGCNEncoder(
+            in_channels=graph_in_channels,
+            hidden_channels=graph_hidden,
+            out_channels=graph_out,
+            num_relations=5,
+            num_layers=graph_layers,
+            dropout=dropout,
+        )
+        
+        self.ctdga_encoder = CTDGAHawkesEncoder(
+            node_dim=graph_in_channels,
+            time_dim=32,
+            num_heads=4
+        )
+        
+        # Project combined embeddings (Hypergraph + CompGCN + CTDGA)
+        self.graph_proj = nn.Linear(graph_out * 2 + graph_in_channels, graph_out)
 
         self.text_encoder = TextEncoder(
             model_name=text_model,
@@ -229,6 +244,10 @@ class MultimodalDoomPredictor(nn.Module):
         attention_mask,
         user_indices,
         edge_weight=None,
+        hyperedge_index=None,
+        edge_type=None,
+        neighbor_embs=None,
+        time_deltas=None
     ):
         """Forward pass for batch of (user, text) pairs.
 
@@ -239,12 +258,37 @@ class MultimodalDoomPredictor(nn.Module):
             attention_mask: Attention mask [batch_size, seq_len]
             user_indices: Index of user node for each sample [batch_size]
             edge_weight: Optional edge weights [num_edges]
+            hyperedge_index: Hypergraph edges [2, num_incidence_pairs]
+            edge_type: Edge relation types [num_edges]
+            neighbor_embs: Neighbor embeddings for CTDGA [num_nodes, num_neighbors, node_feat_dim]
+            time_deltas: Time deltas for CTDGA [num_nodes, num_neighbors]
 
         Returns:
             logits: [batch_size, num_classes]
         """
-        # Graph embeddings for all nodes
-        graph_embeddings = self.graph_encoder(x, edge_index, edge_weight)  # [num_nodes, graph_out]
+        # Dummy fallbacks for testing/inference without full dynamic inputs
+        if hyperedge_index is None:
+            hyperedge_index = edge_index
+        if edge_type is None:
+            edge_type = torch.zeros(edge_index.size(1), dtype=torch.long, device=x.device)
+        if neighbor_embs is None:
+            # Use self as dummy neighbor
+            neighbor_embs = x.unsqueeze(1)
+        if time_deltas is None:
+            time_deltas = torch.zeros(x.size(0), neighbor_embs.size(1), device=x.device)
+
+        # 1. Hypergraph HGNN
+        hg_emb = self.hypergraph_encoder(x, hyperedge_index, edge_weight)
+        
+        # 2. CompGCN
+        cg_emb = self.compgcn_encoder(x, edge_index, edge_type)
+        
+        # 3. CTDGA Hawkes
+        ct_emb = self.ctdga_encoder(x, neighbor_embs, time_deltas)
+
+        # Combine graph embeddings
+        combined_graph = torch.cat([hg_emb, cg_emb, ct_emb], dim=-1)
+        graph_embeddings = self.graph_proj(combined_graph)
 
         # Select user embeddings for batch
         user_embeddings = graph_embeddings[user_indices]  # [batch_size, graph_out]
@@ -264,6 +308,10 @@ class MultimodalDoomPredictor(nn.Module):
         text: str,
         user_idx: int,
         edge_weight=None,
+        hyperedge_index=None,
+        edge_type=None,
+        neighbor_embs=None,
+        time_deltas=None,
         device="cuda",
     ) -> Tuple[int, float]:
         """Predict for a single (user, text) pair.
@@ -288,13 +336,27 @@ class MultimodalDoomPredictor(nn.Module):
         edge_index = edge_index.to(device)
         if edge_weight is not None:
             edge_weight = edge_weight.to(device)
+        if hyperedge_index is not None:
+            hyperedge_index = hyperedge_index.to(device)
+        if edge_type is not None:
+            edge_type = edge_type.to(device)
+        if neighbor_embs is not None:
+            neighbor_embs = neighbor_embs.to(device)
+        if time_deltas is not None:
+            time_deltas = time_deltas.to(device)
 
         with torch.no_grad():
             logits = self.forward(
-                x, edge_index,
-                inputs['input_ids'], inputs['attention_mask'],
-                torch.tensor([user_idx], dtype=torch.long, device=device),
-                edge_weight,
+                x=x,
+                edge_index=edge_index,
+                input_ids=inputs['input_ids'],
+                attention_mask=inputs['attention_mask'],
+                user_indices=torch.tensor([user_idx], dtype=torch.long, device=device),
+                edge_weight=edge_weight,
+                hyperedge_index=hyperedge_index,
+                edge_type=edge_type,
+                neighbor_embs=neighbor_embs,
+                time_deltas=time_deltas
             )
             probs = F.softmax(logits, dim=-1)
             pred = probs.argmax(dim=-1).item()
@@ -309,6 +371,10 @@ class MultimodalDoomPredictor(nn.Module):
         text: str,
         user_idx: int,
         edge_weight=None,
+        hyperedge_index=None,
+        edge_type=None,
+        neighbor_embs=None,
+        time_deltas=None,
         device="cuda",
     ) -> dict:
         """Get intermediate embeddings for interpretability."""
@@ -324,10 +390,35 @@ class MultimodalDoomPredictor(nn.Module):
 
         x = x.to(device)
         edge_index = edge_index.to(device)
+        if edge_weight is not None:
+            edge_weight = edge_weight.to(device)
+        if hyperedge_index is not None:
+            hyperedge_index = hyperedge_index.to(device)
+        if edge_type is not None:
+            edge_type = edge_type.to(device)
+        if neighbor_embs is not None:
+            neighbor_embs = neighbor_embs.to(device)
+        if time_deltas is not None:
+            time_deltas = time_deltas.to(device)
 
         with torch.no_grad():
-            graph_emb = self.graph_encoder(x, edge_index, edge_weight)
-            user_emb = graph_emb[user_idx]
+            if hyperedge_index is None:
+                hyperedge_index = edge_index
+            if edge_type is None:
+                edge_type = torch.zeros(edge_index.size(1), dtype=torch.long, device=x.device)
+            if neighbor_embs is None:
+                neighbor_embs = x.unsqueeze(1)
+            if time_deltas is None:
+                time_deltas = torch.zeros(x.size(0), neighbor_embs.size(1), device=x.device)
+                
+            hg_emb = self.hypergraph_encoder(x, hyperedge_index, edge_weight)
+            cg_emb = self.compgcn_encoder(x, edge_index, edge_type)
+            ct_emb = self.ctdga_encoder(x, neighbor_embs, time_deltas)
+            
+            combined_graph = torch.cat([hg_emb, cg_emb, ct_emb], dim=-1)
+            graph_embeddings = self.graph_proj(combined_graph)
+
+            user_emb = graph_embeddings[user_idx]
             text_emb = self.text_encoder(inputs['input_ids'], inputs['attention_mask'])
 
         return {
@@ -341,5 +432,5 @@ if __name__ == "__main__":
     # Quick sanity check
     model = MultimodalDoomPredictor()
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
-    print("Graph encoder:", model.graph_encoder)
+    print("Graph components: HGNN, CompGCN, CTDGA")
     print("Fusion MLP:", model.fusion)

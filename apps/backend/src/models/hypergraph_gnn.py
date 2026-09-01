@@ -183,3 +183,22 @@ class FrontierHypergraphGNN(nn.Module):
         h = self.hg_conv1(h, hyperedge_index, hyperedge_weight)
         h = self.hg_conv2(h, hyperedge_index, hyperedge_weight)
         return self.out_proj(h)
+
+
+class HypergraphHGNN(nn.Module):
+    """
+    Hypergraph Neural Network (HGNN) using incidence matrix convolution.
+    """
+    def __init__(self, in_channels: int = 6, hidden_channels: int = 128, out_channels: int = 128, num_layers: int = 2, dropout: float = 0.3):
+        super().__init__()
+        self.convs = nn.ModuleList()
+        self.convs.append(HypergraphConv(in_channels, hidden_channels, dropout=dropout))
+        for _ in range(num_layers - 2):
+            self.convs.append(HypergraphConv(hidden_channels, hidden_channels, dropout=dropout))
+        self.convs.append(HypergraphConv(hidden_channels, out_channels, dropout=dropout))
+
+    def forward(self, x, hyperedge_index, hyperedge_weight=None):
+        for conv in self.convs[:-1]:
+            x = F.relu(conv(x, hyperedge_index, hyperedge_weight))
+        x = self.convs[-1](x, hyperedge_index, hyperedge_weight)
+        return x

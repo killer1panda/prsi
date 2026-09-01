@@ -47,7 +47,7 @@ async def get_guest_token(session: httpx.AsyncClient) -> str:
     try:
         await session.get('https://x.com/', timeout=10)
         await asyncio.sleep(1)
-    except:
+    except json.JSONDecodeError as e:
         pass
     
     # Get guest token
@@ -58,7 +58,7 @@ async def get_guest_token(session: httpx.AsyncClient) -> str:
         if response.status_code == 200:
             data = response.json()
             return data.get('guest_token', '')
-    except Exception as e:
+    except httpx.RequestError as e:
         print(f"    Guest token error: {e}")
     
     return None
@@ -85,7 +85,7 @@ async def search_tweets(session: httpx.AsyncClient, keyword: str, cursor: str = 
     try:
         response = await session.get(url, params=params)
         return {'status': response.status_code, 'data': response.json() if response.status_code == 200 else response.text}
-    except Exception as e:
+    except json.JSONDecodeError as e:
         return {'status': 0, 'error': str(e)}
 
 
@@ -128,7 +128,7 @@ def parse_tweets(data: dict, keyword: str) -> list:
                     'keyword': keyword,
                 })
     
-    except Exception as e:
+    except RuntimeError as e:
         print(f"    Parse error: {e}")
     
     return tweets
@@ -196,7 +196,7 @@ async def scrape_keyword(keyword: str, seen_ids: set) -> list:
                             break
                     if cursor:
                         break
-            except:
+            except RuntimeError as e:
                 pass
             
             if not cursor:
@@ -221,7 +221,7 @@ async def main():
             cookies = load_cookies(cf)
             all_cookies.append(cookies)
             print(f"  ✓ {cf}")
-        except Exception as e:
+        except RuntimeError as e:
             print(f"  ✗ {cf}: {e}")
     
     # Load existing data

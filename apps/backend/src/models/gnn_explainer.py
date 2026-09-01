@@ -10,7 +10,7 @@ question your viva examiner WILL ask:
 
   Q: "Which input dimensions actually matter most?"
   A: Captum Integrated Gradients — Axiomatic attribution over node
-     features AND DistilBERT token embeddings simultaneously.
+     features AND Mistral-7B-Instruct token embeddings simultaneously.
 
   Q: "Can you show global feature importance across the whole dataset?"
   A: SHAP DeepExplainer — runs on the fused embedding feeding the
@@ -219,7 +219,7 @@ class DoomGNNExplainer:
         """
         Args:
             model:         MultimodalDoomPredictor in eval mode.
-            tokenizer:     DistilBERT/XLM-R tokenizer (needed for IG text).
+            tokenizer:     Mistral/XLM-R tokenizer (needed for IG text).
             device:        'cuda' or 'cpu'.
             feature_names: Node feature column names (for readable output).
             num_hops:      Neighbourhood depth for subgraph extraction.
@@ -459,7 +459,7 @@ class DoomGNNExplainer:
             attr_i = (x_i - x0_i) * integral_0^1 (dF/dx_i)(x0 + t*(x-x0)) dt
 
         Two attribution targets:
-          (a) DistilBERT token embeddings  -> per-token importance
+          (a) Mistral-7B-Instruct token embeddings  -> per-token importance
           (b) GraphSAGE node feature vec   -> per-feature importance
 
         Baseline for text = all-[PAD] sequence (zero embedding).
@@ -623,10 +623,10 @@ class DoomGNNExplainer:
 
     def _find_embedding_layer(self) -> nn.Module:
         """Traverse model to find the token embedding layer for LIG."""
-        # Common attribute paths for DistilBERT / BERT / RoBERTa
+        # Common attribute paths for Mistral / BERT / RoBERTa
         candidates = [
             lambda m: m.text_encoder.embeddings.word_embeddings,
-            lambda m: m.text_encoder.distilbert.embeddings.word_embeddings,
+            lambda m: m.text_encoder.model.model.embed_tokens,
             lambda m: m.text_encoder.bert.embeddings.word_embeddings,
             lambda m: m.text_encoder.roberta.embeddings.word_embeddings,
             lambda m: m.bert.embeddings.word_embeddings,

@@ -56,19 +56,13 @@ class FeatureEngineer:
             batch = df.iloc[i:i+batch_size]
             logger.info(f"Processing batch {i//batch_size + 1}/{(len(df)-1)//batch_size + 1}")
 
-            batch_sentiment = []
-            batch_toxicity = []
-
-            for _, row in batch.iterrows():
-                text = str(row.get('text', ''))
-
-                # Sentiment analysis
-                sentiment = analyze_text_sentiment(text) or {'neg': 0.0, 'neu': 1.0, 'pos': 0.0, 'compound': 0.0}
-                batch_sentiment.append(sentiment)
-
-                # Toxicity analysis
-                toxicity = analyze_text_toxicity(text) or {'toxicity': 0.0}
-                batch_toxicity.append(toxicity)
+            batch_sentiment = batch['text'].apply(
+                lambda x: analyze_text_sentiment(str(x)) or {'neg': 0.0, 'neu': 1.0, 'pos': 0.0, 'compound': 0.0}
+            ).tolist()
+            
+            batch_toxicity = batch['text'].apply(
+                lambda x: analyze_text_toxicity(str(x)) or {'toxicity': 0.0}
+            ).tolist()
 
             sentiment_features.extend(batch_sentiment)
             toxicity_features.extend(batch_toxicity)

@@ -48,7 +48,7 @@ async def login_and_save_session():
         print(f"Session saved to {SESSION_FILE}")
         
         return client
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"Login failed: {e}")
         return None
 
@@ -64,7 +64,7 @@ async def load_existing_session():
             client.load_session(SESSION_FILE)
             print("Session loaded successfully!")
             return client
-        except Exception as e:
+        except Exception as e: # twikit error
             print(f"Failed to load session: {e}")
             return None
     return None
@@ -81,7 +81,7 @@ async def get_user_info(client, username):
         print(f"  - Tweets: {user.statuses_count}")
         print(f"  - Verified: {user.verified}")
         return user
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"Error fetching user info: {e}")
         return None
 
@@ -98,7 +98,7 @@ async def get_user_tweets(client, username, count=10):
             print(f"    Likes: {tweet.favorite_count} | Retweets: {tweet.retweet_count}")
             print(f"    Created: {tweet.created_at}")
         return tweets
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"Error fetching tweets: {e}")
         return []
 
@@ -115,7 +115,7 @@ async def search_tweets(client, query, count=10):
             print(f"    User: @{tweet.user.screen_name}")
             print(f"    Likes: {tweet.favorite_count} | Retweets: {tweet.retweet_count}")
         return tweets
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"Error searching tweets: {e}")
         return []
 
@@ -129,7 +129,7 @@ async def get_trending(client):
         for i, trend in enumerate(trends[:10], 1):
             print(f"  {i}. {trend.name} - {trend.tweet_count} tweets")
         return trends
-    except Exception as e:
+    except Exception as e: # twikit error
         print(f"Error fetching trends: {e}")
         return []
 

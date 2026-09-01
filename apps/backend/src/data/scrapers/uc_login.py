@@ -11,6 +11,7 @@ try:
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
+    from selenium.common.exceptions import TimeoutException, WebDriverException
     UC_AVAILABLE = True
 except ImportError:
     UC_AVAILABLE = False
@@ -72,7 +73,7 @@ def login_and_get_cookies():
                     btn.click()
                     break
             time.sleep(3)
-        except:
+        except Exception as e:
             pass
         
         # Enter password
@@ -109,6 +110,18 @@ def login_and_get_cookies():
         
         return True
         
+    except (TimeoutException, WebDriverException) as e:
+        print(f"Driver/Timeout error during login: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Take screenshot for debugging
+        try:
+            driver.save_screenshot("login_error.png")
+            print("Screenshot saved to login_error.png")
+        except Exception as _:
+            pass
+        return False
     except Exception as e:
         print(f"Error during login: {e}")
         import traceback
@@ -118,7 +131,7 @@ def login_and_get_cookies():
         try:
             driver.save_screenshot("login_error.png")
             print("Screenshot saved to login_error.png")
-        except:
+        except Exception as _:
             pass
         return False
         

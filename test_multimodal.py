@@ -44,14 +44,14 @@ class TestGraphSAGEEncoder:
 
 @pytest.mark.skipif(not DEPS_AVAILABLE, reason=f"Dependencies missing: {IMPORT_ERROR}")
 class TestTextEncoder:
-    """Test DistilBERT text encoder."""
+    """Test Mistral-7B text encoder."""
 
     def test_output_shape(self):
-        encoder = TextEncoder(model_name="distilbert-base-uncased", freeze_layers=6)
+        encoder = TextEncoder(model_name="mistralai/Mistral-7B-Instruct-v0.3", freeze_layers=6)
         input_ids = torch.randint(0, 1000, (2, 32))
         attention_mask = torch.ones(2, 32, dtype=torch.long)
         out = encoder(input_ids, attention_mask)
-        assert out.shape == (2, 768)
+        assert out.shape == (2, 3584)
 
 
 @pytest.mark.skipif(not DEPS_AVAILABLE, reason=f"Dependencies missing: {IMPORT_ERROR}")
@@ -59,9 +59,9 @@ class TestFusionMLP:
     """Test fusion MLP."""
 
     def test_forward(self):
-        fusion = FusionMLP(graph_dim=128, text_dim=768, hidden_dim=256, num_classes=2)
+        fusion = FusionMLP(graph_dim=128, text_dim=3584, hidden_dim=256, num_classes=2)
         graph_emb = torch.randn(4, 128)
-        text_emb = torch.randn(4, 768)
+        text_emb = torch.randn(4, 3584)
         out = fusion(graph_emb, text_emb)
         assert out.shape == (4, 2)
 
@@ -103,7 +103,7 @@ class TestMultimodalDoomPredictor:
         assert "graph_embedding" in emb
         assert "text_embedding" in emb
         assert emb["graph_embedding"].shape == (16,)
-        assert emb["text_embedding"].shape == (768,)
+        assert emb["text_embedding"].shape == (3584,)
 
 
 class TestGraphExtractor:

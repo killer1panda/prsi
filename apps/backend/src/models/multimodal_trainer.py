@@ -327,6 +327,8 @@ class MultimodalTrainer:
                     attention_mask=attention_mask,
                     user_indices=user_indices,
                     edge_weight=getattr(self.graph_data, 'edge_weight', None),
+                    hyperedge_index=getattr(self.graph_data, 'hyperedge_index', None),
+                    edge_type=getattr(self.graph_data, 'edge_type', None),
                 )
 
                 # Focal Loss — blueprint-required for imbalanced doom score distribution
@@ -386,6 +388,8 @@ class MultimodalTrainer:
                     attention_mask=attention_mask,
                     user_indices=user_indices,
                     edge_weight=getattr(self.graph_data, 'edge_weight', None),
+                    hyperedge_index=getattr(self.graph_data, 'hyperedge_index', None),
+                    edge_type=getattr(self.graph_data, 'edge_type', None),
                 )
 
                 loss = nn.functional.cross_entropy(logits, labels)
@@ -451,6 +455,9 @@ class MultimodalTrainer:
                 # Save periodic checkpoint
                 if epoch % 2 == 0:
                     self.save_checkpoint(epoch, metrics, is_best=False)
+
+            if self.ddp:
+                dist.barrier()
 
         if self.local_rank == 0:
             logger.info(f"Training complete. Best val F1: {self.best_val_f1:.4f}")

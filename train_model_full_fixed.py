@@ -145,8 +145,8 @@ def create_proper_labels(df: pd.DataFrame) -> pd.Series:
             q90 = df['likes'].quantile(0.9)
             if q90 > 0:
                 scores += (df['likes'] > q90).astype(int)
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Error calculating metric: {e}")
 
     # 2. Very negative sentiment
     if 'sentiment_polarity' in df.columns:
@@ -175,8 +175,8 @@ def create_proper_labels(df: pd.DataFrame) -> pd.Series:
             q95 = reply_ratio.quantile(0.95)
             if q95 > 0:
                 scores += (reply_ratio > q95).astype(int)
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Error calculating metric: {e}")
 
     # 6. Verified account + negative sentiment (high reach risk)
     if 'verified' in df.columns and 'sentiment_polarity' in df.columns:

@@ -256,7 +256,7 @@ class IntegratedDoomPredictor:
     ) -> Dict[str, Any]:
         """Text-only fallback when graph_data is unavailable.
 
-        Uses only the DistilBERT text encoder with a zero graph embedding.
+        Uses only the Mistral-7B-Instruct text encoder with a zero graph embedding.
         Slightly less accurate than full GNN inference but never crashes.
         """
         import torch

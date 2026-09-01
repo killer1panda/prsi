@@ -1,6 +1,6 @@
 """
 Async Qdrant HNSW Vector Search Engine.
-Stores high-dimensional multimodal embeddings (768d text + 512d Qwen2-VL vision,
+Stores high-dimensional multimodal embeddings (4096d text + 512d Qwen2-VL vision,
 projected from 3584d Qwen2-VL-7B NaViT hidden size)
 and performs filtered k-NN cosine similarity search in sub-millisecond latency.
 """
@@ -17,7 +17,7 @@ class QdrantVectorEngine:
     Qdrant vector similarity search engine with in-memory fallback.
     """
 
-    def __init__(self, collection_name: str = "doom_memes_and_posts", vector_size: int = 768):
+    def __init__(self, collection_name: str = "doom_memes_and_posts", vector_size: int = 4096):
         self.collection_name = collection_name
         self.vector_size = vector_size
         self._memory_vectors: List[np.ndarray] = []

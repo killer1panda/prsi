@@ -89,7 +89,7 @@ class KafkaPipeline:
         }
         self.producer.produce(
             self.config.dlq_topic,
-            key=str(message.get("post_id", "unknown")),
+            key=str(message.get("user_id", "unknown")),
             value=json.dumps(dlq_msg),
             callback=self._delivery_callback
         )
@@ -159,7 +159,7 @@ class KafkaPipeline:
                 if prediction:
                     self.producer.produce(
                         self.config.output_topic,
-                        key=str(prediction["post_id"]),
+                        key=str(prediction["user_id"]),
                         value=json.dumps(prediction),
                         callback=self._delivery_callback
                     )

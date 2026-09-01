@@ -31,7 +31,7 @@ jobs:
           isort --check-only apps/backend/
       - name: Run Flake8 & MyPy
         run: |
-          flake8 apps/backend/ --max-line-length=100 --ignore=E203,W503
+          flake8 apps/backend/
           mypy apps/backend/ --ignore-missing-imports
       - name: Run Bandit (Security)
         run: bandit -r apps/backend/ -f json -o bandit-results.json || true

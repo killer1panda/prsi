@@ -1,3 +1,4 @@
+import httpx
 #!/usr/bin/env python3
 """Pushshift Reddit Archive Ingestion Pipeline at Scale.
 
@@ -361,7 +362,7 @@ class RedditIngestionPipeline:
                     df = future.result()
                     if not df.empty:
                         chunks.append(df)
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.error(f"Failed processing {futures[future]}: {e}")
 
         if not chunks:

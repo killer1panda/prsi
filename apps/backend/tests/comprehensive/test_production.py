@@ -258,21 +258,17 @@ class TestNeo4jPopulation:
         
         populator = ProductionNeo4jPopulator(config)
         
-        try:
-            await populator.initialize()
-            
-            # Create users from sample data
-            df = pd.DataFrame(sample_twitter_data)
-            await populator._create_users_from_twitter(df)
-            
-            # Verify users exist
-            stats = await populator.get_graph_statistics()
-            assert stats.get('user_count', 0) >= 2
-            
-        except (Exception, ImportError) as e:
-            pytest.skip(f"Neo4j not available: {e}")
-        finally:
-            await populator.close()
+        await populator.initialize()
+        
+        # Create users from sample data
+        df = pd.DataFrame(sample_twitter_data)
+        await populator._create_users_from_twitter(df)
+        
+        # Verify users exist
+        stats = await populator.get_graph_statistics()
+        assert stats.get('user_count', 0) >= 2
+        
+        await populator.close()
     
     @pytest.mark.asyncio
     async def test_edge_creation(self, sample_twitter_data):
@@ -289,26 +285,22 @@ class TestNeo4jPopulation:
         
         populator = ProductionNeo4jPopulator(config)
         
-        try:
-            await populator.initialize()
+        await populator.initialize()
+        
+        # Create mention edges
+        df = pd.DataFrame(sample_twitter_data)
+        await populator._create_mention_edges(df)
+        
+        # Verify edges created
+        with populator.driver.session() as session:
+            result = session.run("""
+                MATCH ()-[r:INTERACTS_WITH]->()
+                RETURN count(r) AS edge_count
+            """)
+            record = result.single()
+            assert record['edge_count'] >= 1
             
-            # Create mention edges
-            df = pd.DataFrame(sample_twitter_data)
-            await populator._create_mention_edges(df)
-            
-            # Verify edges created
-            with populator.driver.session() as session:
-                result = session.run("""
-                    MATCH ()-[r:INTERACTS_WITH]->()
-                    RETURN count(r) AS edge_count
-                """)
-                record = result.single()
-                assert record['edge_count'] >= 1
-            
-        except (Exception, ImportError) as e:
-            pytest.skip(f"Neo4j not available: {e}")
-        finally:
-            await populator.close()
+        await populator.close()
 
 
 # =============================================================================
@@ -320,35 +312,28 @@ class TestAPIIntegration:
     
     def test_health_endpoint(self, test_config):
         """Test API health check endpoint."""
-        try:
-            response = requests.get(f"{test_config['api_base_url']}/health")
-            assert response.status_code == 200
-            assert response.json()['status'] == 'healthy'
-        except requests.exceptions.ConnectionError:
-            pytest.skip("API not running")
+        response = requests.get(f"{test_config['api_base_url']}/health")
+        assert response.status_code == 200
+        assert response.json()['status'] == 'healthy'
     
     def test_prediction_endpoint(self, test_config):
         """Test prediction endpoint."""
-        try:
-            payload = {
-                'text': 'Test post for doom index prediction',
-                'username': 'test_user',
-            }
-            
-            response = requests.post(
-                f"{test_config['api_base_url']}/predict",
-                json=payload,
-                headers={'X-API-Key': 'test_key'}
-            )
-            
-            assert response.status_code == 200
-            result = response.json()
-            
-            assert 'doom_score' in result
-            assert 0 <= result['doom_score'] <= 100
-            
-        except requests.exceptions.ConnectionError:
-            pytest.skip("API not running")
+        payload = {
+            'text': 'Test post for doom index prediction',
+            'username': 'test_user',
+        }
+        
+        response = requests.post(
+            f"{test_config['api_base_url']}/predict",
+            json=payload,
+            headers={'X-API-Key': 'test_key'}
+        )
+        
+        assert response.status_code == 200
+        result = response.json()
+        
+        assert 'doom_score' in result
+        assert 0 <= result['doom_score'] <= 100
 
 
 # =============================================================================
@@ -496,16 +481,12 @@ class TestSecurity:
     
     def test_api_authentication(self, test_config):
         """Test API authentication requirements."""
-        try:
-            # Request without auth should fail
-            response = requests.post(
-                f"{test_config['api_base_url']}/predict",
-                json={'text': 'test'}
-            )
-            assert response.status_code in [401, 403]
-            
-        except requests.exceptions.ConnectionError:
-            pytest.skip("API not running")
+        # Request without auth should fail
+        response = requests.post(
+            f"{test_config['api_base_url']}/predict",
+            json={'text': 'test'}
+        )
+        assert response.status_code in [401, 403]
     
     def test_rate_limiting(self, test_config):
         """Test rate limiting functionality."""

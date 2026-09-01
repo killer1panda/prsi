@@ -1,3 +1,4 @@
+import httpx
 """
 Use undetected-chromedriver to login to Twitter/X and extract cookies.
 """
@@ -73,7 +74,7 @@ def login_and_get_cookies():
                     btn.click()
                     break
             time.sleep(3)
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             pass
         
         # Enter password
@@ -119,10 +120,10 @@ def login_and_get_cookies():
         try:
             driver.save_screenshot("login_error.png")
             print("Screenshot saved to login_error.png")
-        except Exception as _:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as _:
             pass
         return False
-    except Exception as e:
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
         print(f"Error during login: {e}")
         import traceback
         traceback.print_exc()
@@ -131,7 +132,7 @@ def login_and_get_cookies():
         try:
             driver.save_screenshot("login_error.png")
             print("Screenshot saved to login_error.png")
-        except Exception as _:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as _:
             pass
         return False
         

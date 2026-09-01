@@ -1,3 +1,4 @@
+import httpx
 #!/usr/bin/env python3
 """Quick test of Twitter scraper search functionality"""
 import asyncio
@@ -35,7 +36,7 @@ async def main():
         for tweet in tweets[:5]:
             print(f"  - {tweet.text[:100]}...")
             print(f"    Likes: {tweet.favorite_count}, RTs: {tweet.retweet_count}")
-    except Exception as e: # twikit error
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
         print(f"Search error: {e}")
     
     await client.close()

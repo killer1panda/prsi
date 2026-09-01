@@ -1,3 +1,4 @@
+import httpx
 """
 Use Playwright to login to Twitter/X and extract cookies.
 Try x.com and with proxy support.
@@ -58,7 +59,7 @@ async def login_and_get_cookies():
             # Try x.com first
             try:
                 await page.goto("https://x.com/i/flow/login", timeout=60000)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 print("x.com failed, trying twitter.com...")
                 await page.goto("https://twitter.com/i/flow/login", timeout=60000)
             
@@ -78,7 +79,7 @@ async def login_and_get_cookies():
                     "input[autocomplete='username']", 
                     timeout=15000
                 )
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 # Try alternative selectors
                 username_input = await page.wait_for_selector(
                     "input[type='text']",
@@ -114,7 +115,7 @@ async def login_and_get_cookies():
                         await btn.click()
                         break
                 await asyncio.sleep(3)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 pass
             
             print("Entering password...")
@@ -162,7 +163,7 @@ async def login_and_get_cookies():
             await page.screenshot(path="login_error.png")
             print("Screenshot saved to login_error.png")
             return False
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             print(f"Error during login: {e}")
             import traceback
             traceback.print_exc()

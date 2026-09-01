@@ -156,7 +156,7 @@ async def get_tweet_replies(client: Client, tweet_id: str, max_replies: int = 5)
             if str(t.id) != str(tweet_id):
                 replies.append(parse_reply_basic(t, tweet_id, ''))
                 
-    except Exception as e: # twikit error
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
         pass  # Silently handle
     
     return replies
@@ -348,7 +348,7 @@ async def scrape_with_rate_limit_handling():
         for t in timeline:
             all_tweets.append(parse_tweet_basic(t, 'timeline'))
         print(f"    Timeline: {len(timeline)} tweets")
-    except Exception as e: # twikit error
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
         print(f"    ⚠️ Timeline error: {e}")
     
     # Save final data

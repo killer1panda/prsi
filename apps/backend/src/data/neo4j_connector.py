@@ -1,3 +1,5 @@
+import json
+import httpx
 """Neo4j graph database connector module."""
 
 from typing import Any, Dict, List, Optional
@@ -63,7 +65,7 @@ class Neo4jConnector:
                     CREATE CONSTRAINT user_id_unique IF NOT EXISTS
                     FOR (u:User) REQUIRE u.user_id IS UNIQUE
                 """)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.debug(f"User constraint may already exist: {e}")
             
             # Post constraints
@@ -72,7 +74,7 @@ class Neo4jConnector:
                     CREATE CONSTRAINT post_id_unique IF NOT EXISTS
                     FOR (p:Post) REQUIRE p.post_id IS UNIQUE
                 """)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.debug(f"Post constraint may already exist: {e}")
             
             # Create indexes

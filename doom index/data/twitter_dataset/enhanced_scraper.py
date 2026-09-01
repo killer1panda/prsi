@@ -143,7 +143,7 @@ async def get_tweet_replies(client: Client, tweet_id: str, max_replies: int = 10
                     'retweets': t.retweet_count,
                 })
                 
-    except Exception as e: # twikit error
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
         print(f"    ⚠️ Error getting replies: {e}")
     
     return replies
@@ -286,13 +286,13 @@ async def scrape_with_replies_and_media():
         timeline_data = [parse_tweet(t, 'timeline') for t in timeline]
         all_tweets.extend(timeline_data)
         print(f"    Timeline: {len(timeline_data)} tweets")
-    except Exception as e: # twikit error
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
         print(f"    ⚠️ Timeline error: {e}")
     
     try:
         trends = await client.get_trends(category='trending')
         print(f"    Trends: {len(trends)} topics")
-    except Exception as e: # twikit error
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
         print(f"    ⚠️ Trends error: {e}")
         trends = []
     

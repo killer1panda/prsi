@@ -1,21 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import {
   Activity,
-  AlertTriangle,
   Network,
   Image as ImageIcon,
   MessageSquare,
   ShieldAlert,
   Terminal,
   Zap,
-  Globe2,
   BrainCircuit,
   DatabaseZap,
   RadioTower
@@ -31,7 +26,6 @@ import {
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
-  PolarRadiusAxis,
   Radar,
   ScatterChart,
   Scatter,
@@ -57,7 +51,7 @@ const radarData = [
   { subject: "Meme Threat", A: 78, fullMark: 100 },
 ];
 
-const graphNodes = Array.from({ length: 20 }).map((_, i) => ({
+const graphNodes = Array.from({ length: 20 }).map(() => ({
   x: Math.random() * 100,
   y: Math.random() * 100,
   z: Math.random() * 200 + 50,
@@ -187,7 +181,7 @@ export default function ThreatIntelligenceDashboard() {
                     </div>
                     <p className="text-sm text-zinc-300">
                       <MessageSquare className="w-3 h-3 inline mr-2 text-zinc-500"/>
-                      "The global elites are collapsing the network tomorrow."
+                      &quot;The global elites are collapsing the network tomorrow.&quot;
                     </p>
                     <div className="flex gap-4 text-xs text-zinc-500">
                       <span>Causal Outrage: <strong className="text-rose-400">0.98</strong></span>
@@ -212,7 +206,7 @@ export default function ThreatIntelligenceDashboard() {
                     </div>
                     <p className="text-sm text-zinc-300">
                       <MessageSquare className="w-3 h-3 inline mr-2 text-zinc-500"/>
-                      "They don't want you to know the truth about the water supply."
+                      &quot;They don&apos;t want you to know the truth about the water supply.&quot;
                     </p>
                     <div className="flex gap-4 text-xs text-zinc-500">
                       <span>Causal Outrage: <strong className="text-rose-400">0.82</strong></span>

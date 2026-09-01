@@ -293,7 +293,7 @@ class MultimodalFusion(nn.Module):
     (raw Qwen2-VL hidden size is 3584, projected down to 512).
     """
 
-    def __init__(self, text_dim: int = 768, vision_dim: int = 512,
+    def __init__(self, text_dim: int = 4096, vision_dim: int = 512,
                  fusion_dim: int = 512, num_heads: int = 8):
         super().__init__()
         self.text_proj = nn.Linear(text_dim, fusion_dim)

@@ -205,21 +205,17 @@ class TestNeo4jPopulation:
         
         populator = ProductionNeo4jPopulator(config)
         
-        try:
-            await populator.initialize()
-            
-            # Create users from sample data
-            df = pd.DataFrame(sample_twitter_data)
-            await populator._create_users_from_twitter(df)
-            
-            # Verify users exist
-            stats = await populator.get_graph_statistics()
-            assert stats.get('user_count', 0) >= 2
-            
-        except Exception as e:
-            pytest.skip(f"Neo4j not available: {e}")
-        finally:
-            await populator.close()
+        await populator.initialize()
+        
+        # Create users from sample data
+        df = pd.DataFrame(sample_twitter_data)
+        await populator._create_users_from_twitter(df)
+        
+        # Verify users exist
+        stats = await populator.get_graph_statistics()
+        assert stats.get('user_count', 0) >= 2
+        
+        await populator.close()
     
     @pytest.mark.asyncio
     async def test_edge_creation(self, sample_twitter_data):
@@ -236,26 +232,22 @@ class TestNeo4jPopulation:
         
         populator = ProductionNeo4jPopulator(config)
         
-        try:
-            await populator.initialize()
+        await populator.initialize()
+        
+        # Create mention edges
+        df = pd.DataFrame(sample_twitter_data)
+        await populator._create_mention_edges(df)
+        
+        # Verify edges created
+        with populator.driver.session() as session:
+            result = session.run("""
+                MATCH ()-[r:INTERACTS_WITH]->()
+                RETURN count(r) AS edge_count
+            """)
+            record = result.single()
+            assert record['edge_count'] >= 1
             
-            # Create mention edges
-            df = pd.DataFrame(sample_twitter_data)
-            await populator._create_mention_edges(df)
-            
-            # Verify edges created
-            with populator.driver.session() as session:
-                result = session.run("""
-                    MATCH ()-[r:INTERACTS_WITH]->()
-                    RETURN count(r) AS edge_count
-                """)
-                record = result.single()
-                assert record['edge_count'] >= 1
-            
-        except Exception as e:
-            pytest.skip(f"Neo4j not available: {e}")
-        finally:
-            await populator.close()
+        await populator.close()
 
 
 # =============================================================================

@@ -1,3 +1,4 @@
+import httpx
 """
 Twitter/X Scraper using Twikit with cookies.
 Saves data to JSON files.
@@ -67,7 +68,7 @@ async def main():
                     "replies": tweet.reply_count,
                     "is_retweet": tweet.retweeted_tweet is not None if hasattr(tweet, 'retweeted_tweet') else False
                 })
-        except Exception as e: # twikit error
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
             print(f"   ✗ Timeline failed: {e}")
         
         # Search for tweets
@@ -86,7 +87,7 @@ async def main():
                     "likes": tweet.favorite_count,
                     "retweets": tweet.retweet_count
                 })
-        except Exception as e: # twikit error
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
             print(f"   ✗ Search failed: {e}")
         
         # Get trending topics
@@ -101,7 +102,7 @@ async def main():
                     "domain": trend.domain_context,
                     "tweets_count": trend.tweets_count
                 })
-        except Exception as e: # twikit error
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
             print(f"   ✗ Trending failed: {e}")
         
         # Save all data to JSON

@@ -1,3 +1,4 @@
+import httpx
 #!/usr/bin/env python3
 """
 Production Neo4j Graph Population Script for Doom Index.
@@ -126,7 +127,7 @@ class ProductionNeo4jPopulator:
             # Test connection
             self._verify_connection()
             logger.info(f"Connected to Neo4j at {self.config.uri}")
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Neo4j connection failed: {e}")
             raise
         
@@ -138,7 +139,7 @@ class ProductionNeo4jPopulator:
                 decode_responses=True
             )
             logger.info("Connected to Redis for checkpointing")
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.warning(f"Redis not available, checkpointing disabled: {e}")
             self.redis = None
         
@@ -396,7 +397,7 @@ class ProductionNeo4jPopulator:
                     summary = result.consume()
                     self.stats['nodes_created'] += summary.counters.nodes_created
                     self.stats['nodes_created'] += summary.counters.properties_set
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.error(f"Batch user creation failed: {e}")
                 self.stats['errors'] += 1
             
@@ -421,7 +422,7 @@ class ProductionNeo4jPopulator:
                 if isinstance(targets, str):
                     try:
                         targets = json.loads(targets)
-                    except Exception as e:
+                    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                         targets = []
                 
                 for target in targets[:100]:  # Limit per user
@@ -632,7 +633,7 @@ class ProductionNeo4jPopulator:
                     summary = result.consume()
                     self.stats['edges_created'] += summary.counters.relationships_created
                     self.stats['edges_updated'] += summary.counters.properties_set
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.error(f"Batch edge creation failed: {e}")
                 self.stats['errors'] += 1
             
@@ -671,7 +672,7 @@ class ProductionNeo4jPopulator:
         for fmt in formats:
             try:
                 return datetime.strptime(str(ts), fmt)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 continue
         
         return None

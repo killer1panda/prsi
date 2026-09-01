@@ -1,3 +1,4 @@
+import httpx
 """
 Use Selenium to login to Twitter/X and extract cookies.
 Then use those cookies with twikit for scraping.
@@ -89,7 +90,7 @@ def login_and_get_cookies():
             time.sleep(1)
             driver.find_element(By.CSS_SELECTOR, "button[role='button']").click()
             time.sleep(3)
-        except Exception as e:
+        except (TimeoutException, httpx.RequestError, json.JSONDecodeError) as e:
             pass
         
         # Enter password
@@ -124,7 +125,7 @@ def login_and_get_cookies():
         driver.save_screenshot("login_error.png")
         print("Screenshot saved to login_error.png")
         return False
-    except Exception as e:
+    except (TimeoutException, httpx.RequestError, json.JSONDecodeError) as e:
         print(f"Error during login: {e}")
         # Take screenshot for debugging
         driver.save_screenshot("login_error.png")

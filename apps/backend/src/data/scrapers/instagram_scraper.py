@@ -1,3 +1,4 @@
+import httpx
 """Instagram data scraper module using Instaloader - PSDI OPTIMIZED V2.0+++.
 
 This hardened scraper includes:
@@ -189,7 +190,7 @@ class ResilientGenerator:
                 return result
             except StopIteration:
                 raise
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 last_exception = e
                 error_str = str(e).lower()
                 
@@ -285,7 +286,7 @@ class CircuitBreaker:
                 self.state = "closed"
                 self.failures = 0
             return result
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             error_str = str(e).lower()
             
             # CRITICAL FIX: Do NOT open circuit breaker on 429 Rate Limits.
@@ -317,7 +318,7 @@ class MessageQueuePublisher:
                 self.client = redis.from_url(redis_url)
                 self.client.ping()
                 logger.info(f"Connected to Redis at {redis_url}")
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Redis connection failed: {e}. Queue publishing disabled.")
     
     def publish(self, data: Dict[str, Any], data_type: str):
@@ -335,7 +336,7 @@ class MessageQueuePublisher:
             self.client.rpush(self.queue_name, json.dumps(payload))
             telemetry_logger.info(f"PUBLISHED type={data_type}")
             return True
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             telemetry_logger.error(f"PUBLISH_FAILED type={data_type} error={e}")
             return False
 
@@ -493,7 +494,7 @@ class InstagramScraper:
                 self.L.login(self.username, self.password)
                 self.L.save_session_to_file(filename=self.session_file)
                 logger.info("Login successful. Session saved.")
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.error(f"Authentication failed: {e}")
                 raise
     
@@ -527,7 +528,7 @@ class InstagramScraper:
             try:
                 result = self.circuit_breaker.call(func, *args, **kwargs)
                 return result
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 last_exception = e
                 error_str = str(e).lower()
                 
@@ -626,7 +627,7 @@ class InstagramScraper:
                 else:
                     self._jitter(0.5, 1.5)
                     
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             self.telemetry.increment("failed_scrapes")
             logger.error(f"Error fetching Instagram profile: {e}")
             self.telemetry.alert(f"Profile fetch failed: {target_username} - {e}", "ERROR")
@@ -667,7 +668,7 @@ class InstagramScraper:
                 else:
                     self._jitter(0.5, 1.5)
                     
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             self.telemetry.increment("failed_scrapes")
             logger.error(f"Error fetching hashtag posts: {e}")
     
@@ -718,7 +719,7 @@ class InstagramScraper:
                 if count % 20 == 0:
                     self._jitter(2.0, 5.0)
                     
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             self.telemetry.increment("failed_scrapes")
             logger.error(f"Error fetching Instagram comments: {e}")
             
@@ -771,7 +772,7 @@ class InstagramScraper:
                 if len(comments_data) % 20 == 0:
                     self._jitter(2.0, 5.0)
                     
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Graph extraction failed for {post_shortcode}: {e}")
             
         return comments_data
@@ -860,7 +861,7 @@ class InstagramScraper:
             
             self.telemetry.increment("successful_scrapes")
                     
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             self.telemetry.increment("failed_scrapes")
             logger.error(f"Interaction graph extraction failed: {e}")
         
@@ -930,7 +931,7 @@ class InstagramScraper:
             
             return velocity
             
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Velocity calculation failed: {e}")
             return {}
     

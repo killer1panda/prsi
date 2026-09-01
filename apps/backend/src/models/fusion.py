@@ -30,7 +30,7 @@ class CrossModalAttention(nn.Module):
     def __init__(
         self,
         graph_dim: int = 128,
-        text_dim: int = 768,
+        text_dim: int = 4096,
         num_heads: int = 8,
         dropout: float = 0.1,
     ):
@@ -155,7 +155,7 @@ class GatedFusion(nn.Module):
     def __init__(
         self,
         graph_dim: int = 128,
-        text_dim: int = 768,
+        text_dim: int = 4096,
         hidden_dim: int = 256,
         num_classes: int = 2,
         dropout: float = 0.3,
@@ -243,7 +243,7 @@ class TransformerFusion(nn.Module):
     def __init__(
         self,
         graph_dim: int = 128,
-        text_dim: int = 768,
+        text_dim: int = 4096,
         hidden_dim: int = 256,
         num_layers: int = 2,
         num_heads: int = 8,

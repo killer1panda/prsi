@@ -464,9 +464,13 @@ app.add_middleware(RequestIDMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("ALLOWED_ORIGINS", "https://doom-index.internal").split(","),
+    allow_origins=[
+        origin.strip() 
+        for origin in os.environ.get("ALLOWED_ORIGINS", "https://doom-index.internal").split(",")
+        if origin.strip() and origin.strip() != "*"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
 )
 

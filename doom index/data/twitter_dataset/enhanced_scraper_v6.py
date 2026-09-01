@@ -175,7 +175,7 @@ def extract_tweets_from_response(data: Dict) -> tuple:
                         
                         tweets.append(tweet)
                         
-                    except Exception:
+                    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
                         continue
                 
                 # Find cursor

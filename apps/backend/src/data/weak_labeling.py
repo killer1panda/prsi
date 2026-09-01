@@ -1,3 +1,4 @@
+import httpx
 #!/usr/bin/env python3
 """
 Production weak labeling pipeline for cancellation event detection.
@@ -246,7 +247,7 @@ class WeakLabelingPipeline:
                 torch_dtype="auto"
             )
             logger.info("LLM loaded successfully")
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.warning(f"Could not load LLM: {e}. Proceeding without LLM validation.")
             self.config.use_llm = False
     
@@ -267,7 +268,7 @@ class WeakLabelingPipeline:
             for _, row in df.iterrows():
                 try:
                     vote = lf.apply(row)
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.debug(f"LF {lf.name} error: {e}")
                     vote = -1
                 votes.append(vote)
@@ -409,7 +410,7 @@ Answer:"""
                 return 0
             else:
                 return -1
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.debug(f"LLM labeling error: {e}")
             return -1
     
@@ -466,7 +467,7 @@ Answer:"""
             logger.info(f"Balanced dataset: {len(resampled_df)} samples, "
                        f"{y_res.mean():.2%} positive")
             return resampled_df
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.warning(f"Balancing failed: {e}. Returning original.")
             return df
     

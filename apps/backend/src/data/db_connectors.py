@@ -1,3 +1,5 @@
+import json
+import httpx
 """Database connection modules for MongoDB and Neo4j."""
 
 from datetime import datetime
@@ -78,7 +80,7 @@ class MongoDBConnector:
             self.is_online = True
             logger.info(f"Connected to MongoDB: {self.database_name}")
             self._setup_collections()
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.warning(f"MongoDB offline ({e}); operating in in-memory fallback mode.")
             self.client = None
             self.db = self._fallback_collections
@@ -123,14 +125,14 @@ class MongoDBConnector:
         try:
             result = self.posts.insert_many(posts, ordered=False)
             return len(getattr(result, "inserted_ids", []))
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Batch insert error: {e}")
             inserted = 0
             for post in posts:
                 try:
                     self.posts.insert_one(post)
                     inserted += 1
-                except Exception:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
                     pass
             return inserted
     

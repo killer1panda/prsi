@@ -60,7 +60,7 @@ class MultimodalQFormer(nn.Module):
     latent outrage representations for text fusion.
     """
 
-    def __init__(self, num_queries: int = 32, query_dim: int = 768, vision_dim: int = 3584, num_heads: int = 8):
+    def __init__(self, num_queries: int = 32, query_dim: int = 4096, vision_dim: int = 3584, num_heads: int = 8):
         super().__init__()
         self.num_queries = num_queries
         self.query_dim = query_dim

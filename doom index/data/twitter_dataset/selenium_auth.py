@@ -1,3 +1,4 @@
+import httpx
 #!/usr/bin/env python3
 """
 Get fresh Twitter cookies using Selenium
@@ -93,7 +94,7 @@ def login_and_get_cookies():
         try:
             next_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Next')]")
             next_btn.click()
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
         
         time.sleep(2)
@@ -110,11 +111,11 @@ def login_and_get_cookies():
             try:
                 next_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Next')]")
                 next_btn.click()
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
             
             time.sleep(2)
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             print(f"[SELENIUM] Email step skipped: {e}")
         
         # Enter password
@@ -130,7 +131,7 @@ def login_and_get_cookies():
         try:
             login_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Log in')]")
             login_btn.click()
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             driver.find_element(By.TAG_NAME, 'body').send_keys('\n')
         
         print("[SELENIUM] Waiting for login...")
@@ -206,7 +207,7 @@ if __name__ == '__main__':
         print(f"Total cookies: {len(cookies)}")
         print(f"\nSaved to: {OUTPUT_DIR / 'selenium_cookies.json'}")
         
-    except Exception as e:
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
         print(f"\nERROR: {e}")
         import traceback
         traceback.print_exc()

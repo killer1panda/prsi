@@ -1,3 +1,4 @@
+import httpx
 """
 Use Playwright to login to Twitter/X and extract cookies.
 """
@@ -82,7 +83,7 @@ async def login_and_get_cookies():
                         await btn.click()
                         break
                 await asyncio.sleep(3)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 pass
             
             print("Entering password...")
@@ -129,7 +130,7 @@ async def login_and_get_cookies():
             await page.screenshot(path="login_error.png")
             print("Screenshot saved to login_error.png")
             return False
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             print(f"Error during login: {e}")
             import traceback
             traceback.print_exc()

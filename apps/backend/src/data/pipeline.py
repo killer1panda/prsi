@@ -1,3 +1,5 @@
+import json
+import httpx
 """Unified data collection pipeline."""
 
 from datetime import datetime, timedelta
@@ -48,7 +50,7 @@ class DataCollectionPipeline:
             try:
                 from src.data.scrapers.twitter_scraper import create_twitter_scraper
                 self._twitter = create_twitter_scraper()
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Twitter scraper not available: {e}")
         return self._twitter
     
@@ -59,7 +61,7 @@ class DataCollectionPipeline:
             try:
                 from src.data.scrapers.reddit_scraper import create_reddit_scraper
                 self._reddit = create_reddit_scraper()
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Reddit scraper not available: {e}")
         return self._reddit
     
@@ -70,7 +72,7 @@ class DataCollectionPipeline:
             try:
                 from src.data.scrapers.instagram_scraper import create_instagram_scraper
                 self._instagram = create_instagram_scraper()
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Instagram scraper not available: {e}")
         return self._instagram
     
@@ -94,7 +96,7 @@ class DataCollectionPipeline:
             try:
                 twitter_samples = self._collect_twitter()
                 total_collected += len(twitter_samples)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.error(f"Twitter collection failed: {e}")
         
         # Collect from Reddit
@@ -102,7 +104,7 @@ class DataCollectionPipeline:
             try:
                 reddit_samples = self._collect_reddit()
                 total_collected += len(reddit_samples)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.error(f"Reddit collection failed: {e}")
         
         # Collect from Instagram (limited)
@@ -110,7 +112,7 @@ class DataCollectionPipeline:
             try:
                 instagram_samples = self._collect_instagram()
                 total_collected += len(instagram_samples)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.error(f"Instagram collection failed: {e}")
         
         logger.info(f"Total samples collected: {total_collected}")
@@ -216,7 +218,7 @@ class DataCollectionPipeline:
                             interaction_type="MENTIONED",
                             post_id=post_id,
                         )
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.debug(f"Error creating graph node: {e}")
         
         logger.info("Graph relationships created")

@@ -1,3 +1,5 @@
+import json
+import httpx
 """Reddit data scraper module."""
 
 import hashlib
@@ -125,7 +127,7 @@ class RedditScraper:
             for post in posts:
                 yield self._parse_submission(post)
                 
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Error fetching from r/{subreddit_name}: {e}")
     
     def get_post_comments(
@@ -156,7 +158,7 @@ class RedditScraper:
             for comment in submission.comments[:limit]:
                 comments.append(self._parse_comment(comment))
                 
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Error fetching comments: {e}")
             
         return comments
@@ -196,7 +198,7 @@ class RedditScraper:
             for post in search_results:
                 yield self._parse_submission(post)
                 
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Error searching Reddit: {e}")
     
     def get_user_history(
@@ -232,7 +234,7 @@ class RedditScraper:
             for comment in redditor.comments.new(limit=limit):
                 result["comments"].append(self._parse_comment(comment))
                 
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.error(f"Error fetching user history: {e}")
             
         return result

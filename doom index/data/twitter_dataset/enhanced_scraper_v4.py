@@ -175,7 +175,7 @@ async def get_tweet_replies(client: Client, tweet_id: str, max_replies: int) -> 
         for t in tweets:
             if str(t.id) != str(tweet_id):
                 replies.append(parse_reply_basic(t, tweet_id, ''))
-    except Exception:
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
         pass
     return replies
 
@@ -213,7 +213,7 @@ async def download_media_async(media_list: List[Any], tweet_id: str, media_dir: 
                                 with open(filepath, 'wb') as f:
                                     f.write(response.content)
                                 downloaded += 1
-            except Exception:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
                 continue
     
     return downloaded
@@ -405,7 +405,7 @@ async def scrape_with_exponential_backoff():
         for t in timeline:
             all_tweets.append(parse_tweet_basic(t, 'timeline'))
         print(f"    +{len(timeline)} timeline tweets")
-    except Exception as e: # twikit error
+    except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e: # twikit error
         print(f"    ⚠️ Timeline error: {e}")
     
     # Save

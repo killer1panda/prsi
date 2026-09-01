@@ -178,7 +178,7 @@ class TwitterScraper:
                 auth = tweepy.OAuthHandler(self.api_key, self.api_secret)
                 auth.set_access_token(self.access_token, self.access_secret)
                 self.api = tweepy.API(auth, wait_on_rate_limit=True)
-            except Exception as exc:  # pragma: no cover - network dependent
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Failed to initialize tweepy v1.1 API: {exc}")
 
         if self.bearer_token:
@@ -191,7 +191,7 @@ class TwitterScraper:
                     access_token_secret=self.access_secret,
                     wait_on_rate_limit=True,
                 )
-            except Exception as exc:  # pragma: no cover - network dependent
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Failed to initialize tweepy v2 Client: {exc}")
 
     def _init_twikit_backend(self) -> None:
@@ -227,7 +227,7 @@ class TwitterScraper:
                     logger.info(f"Loaded Twikit cookies from {cfg.cookies_file}")
                     self.twikit_client = client
                     return
-                except Exception as exc:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:
                     logger.warning(f"Failed to load cookies file: {exc}. Trying other methods.")
 
             if cfg.session_file:
@@ -237,7 +237,7 @@ class TwitterScraper:
                     logger.info(f"Loaded Twikit session from {cfg.session_file}")
                     self.twikit_client = client
                     return
-                except Exception as exc:  # pragma: no cover - filesystem/network
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - filesystem/network
                     logger.warning(f"Failed to load Twikit session file: {exc}. Will try login if credentials exist.")
 
             # If we have credentials, attempt login
@@ -248,7 +248,7 @@ class TwitterScraper:
                 self.twikit_client = client
             else:
                 logger.debug("Twikit credentials or session file not provided; Twikit backend disabled.")
-        except Exception as exc:  # pragma: no cover - network dependent
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
             logger.error(f"Failed to initialize Twikit backend: {exc}")
 
     async def _twikit_login_and_maybe_persist(self, client: TwikitClient, cfg: TwikitConfig) -> None:
@@ -265,7 +265,7 @@ class TwitterScraper:
             if cfg.session_file:
                 client.save_session(cfg.session_file)
                 logger.info(f"Saved Twikit session to {cfg.session_file}")
-        except Exception as exc:  # pragma: no cover - network dependent
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
             logger.error(f"Twikit login failed: {exc}")
 
     # ------------------------------
@@ -335,7 +335,7 @@ class TwitterScraper:
         if self.twikit_client:
             try:
                 return list(self._twikit_get_user_timeline(user_id, max_tweets))
-            except Exception as exc:  # pragma: no cover - network dependent
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Error fetching user timeline via Twikit: {exc}")
 
         # Tweepy path
@@ -361,7 +361,7 @@ class TwitterScraper:
         if self.twikit_client:
             try:
                 return list(self._twikit_get_tweet_replies(tweet_id, max_replies))
-            except Exception as exc:  # pragma: no cover - network dependent
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Error fetching replies via Twikit: {exc}")
 
         if not (self.client and TWEEPY_AVAILABLE):
@@ -633,7 +633,7 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error searching tweets via Twikit: {exc}")
             tweets = []
-        except Exception as exc:  # pragma: no cover - network dependent
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error searching tweets via Twikit: {exc}")
             tweets = []
 
@@ -654,7 +654,7 @@ class TwitterScraper:
                     user = await client.get_user_by_id(user_id)
                 else:
                     user = await client.get_user_by_screen_name(user_id)
-            except Exception as exc:  # pragma: no cover - network dependent
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Twikit: failed to resolve user '{user_id}': {exc}")
                 return results
 
@@ -688,7 +688,7 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error fetching user timeline via Twikit: {exc}")
             tweets = []
-        except Exception as exc:  # pragma: no cover - network dependent
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching user timeline via Twikit: {exc}")
             tweets = []
 
@@ -704,7 +704,7 @@ class TwitterScraper:
 
             try:
                 tweet: TwikitTweet = await client.get_tweet_by_id(tweet_id)
-            except Exception as exc:  # pragma: no cover - network dependent
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Twikit: failed to get tweet {tweet_id}: {exc}")
                 return results
 
@@ -738,7 +738,7 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error fetching tweet replies via Twikit: {exc}")
             replies = []
-        except Exception as exc:  # pragma: no cover - network dependent
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching tweet replies via Twikit: {exc}")
             replies = []
 
@@ -775,7 +775,7 @@ class TwitterScraper:
                         "location": location,
                     })
                 return results
-            except Exception as exc:  # pragma: no cover - network dependent
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Error fetching trends via Twikit: {exc}")
                 return []
 
@@ -790,7 +790,7 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error fetching trends via Twikit: {exc}")
             trends = []
-        except Exception as exc:  # pragma: no cover - network dependent
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching trends via Twikit: {exc}")
             trends = []
 
@@ -811,7 +811,7 @@ class TwitterScraper:
             try:
                 # Twikit typically uses ISO 8601 format
                 return datetime.fromisoformat(created.replace("Z", "+00:00"))
-            except Exception:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
                 return None
         return None
 
@@ -917,7 +917,7 @@ class TwitterScraper:
                         "replies": tweet.reply_count,
                     })
                 return results
-            except Exception as exc:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:
                 logger.error(f"Error fetching timeline via Twikit: {exc}")
                 return []
 
@@ -966,7 +966,7 @@ class TwitterScraper:
                         "retweets": tweet.retweet_count,
                     })
                 return tweets
-            except Exception as exc:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:
                 logger.error(f"Error searching tweets via Twikit: {exc}")
                 return []
 

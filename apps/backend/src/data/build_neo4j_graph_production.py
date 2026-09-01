@@ -1,3 +1,4 @@
+import httpx
 #!/usr/bin/env python3
 """
 Production-grade Neo4j graph builder extracting REAL user interaction edges
@@ -140,7 +141,7 @@ class Neo4jGraphBuilder:
             for cypher in constraints:
                 try:
                     session.run(cypher)
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.warning(f"Constraint creation skipped: {e}")
             
             logger.info("Neo4j constraints and indexes ensured")
@@ -324,7 +325,7 @@ class Neo4jGraphBuilder:
                             subreddit=str(row.get("subreddit", "unknown"))
                         )
                         reply_count += 1
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.debug(f"Reply extraction error: {e}")
                 continue
         
@@ -360,7 +361,7 @@ class Neo4jGraphBuilder:
                             subreddit=str(row.get("subreddit", "unknown"))
                         )
                         mention_count += 1
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.debug(f"Mention extraction error: {e}")
                 continue
         
@@ -565,7 +566,7 @@ class Neo4jGraphBuilder:
             try:
                 session.run("CALL gds.graph.exists('user-graph') YIELD exists")
                 has_gds = True
-            except Exception:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
                 has_gds = False
             
             if has_gds:
@@ -686,7 +687,7 @@ class Neo4jGraphBuilder:
             return float(ts)
         try:
             return pd.to_datetime(ts).timestamp()
-        except Exception:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
             return 0.0
 
 

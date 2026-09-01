@@ -1,3 +1,5 @@
+import json
+import httpx
 """
 Multimodal dataset loader handling text, image, and graph data with missing modality support.
 Production-grade with caching, augmentation hooks, and efficient collation.
@@ -89,7 +91,7 @@ class MultimodalDataset(Dataset):
             try:
                 sample["graph"] = self.graph_builder(row["user_id"])
                 sample["has_graph"] = True
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Graph build failed for {row['user_id']}: {e}")
                 sample["graph"] = self._get_missing_graph()
                 sample["has_graph"] = False
@@ -117,7 +119,7 @@ class MultimodalDataset(Dataset):
             if self.config.cache_images:
                 self._image_cache[path] = img
             return img
-        except Exception as e:
+        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
             logger.warning(f"Failed to load image {path}: {e}")
             return self._get_missing_image()
 

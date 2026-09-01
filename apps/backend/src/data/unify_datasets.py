@@ -1,3 +1,4 @@
+import httpx
 """
 Production Data Unification Pipeline for PRSI Doom Index
 
@@ -150,7 +151,7 @@ class DataUnifier:
                                 metadata={'original_schema': 'cyberbullying'}
                             ))
                     break
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.warning(f"Error loading cyberbullying from {path}: {e}")
         
         return samples
@@ -180,7 +181,7 @@ class DataUnifier:
                             language=row.get('language', 'en'),
                             metadata={'post_id': row.get('post_id')}
                         ))
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Error loading hate_speech_1829: {e}")
         
         # TweetBLM
@@ -213,7 +214,7 @@ class DataUnifier:
                                 'is_retweet': row.get('is_retweet', False)
                             }
                         ))
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Error loading TweetBLM: {e}")
         
         # Cancelled Brands
@@ -250,7 +251,7 @@ class DataUnifier:
                                 'retweets': retweets
                             }
                         ))
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Error loading Cancelled Brands: {e}")
         
         # Provocation Probe
@@ -263,7 +264,7 @@ class DataUnifier:
                 for _, row in df.iterrows():
                     # This dataset has tweet_id but no text - skip or handle differently
                     pass  # Skip for now as it lacks text content
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Error loading ProvocationProbe: {e}")
         
         return samples
@@ -297,7 +298,7 @@ class DataUnifier:
                                 'insult': row.get('insult', 0)
                             }
                         ))
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Error loading Jigsaw archive: {e}")
         
         # Social Media Toxic Comments
@@ -328,7 +329,7 @@ class DataUnifier:
                             platform="social_media",
                             metadata={k: row.get(k, 0) for k in ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']}
                         ))
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Error loading Social Media Toxic: {e}")
         
         return samples
@@ -359,7 +360,7 @@ class DataUnifier:
                             platform="social_media",
                             metadata={'balanced': True}
                         ))
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Error loading Sexism dataset: {e}")
         
         return samples
@@ -420,7 +421,7 @@ class DataUnifier:
                                 }
                             ))
                     break
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.warning(f"Error loading Doom Index from {path}: {e}")
         
         return samples

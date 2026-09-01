@@ -1,3 +1,5 @@
+import json
+import httpx
 """Data preprocessing and cleaning module."""
 
 import hashlib
@@ -193,7 +195,7 @@ class DataPreprocessor:
                     filtered.append(post)
                 else:
                     self.stats["filtered"] += 1
-            except Exception:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError):
                 # Keep posts where detection fails
                 filtered.append(post)
         
@@ -238,7 +240,7 @@ class DataPreprocessor:
                     continue
                 
                 filtered.append(post)
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.debug(f"Date parse error: {e}")
                 filtered.append(post)
         

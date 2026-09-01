@@ -1,3 +1,4 @@
+import httpx
 #!/usr/bin/env python3
 """Production Neo4j Graph Population with Real Social Network Edges.
 
@@ -167,7 +168,7 @@ class Neo4jRealEdgePopulator:
                 try:
                     session.run(query)
                     logger.info(f"  Created index: {query[:60]}...")
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.warning(f"  Index creation failed (may exist): {e}")
     
     def ingest_twitter_interactions(self, input_path: str) -> Tuple[int, int]:
@@ -272,7 +273,7 @@ class Neo4jRealEdgePopulator:
                 except json.JSONDecodeError as e:
                     logger.warning(f"Line {line_num}: JSON parse error - {e}")
                     self.stats["errors"] += 1
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.error(f"Line {line_num}: Unexpected error - {e}")
                     self.stats["errors"] += 1
         
@@ -382,7 +383,7 @@ class Neo4jRealEdgePopulator:
                     self._insert_interaction_edges(edges_batch)
                     edges_batch = []
                     
-            except Exception as e:
+            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                 logger.warning(f"Row {idx}: Error processing - {e}")
                 self.stats["errors"] += 1
         
@@ -496,7 +497,7 @@ class Neo4jRealEdgePopulator:
                     else:
                         record = result.single()
                         stats[stat_name] = record["count"] if record else 0
-                except Exception as e:
+                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
                     logger.warning(f"Failed to compute {stat_name}: {e}")
                     stats[stat_name] = None
         

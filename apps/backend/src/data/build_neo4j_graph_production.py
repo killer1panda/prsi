@@ -734,7 +734,7 @@ def main():
     parser.add_argument("--data", required=True, help="Path to processed CSV/Parquet")
     parser.add_argument("--neo4j-uri", default="bolt://localhost:7687")
     parser.add_argument("--neo4j-user", default="neo4j")
-    parser.add_argument("--neo4j-password", default="password")
+    parser.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
     parser.add_argument(
         "--max-users", type=int, default=5000, help="Max users for co-subreddit edges"
     )

@@ -2,13 +2,14 @@
 A/B testing framework for comparing model versions in production.
 Implements statistical testing, traffic splitting, and automatic rollback.
 """
-import logging
+
 import hashlib
+import logging
 import time
-from typing import Dict, List, Optional, Callable, Tuple
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from collections import defaultdict
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy import stats
@@ -56,10 +57,7 @@ class TrafficRouter:
     def get_model_version(self, user_id: str) -> str:
         """Get the actual model version string for a user."""
         bucket = self.route(user_id)
-        return (
-            self.config.treatment_model if bucket == "treatment" 
-            else self.config.control_model
-        )
+        return self.config.treatment_model if bucket == "treatment" else self.config.control_model
 
 
 class MetricsCollector:
@@ -70,8 +68,13 @@ class MetricsCollector:
         self.treatment_metrics: Dict[str, List[float]] = defaultdict(list)
         self.metadata: List[Dict] = []
 
-    def record(self, user_id: str, bucket: str, metrics: Dict[str, float],
-               timestamp: Optional[datetime] = None):
+    def record(
+        self,
+        user_id: str,
+        bucket: str,
+        metrics: Dict[str, float],
+        timestamp: Optional[datetime] = None,
+    ):
         """Record a single observation."""
         ts = timestamp or datetime.utcnow()
 
@@ -79,12 +82,9 @@ class MetricsCollector:
         for metric_name, value in metrics.items():
             target[metric_name].append(value)
 
-        self.metadata.append({
-            "user_id": user_id,
-            "bucket": bucket,
-            "timestamp": ts.isoformat(),
-            "metrics": metrics
-        })
+        self.metadata.append(
+            {"user_id": user_id, "bucket": bucket, "timestamp": ts.isoformat(), "metrics": metrics}
+        )
 
     def get_summary(self) -> Dict[str, Dict]:
         """Get statistical summary of collected metrics."""
@@ -100,14 +100,14 @@ class MetricsCollector:
                     "n": len(control_vals),
                     "mean": float(np.mean(control_vals)) if len(control_vals) > 0 else 0,
                     "std": float(np.std(control_vals)) if len(control_vals) > 0 else 0,
-                    "median": float(np.median(control_vals)) if len(control_vals) > 0 else 0
+                    "median": float(np.median(control_vals)) if len(control_vals) > 0 else 0,
                 },
                 "treatment": {
                     "n": len(treatment_vals),
                     "mean": float(np.mean(treatment_vals)) if len(treatment_vals) > 0 else 0,
                     "std": float(np.std(treatment_vals)) if len(treatment_vals) > 0 else 0,
-                    "median": float(np.median(treatment_vals)) if len(treatment_vals) > 0 else 0
-                }
+                    "median": float(np.median(treatment_vals)) if len(treatment_vals) > 0 else 0,
+                },
             }
 
         return summary
@@ -133,7 +133,11 @@ class StatisticalTester:
             "control_mean": float(np.mean(control)),
             "treatment_mean": float(np.mean(treatment)),
             "difference": float(np.mean(treatment) - np.mean(control)),
-            "relative_lift": float((np.mean(treatment) - np.mean(control)) / abs(np.mean(control))) if np.mean(control) != 0 else 0.0
+            "relative_lift": (
+                float((np.mean(treatment) - np.mean(control)) / abs(np.mean(control)))
+                if np.mean(control) != 0
+                else 0.0
+            ),
         }
 
     def mann_whitney(self, control: np.ndarray, treatment: np.ndarray) -> Dict[str, float]:
@@ -146,11 +150,12 @@ class StatisticalTester:
         return {
             "statistic": float(statistic),
             "p_value": float(p_value),
-            "significant": p_value < self.config.significance_level
+            "significant": p_value < self.config.significance_level,
         }
 
-    def bootstrap_ci(self, control: np.ndarray, treatment: np.ndarray,
-                     n_bootstrap: int = 10000, ci: float = 0.95) -> Dict[str, float]:
+    def bootstrap_ci(
+        self, control: np.ndarray, treatment: np.ndarray, n_bootstrap: int = 10000, ci: float = 0.95
+    ) -> Dict[str, float]:
         """Bootstrap confidence interval for difference in means."""
         if len(control) < 2 or len(treatment) < 2:
             return {"lower": 0.0, "upper": 0.0, "includes_zero": True}
@@ -168,11 +173,12 @@ class StatisticalTester:
             "lower": float(lower),
             "upper": float(upper),
             "includes_zero": lower <= 0 <= upper,
-            "mean_difference": float(np.mean(boot_diffs))
+            "mean_difference": float(np.mean(boot_diffs)),
         }
 
-    def sequential_test(self, control: np.ndarray, treatment: np.ndarray,
-                        max_samples: int = 10000) -> Dict[str, any]:
+    def sequential_test(
+        self, control: np.ndarray, treatment: np.ndarray, max_samples: int = 10000
+    ) -> Dict[str, any]:
         """
         Sequential probability ratio test (SPRT) for early stopping.
         Stops when sufficient evidence accumulated.
@@ -184,16 +190,12 @@ class StatisticalTester:
             result = self.t_test(c_slice, t_slice)
 
             if result["p_value"] < self.config.significance_level:
-                return {
-                    "stopped_early": True,
-                    "samples_used": n,
-                    "result": result
-                }
+                return {"stopped_early": True, "samples_used": n, "result": result}
 
         return {
             "stopped_early": False,
             "samples_used": min(len(control), len(treatment)),
-            "result": self.t_test(control, treatment)
+            "result": self.t_test(control, treatment),
         }
 
 
@@ -249,7 +251,9 @@ class ABTestRunner:
         # Auto-rollback check
         if self.config.auto_rollback and result["relative_lift"] < -self.config.rollback_threshold:
             self.status = "rolled_back"
-            logger.warning(f"Auto-rollback triggered: treatment underperforming by {abs(result['relative_lift']):.2%}")
+            logger.warning(
+                f"Auto-rollback triggered: treatment underperforming by {abs(result['relative_lift']):.2%}"
+            )
             return "rollback"
 
         # Check significance
@@ -285,7 +289,7 @@ class ABTestRunner:
                 statistical_results[metric] = {
                     "t_test": self.tester.t_test(control_vals, treatment_vals),
                     "mann_whitney": self.tester.mann_whitney(control_vals, treatment_vals),
-                    "bootstrap_ci": self.tester.bootstrap_ci(control_vals, treatment_vals)
+                    "bootstrap_ci": self.tester.bootstrap_ci(control_vals, treatment_vals),
                 }
 
         return {
@@ -296,11 +300,11 @@ class ABTestRunner:
                 "control_model": self.config.control_model,
                 "treatment_model": self.config.treatment_model,
                 "traffic_split": self.config.traffic_split,
-                "primary_metric": self.config.primary_metric
+                "primary_metric": self.config.primary_metric,
             },
             "summary": summary,
             "statistical_tests": statistical_results,
-            "recommendation": self._get_recommendation(statistical_results)
+            "recommendation": self._get_recommendation(statistical_results),
         }
 
     def _get_recommendation(self, results: Dict) -> str:
@@ -339,4 +343,3 @@ class ABTestRunner:
 
 # Alias for backward compatibility
 ABTestingFramework = ABTestRunner
-

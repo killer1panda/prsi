@@ -10,11 +10,11 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from peft import LoraConfig, get_peft_model, TaskType
-
+from peft import LoraConfig, TaskType, get_peft_model
 from src.models.hypergraph_gnn import HypergraphHGNN
 from src.models.temporal_gnn import CTDGAHawkesEncoder
+from transformers import (AutoModelForCausalLM, AutoTokenizer,
+                          BitsAndBytesConfig)
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +35,11 @@ class CompGCNEncoder(nn.Module):
         self.in_proj = nn.Linear(in_channels, hidden_channels)
         self.rel_embs = nn.Parameter(torch.Tensor(num_relations, hidden_channels))
         nn.init.xavier_uniform_(self.rel_embs)
-        
+
         self.layers = nn.ModuleList()
         for _ in range(num_layers):
             self.layers.append(nn.Linear(hidden_channels * 2, hidden_channels))
-            
+
         self.out_proj = nn.Linear(hidden_channels, out_channels)
         self.dropout = dropout
 
@@ -48,24 +48,26 @@ class CompGCNEncoder(nn.Module):
         for layer in self.layers:
             row, col = edge_index
             rel_feat = self.rel_embs[edge_type]
-            
+
             # Message passing with relation embedding
             msg = torch.cat([x[row], rel_feat], dim=-1)
             msg = F.relu(layer(msg))
-            
+
             # Aggregation
             out = torch.zeros_like(x)
             out.index_add_(0, col, msg)
-            
+
             x = x + F.dropout(out, p=self.dropout, training=self.training)
-            
+
         return self.out_proj(x)
 
 
 class TextEncoder(nn.Module):
     """Mistral-7B-Instruct text encoder with 4-bit QLoRA (r=16)."""
 
-    def __init__(self, model_name: str = "mistralai/Mistral-7B-Instruct-v0.3", freeze_layers: int = 5):
+    def __init__(
+        self, model_name: str = "mistralai/Mistral-7B-Instruct-v0.3", freeze_layers: int = 5
+    ):
         super().__init__()
 
         # 4-bit BitsAndBytes quantization config
@@ -120,15 +122,11 @@ class TextEncoder(nn.Module):
         """Encode a single text string."""
         self.eval()
         inputs = tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=1024
+            text, return_tensors="pt", truncation=True, padding=True, max_length=1024
         ).to(device)
 
         with torch.no_grad():
-            embedding = self.forward(inputs['input_ids'], inputs['attention_mask'])
+            embedding = self.forward(inputs["input_ids"], inputs["attention_mask"])
 
         return embedding.squeeze(0)
 
@@ -201,7 +199,7 @@ class MultimodalDoomPredictor(nn.Module):
             num_layers=graph_layers,
             dropout=dropout,
         )
-        
+
         self.compgcn_encoder = CompGCNEncoder(
             in_channels=graph_in_channels,
             hidden_channels=graph_hidden,
@@ -210,13 +208,11 @@ class MultimodalDoomPredictor(nn.Module):
             num_layers=graph_layers,
             dropout=dropout,
         )
-        
+
         self.ctdga_encoder = CTDGAHawkesEncoder(
-            node_dim=graph_in_channels,
-            time_dim=32,
-            num_heads=4
+            node_dim=graph_in_channels, time_dim=32, num_heads=4
         )
-        
+
         # Project combined embeddings (Hypergraph + CompGCN + CTDGA)
         self.graph_proj = nn.Linear(graph_out * 2 + graph_in_channels, graph_out)
 
@@ -247,7 +243,7 @@ class MultimodalDoomPredictor(nn.Module):
         hyperedge_index=None,
         edge_type=None,
         neighbor_embs=None,
-        time_deltas=None
+        time_deltas=None,
     ):
         """Forward pass for batch of (user, text) pairs.
 
@@ -279,10 +275,10 @@ class MultimodalDoomPredictor(nn.Module):
 
         # 1. Hypergraph HGNN
         hg_emb = self.hypergraph_encoder(x, hyperedge_index, edge_weight)
-        
+
         # 2. CompGCN
         cg_emb = self.compgcn_encoder(x, edge_index, edge_type)
-        
+
         # 3. CTDGA Hawkes
         ct_emb = self.ctdga_encoder(x, neighbor_embs, time_deltas)
 
@@ -324,11 +320,7 @@ class MultimodalDoomPredictor(nn.Module):
 
         # Tokenize text
         inputs = self.tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=1024
+            text, return_tensors="pt", truncation=True, padding=True, max_length=1024
         ).to(device)
 
         # Move graph to device
@@ -349,14 +341,14 @@ class MultimodalDoomPredictor(nn.Module):
             logits = self.forward(
                 x=x,
                 edge_index=edge_index,
-                input_ids=inputs['input_ids'],
-                attention_mask=inputs['attention_mask'],
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
                 user_indices=torch.tensor([user_idx], dtype=torch.long, device=device),
                 edge_weight=edge_weight,
                 hyperedge_index=hyperedge_index,
                 edge_type=edge_type,
                 neighbor_embs=neighbor_embs,
-                time_deltas=time_deltas
+                time_deltas=time_deltas,
             )
             probs = F.softmax(logits, dim=-1)
             pred = probs.argmax(dim=-1).item()
@@ -381,11 +373,7 @@ class MultimodalDoomPredictor(nn.Module):
         self.eval()
 
         inputs = self.tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=1024
+            text, return_tensors="pt", truncation=True, padding=True, max_length=1024
         ).to(device)
 
         x = x.to(device)
@@ -410,21 +398,21 @@ class MultimodalDoomPredictor(nn.Module):
                 neighbor_embs = x.unsqueeze(1)
             if time_deltas is None:
                 time_deltas = torch.zeros(x.size(0), neighbor_embs.size(1), device=x.device)
-                
+
             hg_emb = self.hypergraph_encoder(x, hyperedge_index, edge_weight)
             cg_emb = self.compgcn_encoder(x, edge_index, edge_type)
             ct_emb = self.ctdga_encoder(x, neighbor_embs, time_deltas)
-            
+
             combined_graph = torch.cat([hg_emb, cg_emb, ct_emb], dim=-1)
             graph_embeddings = self.graph_proj(combined_graph)
 
             user_emb = graph_embeddings[user_idx]
-            text_emb = self.text_encoder(inputs['input_ids'], inputs['attention_mask'])
+            text_emb = self.text_encoder(inputs["input_ids"], inputs["attention_mask"])
 
         return {
-            'graph_embedding': user_emb.cpu().numpy(),
-            'text_embedding': text_emb.squeeze(0).cpu().numpy(),
-            'combined_dim': user_emb.shape[-1] + text_emb.shape[-1],
+            "graph_embedding": user_emb.cpu().numpy(),
+            "text_embedding": text_emb.squeeze(0).cpu().numpy(),
+            "combined_dim": user_emb.shape[-1] + text_emb.shape[-1],
         }
 
 

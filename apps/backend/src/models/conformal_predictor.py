@@ -6,6 +6,7 @@ P(y ∈ [L, U]) >= 1 - α (Romano, Patterson, Candès, NeurIPS 2019).
 
 import logging
 from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -28,10 +29,10 @@ class QuantileLoss(nn.Module):
         """
         if target.ndim == 1:
             target = target.unsqueeze(-1)
-        
+
         losses = []
         for i, q in enumerate(self.quantiles):
-            error = target - preds[:, i:i+1]
+            error = target - preds[:, i : i + 1]
             loss = torch.max((q - 1) * error, q * error)
             losses.append(loss.mean())
         return sum(losses) / len(losses)
@@ -40,7 +41,12 @@ class QuantileLoss(nn.Module):
 class QuantileNeuralNetwork(nn.Module):
     """Multi-head quantile MLP for predicting lower, median, and upper quantiles."""
 
-    def __init__(self, in_features: int = 128, hidden_dim: int = 256, quantiles: List[float] = [0.05, 0.50, 0.95]):
+    def __init__(
+        self,
+        in_features: int = 128,
+        hidden_dim: int = 256,
+        quantiles: List[float] = [0.05, 0.50, 0.95],
+    ):
         super().__init__()
         self.quantiles = quantiles
         self.backbone = nn.Sequential(
@@ -78,7 +84,7 @@ class ConformalPredictor:
             "micro": (1000, 50000),
             "macro": (50000, 500000),
             "mega": (500000, int(1e9)),
-        }
+        },
     ):
         self.alpha = alpha
         self.reach_thresholds = reach_thresholds
@@ -97,7 +103,7 @@ class ConformalPredictor:
         y_true: np.ndarray,
         q_low_preds: np.ndarray,
         q_high_preds: np.ndarray,
-        followers_array: Optional[np.ndarray] = None
+        followers_array: Optional[np.ndarray] = None,
     ) -> Dict[str, Union[float, Dict[str, float]]]:
         """
         Calibrate on held-out calibration dataset D_cal = {(x_i, y_i)}_{i=1}^n.
@@ -121,12 +127,16 @@ class ConformalPredictor:
             tiers = tier_func(followers_array)
 
             for tier in self.reach_thresholds.keys():
-                mask = (tiers == tier)
+                mask = tiers == tier
                 if np.sum(mask) >= 15:
                     tier_scores = e_scores[mask]
                     n_tier = len(tier_scores)
-                    tier_q_level = min(1.0, max(0.0, np.ceil((n_tier + 1) * (1.0 - self.alpha)) / n_tier))
-                    self.stratified_multipliers[tier] = float(np.quantile(tier_scores, tier_q_level, method="higher"))
+                    tier_q_level = min(
+                        1.0, max(0.0, np.ceil((n_tier + 1) * (1.0 - self.alpha)) / n_tier)
+                    )
+                    self.stratified_multipliers[tier] = float(
+                        np.quantile(tier_scores, tier_q_level, method="higher")
+                    )
                 else:
                     self.stratified_multipliers[tier] = self.global_conformal_multiplier
 
@@ -134,7 +144,7 @@ class ConformalPredictor:
         return {
             "global_multiplier": self.global_conformal_multiplier,
             "stratified_multipliers": self.stratified_multipliers,
-            "target_coverage": 1.0 - self.alpha
+            "target_coverage": 1.0 - self.alpha,
         }
 
     def predict_intervals(
@@ -142,7 +152,7 @@ class ConformalPredictor:
         q_low_preds: np.ndarray,
         q_high_preds: np.ndarray,
         q_med_preds: Optional[np.ndarray] = None,
-        followers_array: Optional[np.ndarray] = None
+        followers_array: Optional[np.ndarray] = None,
     ) -> Dict[str, np.ndarray]:
         """
         Generate conformalized prediction intervals:
@@ -153,23 +163,27 @@ class ConformalPredictor:
             logger.warning("ConformalPredictor not calibrated. Using default 0 multiplier.")
             multipliers = np.zeros_like(q_low_preds)
         elif followers_array is not None and self.stratified_multipliers:
-            multipliers = np.array([
-                self.stratified_multipliers.get(self._get_reach_tier(f), self.global_conformal_multiplier)
-                for f in followers_array
-            ])
+            multipliers = np.array(
+                [
+                    self.stratified_multipliers.get(
+                        self._get_reach_tier(f), self.global_conformal_multiplier
+                    )
+                    for f in followers_array
+                ]
+            )
         else:
             multipliers = np.full_like(q_low_preds, self.global_conformal_multiplier)
 
         lower_bounds = np.clip(q_low_preds - multipliers, 0.0, 100.0)
         upper_bounds = np.clip(q_high_preds + multipliers, 0.0, 100.0)
-        
+
         # Ensure lower <= upper
         lower_bounds = np.minimum(lower_bounds, upper_bounds)
 
         results = {
             "lower_bound": lower_bounds,
             "upper_bound": upper_bounds,
-            "interval_length": upper_bounds - lower_bounds
+            "interval_length": upper_bounds - lower_bounds,
         }
         if q_med_preds is not None:
             results["point_prediction"] = np.clip(q_med_preds, lower_bounds, upper_bounds)
@@ -177,9 +191,7 @@ class ConformalPredictor:
         return results
 
     def evaluate_coverage(
-        self,
-        y_test: np.ndarray,
-        intervals: Dict[str, np.ndarray]
+        self, y_test: np.ndarray, intervals: Dict[str, np.ndarray]
     ) -> Dict[str, float]:
         """Evaluate empirical coverage and sharpness."""
         lower = intervals["lower_bound"]
@@ -193,5 +205,5 @@ class ConformalPredictor:
             "target_coverage": 1.0 - self.alpha,
             "coverage_gap": empirical_coverage - (1.0 - self.alpha),
             "mean_interval_length": mean_interval_length,
-            "valid_guarantee": empirical_coverage >= (1.0 - self.alpha)
+            "valid_guarantee": empirical_coverage >= (1.0 - self.alpha),
         }

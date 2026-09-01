@@ -1,4 +1,5 @@
 import httpx
+
 #!/usr/bin/env python3
 """Pushshift Reddit Archive Ingestion Pipeline at Scale.
 
@@ -35,9 +36,9 @@ import time
 import zlib
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple, Callable
+from typing import Callable, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 # Optional fast JSON parser
 try:
     import simdjson
+
     SIMDJSON_AVAILABLE = True
     Parser = simdjson.Parser
 except ImportError:
@@ -56,6 +58,7 @@ except ImportError:
 # Optional language detection
 try:
     import fasttext
+
     FASTTEXT_AVAILABLE = True
 except ImportError:
     FASTTEXT_AVAILABLE = False
@@ -63,6 +66,7 @@ except ImportError:
 # zstd streaming
 try:
     import zstandard as zstd
+
     ZSTD_AVAILABLE = True
 except ImportError:
     ZSTD_AVAILABLE = False
@@ -73,6 +77,7 @@ except ImportError:
 @dataclass
 class IngestionConfig:
     """Configuration for Reddit ingestion pipeline."""
+
     input_glob: str
     output_path: str
     n_workers: int = os.cpu_count() or 32
@@ -82,10 +87,20 @@ class IngestionConfig:
     dedup_content: bool = True
     anonymize_authors: bool = True
     keep_columns: Tuple[str, ...] = (
-        "id", "author_hash", "subreddit", "created_utc",
-        "title", "selftext", "score", "num_comments",
-        "upvote_ratio", "distinguished", "edited",
-        "label", "label_score", "engagement_velocity"
+        "id",
+        "author_hash",
+        "subreddit",
+        "created_utc",
+        "title",
+        "selftext",
+        "score",
+        "num_comments",
+        "upvote_ratio",
+        "distinguished",
+        "edited",
+        "label",
+        "label_score",
+        "engagement_velocity",
     )
     min_text_length: int = 20
     max_text_length: int = 4000
@@ -108,12 +123,28 @@ class CancellationHeuristic:
     - Cross-subreddit brigading detected: +1
     """
 
-    CANCEL_KEYWORDS = frozenset([
-        "cancel", "cancelled", "canceled", "boycott", "petition",
-        "fired", "apologized", "apology", "resigned", "stepped down",
-        "backlash", "outrage", "controversy", "damning", "exposed",
-        "hold accountable", "trending for wrong", " Ratio ",
-    ])
+    CANCEL_KEYWORDS = frozenset(
+        [
+            "cancel",
+            "cancelled",
+            "canceled",
+            "boycott",
+            "petition",
+            "fired",
+            "apologized",
+            "apology",
+            "resigned",
+            "stepped down",
+            "backlash",
+            "outrage",
+            "controversy",
+            "damning",
+            "exposed",
+            "hold accountable",
+            "trending for wrong",
+            " Ratio ",
+        ]
+    )
 
     def __init__(self, threshold: int = 3):
         self.threshold = threshold
@@ -123,9 +154,7 @@ class CancellationHeuristic:
         """Compile regex patterns for fast keyword matching."""
         # Combined pattern for speed
         escaped = [re.escape(kw) for kw in self.CANCEL_KEYWORDS]
-        self._pattern = re.compile(
-            r"(?i)\b(" + "|".join(escaped) + r")\b"
-        )
+        self._pattern = re.compile(r"(?i)\b(" + "|".join(escaped) + r")\b")
 
     def score(self, post: Dict) -> Tuple[int, Dict[str, int]]:
         """Compute cancellation heuristic score.
@@ -276,6 +305,7 @@ class RedditIngestionPipeline:
         if self.config.date_start or self.config.date_end:
             created = post.get("created_utc", 0)
             from datetime import datetime
+
             dt = datetime.utcfromtimestamp(created)
             if self.config.date_start and dt.isoformat() < self.config.date_start:
                 self._stats["date_before"] += 1
@@ -344,14 +374,18 @@ class RedditIngestionPipeline:
                 if transformed:
                     rows.append(transformed)
         stats = streamer.get_stats()
-        logger.info(f"  Parsed: {stats['total_rows']}, Errors: {stats['error_rows']}, Kept: {len(rows)}")
+        logger.info(
+            f"  Parsed: {stats['total_rows']}, Errors: {stats['error_rows']}, Kept: {len(rows)}"
+        )
         if not rows:
             return pd.DataFrame()
         return pd.DataFrame(rows)
 
     def run(self, file_paths: List[str]) -> pd.DataFrame:
         """Run parallel ingestion across multiple files."""
-        logger.info(f"Starting ingestion of {len(file_paths)} files with {self.config.n_workers} workers")
+        logger.info(
+            f"Starting ingestion of {len(file_paths)} files with {self.config.n_workers} workers"
+        )
         start_time = time.time()
 
         chunks = []
@@ -362,7 +396,13 @@ class RedditIngestionPipeline:
                     df = future.result()
                     if not df.empty:
                         chunks.append(df)
-                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
+                except (
+                    TimeoutError,
+                    ValueError,
+                    KeyError,
+                    httpx.RequestError,
+                    json.JSONDecodeError,
+                ) as e:
                     logger.error(f"Failed processing {futures[future]}: {e}")
 
         if not chunks:
@@ -386,6 +426,7 @@ class RedditIngestionPipeline:
             combined.to_parquet(output, engine="pyarrow", compression="zstd")
         elif str(output).endswith(".arrow"):
             import pyarrow as pa
+
             table = pa.Table.from_pandas(combined)
             with pa.ipc.new_file(output, schema=table.schema) as writer:
                 writer.write_table(table)
@@ -393,7 +434,9 @@ class RedditIngestionPipeline:
             combined.to_csv(output, index=False)
 
         elapsed = time.time() - start_time
-        logger.info(f"Ingestion complete: {len(combined)} rows in {elapsed:.1f}s ({len(combined)/elapsed:.0f} rows/s)")
+        logger.info(
+            f"Ingestion complete: {len(combined)} rows in {elapsed:.1f}s ({len(combined)/elapsed:.0f} rows/s)"
+        )
         logger.info(f"Label distribution: {combined['label'].value_counts().to_dict()}")
         logger.info(f"Stats: {dict(self._stats)}")
         return combined
@@ -417,6 +460,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
     import glob
+
     files = glob.glob(args.input)
     if not files:
         logger.error(f"No files matched: {args.input}")

@@ -2,13 +2,14 @@
 TorchServe configuration and model archiver for production deployment.
 Provides optimized inference with batching, caching, and A/B testing support.
 """
+
+import json
 import logging
 import os
-import json
 import tempfile
-from pathlib import Path
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import torch
 import torch.nn as nn
@@ -69,6 +70,7 @@ class DoomIndexHandler:
 
         # Load tokenizers
         from transformers import AutoTokenizer
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
 
         self.initialized = True
@@ -96,17 +98,13 @@ class DoomIndexHandler:
 
         # Tokenize texts
         inputs = self.tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            max_length=256,
-            return_tensors="pt"
+            texts, padding=True, truncation=True, max_length=256, return_tensors="pt"
         )
 
         return {
             "input_ids": inputs["input_ids"].to(self.device),
             "attention_mask": inputs["attention_mask"].to(self.device),
-            "has_images": torch.tensor(has_images, dtype=torch.bool)
+            "has_images": torch.tensor(has_images, dtype=torch.bool),
         }
 
     def inference(self, inputs: Dict[str, torch.Tensor]) -> List[Dict]:
@@ -119,16 +117,17 @@ class DoomIndexHandler:
         for prob in probs:
             score = float(prob[0]) * 100
             risk_level = (
-                "critical" if score >= 80 else
-                "high" if score >= 60 else
-                "medium" if score >= 40 else
-                "low"
+                "critical"
+                if score >= 80
+                else "high" if score >= 60 else "medium" if score >= 40 else "low"
             )
-            results.append({
-                "doom_score": round(score, 2),
-                "risk_level": risk_level,
-                "confidence": round(abs(score - 50) / 50, 4)
-            })
+            results.append(
+                {
+                    "doom_score": round(score, 2),
+                    "risk_level": risk_level,
+                    "confidence": round(abs(score - 50) / 50, 4),
+                }
+            )
 
         return results
 
@@ -146,11 +145,13 @@ class DoomIndexHandler:
         return self.postprocess(outputs)
 
 
-def create_model_archive(config: TorchServeConfig, 
-                         model_path: str,
-                         handler_path: str,
-                         extra_files: Optional[List[str]] = None,
-                         output_dir: str = "model_store") -> str:
+def create_model_archive(
+    config: TorchServeConfig,
+    model_path: str,
+    handler_path: str,
+    extra_files: Optional[List[str]] = None,
+    output_dir: str = "model_store",
+) -> str:
     """
     Create TorchServe model archive (.mar file).
 
@@ -168,18 +169,25 @@ def create_model_archive(config: TorchServeConfig,
     # Build torch-model-archiver command
     cmd = [
         "torch-model-archiver",
-        "--model-name", config.model_name,
-        "--version", config.model_version,
-        "--model-file", model_path,
-        "--handler", handler_path,
-        "--export-path", output_dir,
-        "--archive-format", config.serialize_format
+        "--model-name",
+        config.model_name,
+        "--version",
+        config.model_version,
+        "--model-file",
+        model_path,
+        "--handler",
+        handler_path,
+        "--export-path",
+        output_dir,
+        "--archive-format",
+        config.serialize_format,
     ]
 
     if extra_files:
         cmd.extend(["--extra-files", ",".join(extra_files)])
 
     import subprocess
+
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:
@@ -217,18 +225,21 @@ metrics_config=metrics.yaml
     logger.info(f"TorchServe config written to {path}")
 
 
-def start_torchserve(model_store: str = "model_store", 
-                     config_path: str = "config.properties"):
+def start_torchserve(model_store: str = "model_store", config_path: str = "config.properties"):
     """Start TorchServe process."""
     cmd = [
         "torchserve",
         "--start",
-        "--model-store", model_store,
-        "--ts-config", config_path,
-        "--models", "doom-index=doom-index.mar",
-        "--foreground"
+        "--model-store",
+        model_store,
+        "--ts-config",
+        config_path,
+        "--models",
+        "doom-index=doom-index.mar",
+        "--foreground",
     ]
     import subprocess
+
     process = subprocess.Popen(cmd)
     logger.info(f"TorchServe started with PID {process.pid}")
     return process

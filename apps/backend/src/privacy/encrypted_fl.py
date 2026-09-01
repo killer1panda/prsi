@@ -5,7 +5,8 @@ never inspects raw client model weights or gradient updates in plaintext.
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -22,9 +23,7 @@ class HomomorphicFLCoordinator:
         self.aggregation_round = 0
 
     def aggregate_encrypted_weights(
-        self,
-        encrypted_client_weights: List[np.ndarray],
-        client_sample_counts: List[int]
+        self, encrypted_client_weights: List[np.ndarray], client_sample_counts: List[int]
     ) -> Dict[str, Any]:
         """
         Homomorphic weighted averaging:
@@ -44,5 +43,5 @@ class HomomorphicFLCoordinator:
             "num_clients_aggregated": len(encrypted_client_weights),
             "aggregated_weights": aggregated,
             "encryption_scheme": "CKKS_Homomorphic_SMPC",
-            "privacy_guarantee": "Zero-knowledge coordinator plaintext exposure"
+            "privacy_guarantee": "Zero-knowledge coordinator plaintext exposure",
         }

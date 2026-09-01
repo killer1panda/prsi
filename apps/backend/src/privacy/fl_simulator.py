@@ -5,16 +5,17 @@ then aggregating via FedAvg using Flower framework.
 """
 
 import logging
-from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 
-import numpy as np
 try:
     import tenseal as ts
+
     TENSEAL_AVAILABLE = True
 except ImportError:
     TENSEAL_AVAILABLE = False
@@ -25,14 +26,17 @@ logger = logging.getLogger(__name__)
 # Try to import Flower
 try:
     import flwr as fl
-    from flwr.common import Parameters, NDArrays, Scalar
+    from flwr.common import NDArrays, Parameters, Scalar
+
     FLOWER_AVAILABLE = True
 except ImportError:
     FLOWER_AVAILABLE = False
     logger.warning("Flower not installed. FL simulation will use mock implementation.")
 
 
-def federated_averaging(weights_list: List[List[np.ndarray]], sample_counts: Optional[List[int]] = None) -> List[np.ndarray]:
+def federated_averaging(
+    weights_list: List[List[np.ndarray]], sample_counts: Optional[List[int]] = None
+) -> List[np.ndarray]:
     """Perform Federated Averaging (FedAvg) across client weight layers."""
     if not weights_list:
         return []
@@ -41,13 +45,16 @@ def federated_averaging(weights_list: List[List[np.ndarray]], sample_counts: Opt
     total_samples = sum(sample_counts)
     if total_samples == 0:
         return []
-    
+
     avg_weights = []
     num_layers = len(weights_list[0])
     for layer_idx in range(num_layers):
         layer_avg = np.zeros_like(weights_list[0][layer_idx], dtype=np.float64)
         for client_idx, client_weights in enumerate(weights_list):
-            if layer_idx < len(client_weights) and client_weights[layer_idx].shape == layer_avg.shape:
+            if (
+                layer_idx < len(client_weights)
+                and client_weights[layer_idx].shape == layer_avg.shape
+            ):
                 weight = sample_counts[client_idx] / total_samples
                 layer_avg += client_weights[layer_idx].astype(np.float64) * weight
         avg_weights.append(layer_avg.astype(weights_list[0][layer_idx].dtype))
@@ -77,26 +84,39 @@ class DoomClient(fl.client.NumPyClient if FLOWER_AVAILABLE else object):
 
         # Local data loaders
         self.train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=True,
-            num_workers=0, pin_memory=False,
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=False,
         )
         self.val_loader = DataLoader(
-            val_dataset, batch_size=batch_size * 2, shuffle=False,
-            num_workers=0, pin_memory=False,
+            val_dataset,
+            batch_size=batch_size * 2,
+            shuffle=False,
+            num_workers=0,
+            pin_memory=False,
         )
 
     def get_parameters(self, config: Dict[str, Scalar]) -> List[np.ndarray]:
         """Return model parameters as numpy arrays."""
-        return [val.cpu().numpy() for _, val in {k: v for k, v in self.model.state_dict().items() if 'lora' in k}.items()]
+        return [
+            val.cpu().numpy()
+            for _, val in {k: v for k, v in self.model.state_dict().items() if "lora" in k}.items()
+        ]
 
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set model parameters from numpy arrays."""
         state_dict = {}
-        for (name, _), param in zip({k: v for k, v in self.model.state_dict().items() if 'lora' in k}.items(), parameters):
+        for (name, _), param in zip(
+            {k: v for k, v in self.model.state_dict().items() if "lora" in k}.items(), parameters
+        ):
             state_dict[name] = torch.tensor(param)
         self.model.load_state_dict(state_dict, strict=False)
 
-    def fit(self, parameters: List[np.ndarray], config: Dict[str, Scalar]) -> Tuple[List[np.ndarray], int, Dict]:
+    def fit(
+        self, parameters: List[np.ndarray], config: Dict[str, Scalar]
+    ) -> Tuple[List[np.ndarray], int, Dict]:
         """Train locally and return updated parameters."""
         self.set_parameters(parameters)
 
@@ -108,10 +128,10 @@ class DoomClient(fl.client.NumPyClient if FLOWER_AVAILABLE else object):
             num_batches = 0
 
             for batch in self.train_loader:
-                input_ids = batch['input_ids'].to(self.device)
-                attention_mask = batch['attention_mask'].to(self.device)
-                user_indices = batch['user_idx'].to(self.device)
-                labels = batch['label'].to(self.device)
+                input_ids = batch["input_ids"].to(self.device)
+                attention_mask = batch["attention_mask"].to(self.device)
+                user_indices = batch["user_idx"].to(self.device)
+                labels = batch["label"].to(self.device)
 
                 optimizer.zero_grad()
 
@@ -134,7 +154,9 @@ class DoomClient(fl.client.NumPyClient if FLOWER_AVAILABLE else object):
 
         return self.get_parameters({}), len(self.train_loader.dataset), {"loss": avg_loss}
 
-    def evaluate(self, parameters: List[np.ndarray], config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
+    def evaluate(
+        self, parameters: List[np.ndarray], config: Dict[str, Scalar]
+    ) -> Tuple[float, int, Dict]:
         """Evaluate locally."""
         self.set_parameters(parameters)
         self.model.eval()
@@ -145,10 +167,10 @@ class DoomClient(fl.client.NumPyClient if FLOWER_AVAILABLE else object):
 
         with torch.no_grad():
             for batch in self.val_loader:
-                input_ids = batch['input_ids'].to(self.device)
-                attention_mask = batch['attention_mask'].to(self.device)
-                user_indices = batch['user_idx'].to(self.device)
-                labels = batch['label'].to(self.device)
+                input_ids = batch["input_ids"].to(self.device)
+                attention_mask = batch["attention_mask"].to(self.device)
+                user_indices = batch["user_idx"].to(self.device)
+                labels = batch["label"].to(self.device)
 
                 logits = self.model(
                     x=self.graph_data.x,
@@ -198,10 +220,10 @@ class FLSimulator:
         self.client_datasets = self._partition_data()
 
         self.history = {
-            'round': [],
-            'global_accuracy': [],
-            'global_loss': [],
-            'client_accuracies': [],
+            "round": [],
+            "global_accuracy": [],
+            "global_loss": [],
+            "client_accuracies": [],
         }
 
     def _partition_data(self) -> List[Tuple[Subset, Subset]]:
@@ -217,10 +239,12 @@ class FLSimulator:
             train_idx = client_indices[:n_train]
             val_idx = client_indices[n_train:]
 
-            partitions.append((
-                Subset(self.dataset, train_idx.tolist()),
-                Subset(self.dataset, val_idx.tolist()),
-            ))
+            partitions.append(
+                (
+                    Subset(self.dataset, train_idx.tolist()),
+                    Subset(self.dataset, val_idx.tolist()),
+                )
+            )
 
         logger.info(f"Partitioned {n} samples across {self.num_clients} clients")
         return partitions
@@ -241,7 +265,9 @@ class FLSimulator:
             num_classes=2,
             dropout=0.3,
         )
-        client_model.load_state_dict({k: v for k, v in self.model.state_dict().items() if 'lora' in k})
+        client_model.load_state_dict(
+            {k: v for k, v in self.model.state_dict().items() if "lora" in k}
+        )
 
         return DoomClient(
             client_id=client_id,
@@ -281,9 +307,9 @@ class FLSimulator:
 
         # Extract metrics
         for round_num, metrics in history.metrics_distributed.items():
-            if 'accuracy' in metrics:
-                self.history['round'].append(round_num)
-                self.history['global_accuracy'].append(metrics['accuracy'])
+            if "accuracy" in metrics:
+                self.history["round"].append(round_num)
+                self.history["global_accuracy"].append(metrics["accuracy"])
 
         return self.history
 
@@ -298,10 +324,10 @@ class FLSimulator:
             acc += np.random.normal(0, 0.02)
             loss = 0.7 * np.exp(-r / 4) + 0.1
 
-            self.history['round'].append(r)
-            self.history['global_accuracy'].append(acc)
-            self.history['global_loss'].append(loss)
-            self.history['client_accuracies'].append(
+            self.history["round"].append(r)
+            self.history["global_accuracy"].append(acc)
+            self.history["global_loss"].append(loss)
+            self.history["client_accuracies"].append(
                 [acc + np.random.normal(0, 0.05) for _ in range(self.num_clients)]
             )
 
@@ -313,17 +339,20 @@ class FLSimulator:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
         import pandas as pd
-        df = pd.DataFrame({
-            'round': self.history['round'],
-            'global_accuracy': self.history['global_accuracy'],
-            'global_loss': self.history.get('global_loss', [0]*len(self.history['round'])),
-        })
+
+        df = pd.DataFrame(
+            {
+                "round": self.history["round"],
+                "global_accuracy": self.history["global_accuracy"],
+                "global_loss": self.history.get("global_loss", [0] * len(self.history["round"])),
+            }
+        )
 
         df.to_csv(f"{output_dir}/fl_convergence.csv", index=False)
         logger.info(f"FL results saved to {output_dir}/fl_convergence.csv")
 
         return df
-        
+
 
 FederatedSimulator = FLSimulator
 
@@ -331,8 +360,8 @@ if __name__ == "__main__":
     print("FL Simulator module. Import and use in training scripts.")
 
 
-
 from dataclasses import dataclass, field
+
 
 @dataclass
 class HEContext:
@@ -340,7 +369,13 @@ class HEContext:
     coeff_mod_bit_sizes: list = field(default_factory=lambda: [60, 40, 40, 60])
     scale: float = 2**40
 
+
 class HomomorphicAggregator:
     def setup_context(self, he_ctx: HEContext):
-        if not TENSEAL_AVAILABLE: return None
-        return ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=he_ctx.poly_modulus_degree, coeff_mod_bit_sizes=he_ctx.coeff_mod_bit_sizes)
+        if not TENSEAL_AVAILABLE:
+            return None
+        return ts.context(
+            ts.SCHEME_TYPE.CKKS,
+            poly_modulus_degree=he_ctx.poly_modulus_degree,
+            coeff_mod_bit_sizes=he_ctx.coeff_mod_bit_sizes,
+        )

@@ -4,9 +4,10 @@ Provides dynamic tensor batching, low-latency gRPC streaming,
 and seamless local execution fallback.
 """
 
-import time
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+import time
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -23,9 +24,7 @@ class AsyncTritonServingClient:
         self.is_connected = False
 
     async def predict_batch(
-        self,
-        input_ids: np.ndarray,
-        attention_mask: np.ndarray
+        self, input_ids: np.ndarray, attention_mask: np.ndarray
     ) -> Dict[str, np.ndarray]:
         """
         Execute dynamic batched inference.
@@ -43,5 +42,5 @@ class AsyncTritonServingClient:
             "doom_logits": logits,
             "embeddings": embeddings,
             "batch_size": batch_size,
-            "latency_ms": 1.8
+            "latency_ms": 1.8,
         }

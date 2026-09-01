@@ -28,7 +28,7 @@ import os
 import random
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -49,6 +50,7 @@ except ImportError:
 @dataclass
 class VerificationResult:
     """Result of LLM verification for a single sample."""
+
     sample_id: str
     text_preview: str
     heuristic_label: int
@@ -158,7 +160,10 @@ Rules:
             "model": self.model,
             "messages": [
                 {"role": "system", "content": self.SYSTEM_PROMPT},
-                {"role": "user", "content": f"Evaluate this Reddit post:\n\n{text}\n\nRespond with JSON only."},
+                {
+                    "role": "user",
+                    "content": f"Evaluate this Reddit post:\n\n{text}\n\nRespond with JSON only.",
+                },
             ],
             "stream": False,
             "options": {
@@ -182,7 +187,10 @@ Rules:
             model=self.model,
             messages=[
                 {"role": "system", "content": self.SYSTEM_PROMPT},
-                {"role": "user", "content": f"Evaluate this Reddit post:\n\n{text}\n\nRespond with JSON only."},
+                {
+                    "role": "user",
+                    "content": f"Evaluate this Reddit post:\n\n{text}\n\nRespond with JSON only.",
+                },
             ],
             temperature=self.temperature,
             max_tokens=self.max_tokens,
@@ -204,6 +212,7 @@ Rules:
         except json.JSONDecodeError:
             # Fallback: extract with regex
             import re
+
             label_match = re.search(r'"label"\s*:\s*(0|1)', content)
             conf_match = re.search(r'"confidence"\s*:\s*(0\.\d+|1\.0|1)', content)
             parsed = {
@@ -224,7 +233,9 @@ Rules:
             "reasoning": str(parsed.get("reasoning", "")),
         }
 
-    def verify_sample(self, text: str, heuristic_label: int, heuristic_score: int) -> VerificationResult:
+    def verify_sample(
+        self, text: str, heuristic_label: int, heuristic_score: int
+    ) -> VerificationResult:
         """Verify a single sample against LLM judge."""
         start = time.time()
 
@@ -241,7 +252,11 @@ Rules:
                 self._save_cache(text, llm_result)
             except Exception as e:
                 logger.warning(f"LLM call failed: {e}")
-                llm_result = {"label": heuristic_label, "confidence": 0.0, "reasoning": f"ERROR: {e}"}
+                llm_result = {
+                    "label": heuristic_label,
+                    "confidence": 0.0,
+                    "reasoning": f"ERROR: {e}",
+                }
 
         elapsed = (time.time() - start) * 1000
         return VerificationResult(
@@ -264,7 +279,11 @@ Rules:
     ) -> VerificationReport:
         """Run verification on a stratified random sample."""
         logger.info(f"Loading dataset: {dataset_path}")
-        df = pd.read_parquet(dataset_path) if dataset_path.endswith(".parquet") else pd.read_csv(dataset_path)
+        df = (
+            pd.read_parquet(dataset_path)
+            if dataset_path.endswith(".parquet")
+            else pd.read_csv(dataset_path)
+        )
         if len(df) < sample_size:
             sample_size = len(df)
 
@@ -296,7 +315,9 @@ Rules:
 
             if (len(results) % 50) == 0:
                 agree = sum(1 for r in results if r.agreement)
-                logger.info(f"Progress: {len(results)}/{len(sample)} | Agreement: {agree}/{len(results)}")
+                logger.info(
+                    f"Progress: {len(results)}/{len(sample)} | Agreement: {agree}/{len(results)}"
+                )
 
         total_time = time.time() - start_total
         agreements = sum(1 for r in results if r.agreement)
@@ -327,8 +348,10 @@ Rules:
             model_used=f"{self.backend}:{self.model}",
         )
 
-        logger.info(f"Verification complete: {report.agreement_rate:.1%} agreement, "
-                    f"precision={precision:.2f}, recall={recall:.2f}")
+        logger.info(
+            f"Verification complete: {report.agreement_rate:.1%} agreement, "
+            f"precision={precision:.2f}, recall={recall:.2f}"
+        )
         return report
 
     def save_report(self, report: VerificationReport, output_path: str) -> None:
@@ -353,7 +376,9 @@ def main():
 
     logging.basicConfig(level=logging.INFO)
     verifier = LLMVerifier(backend=args.backend, model=args.model, api_url=args.api_url)
-    report = verifier.verify_dataset(args.dataset, sample_size=args.sample_size, random_seed=args.seed)
+    report = verifier.verify_dataset(
+        args.dataset, sample_size=args.sample_size, random_seed=args.seed
+    )
     verifier.save_report(report, args.output)
 
     print(f"Agreement rate: {report.agreement_rate:.1%}")

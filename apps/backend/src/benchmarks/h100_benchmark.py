@@ -33,7 +33,7 @@ import os
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -44,17 +44,18 @@ logger = logging.getLogger(__name__)
 
 try:
     import torch
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
 
 try:
     import pynvml
+
     pynvml.nvmlInit()
     PYNVML_AVAILABLE = True
 except Exception:
     PYNVML_AVAILABLE = False
-
 
 
 @dataclass
@@ -170,8 +171,12 @@ class H100Profiler:
             power_limit = pynvml.nvmlDeviceGetEnforcedPowerLimit(self._handle) / 1000.0
             sm_clock = pynvml.nvmlDeviceGetClockInfo(self._handle, pynvml.NVML_CLOCK_SM)
             mem_clock = pynvml.nvmlDeviceGetClockInfo(self._handle, pynvml.NVML_CLOCK_MEM)
-            pcie_stats = pynvml.nvmlDeviceGetPcieThroughput(self._handle, pynvml.NVML_PCIE_UTIL_TX_BYTES)
-            pcie_rx = pynvml.nvmlDeviceGetPcieThroughput(self._handle, pynvml.NVML_PCIE_UTIL_RX_BYTES)
+            pcie_stats = pynvml.nvmlDeviceGetPcieThroughput(
+                self._handle, pynvml.NVML_PCIE_UTIL_TX_BYTES
+            )
+            pcie_rx = pynvml.nvmlDeviceGetPcieThroughput(
+                self._handle, pynvml.NVML_PCIE_UTIL_RX_BYTES
+            )
             throttle = pynvml.nvmlDeviceGetCurrentClocksThrottleReasons(self._handle) != 0
 
             metric = GPUMetrics(
@@ -221,12 +226,15 @@ class DoomBenchmarkSuite:
     def benchmark_pytorch(self, model_wrapper) -> None:
         """Benchmark pure PyTorch inference."""
         import torch
+
         model = model_wrapper.to(self.config.device).eval()
         dtype = torch.float16 if self.config.dtype == "fp16" else torch.float32
 
         for bs in self.config.batch_sizes:
             for seq in self.config.sequence_lengths:
-                input_ids = torch.from_numpy(self._create_input(bs, seq)).long().to(self.config.device)
+                input_ids = (
+                    torch.from_numpy(self._create_input(bs, seq)).long().to(self.config.device)
+                )
                 attention_mask = torch.ones_like(input_ids)
 
                 # Warmup
@@ -272,10 +280,13 @@ class DoomBenchmarkSuite:
 
                 self._record(bs, seq, latencies, profiler.snapshots)
 
-    def _record(self, bs: int, seq: int, latencies: List[float], gpu_snaps: List[GPUMetrics]) -> None:
+    def _record(
+        self, bs: int, seq: int, latencies: List[float], gpu_snaps: List[GPUMetrics]
+    ) -> None:
         arr = np.array(latencies)
         latency = LatencyStats(
-            batch_size=bs, seq_len=seq,
+            batch_size=bs,
+            seq_len=seq,
             mean_ms=float(np.mean(arr)),
             p50_ms=float(np.percentile(arr, 50)),
             p95_ms=float(np.percentile(arr, 95)),
@@ -285,7 +296,8 @@ class DoomBenchmarkSuite:
             std_ms=float(np.std(arr)),
         )
         throughput = ThroughputResult(
-            batch_size=bs, seq_len=seq,
+            batch_size=bs,
+            seq_len=seq,
             qps=float(1000.0 / latency.mean_ms * bs),
             inferences_per_sec=float(1000.0 / latency.mean_ms * bs),
             tokens_per_sec=float(1000.0 / latency.mean_ms * bs * seq),
@@ -303,22 +315,38 @@ class DoomBenchmarkSuite:
 
         # Find optimal batch size
         best_qps = max(self.report.throughputs, key=lambda x: x.qps)
-        recs.append(f"Optimal batch size for throughput: {best_qps.batch_size} (seq={best_qps.seq_len}, QPS={best_qps.qps:.0f})")
+        recs.append(
+            f"Optimal batch size for throughput: {best_qps.batch_size} (seq={best_qps.seq_len}, QPS={best_qps.qps:.0f})"
+        )
 
         # Check if GPU is underutilized
-        avg_gpu_util = np.mean([s.utilization_gpu for s in self.report.gpu_snapshots]) if self.report.gpu_snapshots else 0
+        avg_gpu_util = (
+            np.mean([s.utilization_gpu for s in self.report.gpu_snapshots])
+            if self.report.gpu_snapshots
+            else 0
+        )
         if avg_gpu_util < 70:
-            recs.append(f"GPU underutilized ({avg_gpu_util:.0f}%). Increase batch size or use Tensor Cores (FP16/BF16).")
+            recs.append(
+                f"GPU underutilized ({avg_gpu_util:.0f}%). Increase batch size or use Tensor Cores (FP16/BF16)."
+            )
 
         # Check memory headroom
-        avg_mem = np.mean([s.memory_used_mb for s in self.report.gpu_snapshots]) if self.report.gpu_snapshots else 0
+        avg_mem = (
+            np.mean([s.memory_used_mb for s in self.report.gpu_snapshots])
+            if self.report.gpu_snapshots
+            else 0
+        )
         if avg_mem > 70000:  # 70GB on 80GB H100
-            recs.append(f"GPU memory high ({avg_mem:.0f} MB). Enable gradient checkpointing or reduce sequence length.")
+            recs.append(
+                f"GPU memory high ({avg_mem:.0f} MB). Enable gradient checkpointing or reduce sequence length."
+            )
 
         # Check throttling
         throttle_count = sum(1 for s in self.report.gpu_snapshots if s.throttled)
         if throttle_count > 0:
-            recs.append(f"GPU throttling detected ({throttle_count} snapshots). Check cooling and power limits.")
+            recs.append(
+                f"GPU throttling detected ({throttle_count} snapshots). Check cooling and power limits."
+            )
 
         # Roofline: are we compute or memory bound?
         # Simplified: if latency doesn't scale linearly with batch, likely memory bound
@@ -338,9 +366,12 @@ class DoomBenchmarkSuite:
 
         # CSV for plotting
         csv_path = out / f"benchmark_{self.config.engine}_{time.strftime('%Y%m%d_%H%M%S')}.csv"
-        df = pd.DataFrame([{
-            **asdict(l), **asdict(t)
-        } for l, t in zip(self.report.latencies, self.report.throughputs)])
+        df = pd.DataFrame(
+            [
+                {**asdict(l), **asdict(t)}
+                for l, t in zip(self.report.latencies, self.report.throughputs)
+            ]
+        )
         df.to_csv(csv_path, index=False)
 
         logger.info(f"Reports saved: {json_path}, {csv_path}")
@@ -378,7 +409,9 @@ class DoomBenchmarkSuite:
 def main():
     parser = argparse.ArgumentParser(description="H100 Benchmark Suite")
     parser.add_argument("--model", required=True)
-    parser.add_argument("--engine", default="pytorch", choices=["pytorch", "onnx", "tensorrt", "vllm"])
+    parser.add_argument(
+        "--engine", default="pytorch", choices=["pytorch", "onnx", "tensorrt", "vllm"]
+    )
     parser.add_argument("--batch-sizes", default="1,8,16,32,64")
     parser.add_argument("--seq-lens", default="128,256,512")
     parser.add_argument("--num-warmup", type=int, default=50)
@@ -411,10 +444,12 @@ def main():
 
     if args.engine == "pytorch":
         from transformers import AutoModelForSequenceClassification
+
         model = AutoModelForSequenceClassification.from_pretrained(config.model_path)
         suite.benchmark_pytorch(model)
     elif args.engine == "onnx":
         import onnxruntime as ort
+
         sess = ort.InferenceSession(config.model_path, providers=["CUDAExecutionProvider"])
         suite.benchmark_onnx(sess)
     else:

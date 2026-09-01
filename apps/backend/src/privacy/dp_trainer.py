@@ -5,24 +5,25 @@ Uses Opacus to add Gaussian noise during training, providing
 """
 
 import logging
-from typing import Dict, Optional, Tuple
 from pathlib import Path
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-from tqdm import tqdm
-
 from src.models.gnn_model import MultimodalDoomPredictor
 from src.models.multimodal_trainer import DoomDataset
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
 
-def add_gaussian_noise(tensor: torch.Tensor, sigma: float = 1.0, clip_norm: Optional[float] = None) -> torch.Tensor:
+def add_gaussian_noise(
+    tensor: torch.Tensor, sigma: float = 1.0, clip_norm: Optional[float] = None
+) -> torch.Tensor:
     """Add calibrated Gaussian noise to tensors for differential privacy guarantees."""
     cloned = tensor.clone()
     if clip_norm is not None:
@@ -73,12 +74,18 @@ class DPDoomTrainer:
 
         # Data loaders
         self.train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=True,
-            num_workers=2, pin_memory=True,
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=2,
+            pin_memory=True,
         )
         self.val_loader = DataLoader(
-            val_dataset, batch_size=batch_size * 2, shuffle=False,
-            num_workers=2, pin_memory=True,
+            val_dataset,
+            batch_size=batch_size * 2,
+            shuffle=False,
+            num_workers=2,
+            pin_memory=True,
         )
 
         # Freeze graph encoder (graph is public, no privacy needed)
@@ -97,14 +104,16 @@ class DPDoomTrainer:
         # Privacy engine
         self.privacy_engine = PrivacyEngine()
 
-        self.model, self.optimizer, self.train_loader = self.privacy_engine.make_private_with_epsilon(
-            module=self.model,
-            optimizer=self.optimizer,
-            data_loader=self.train_loader,
-            epochs=epochs,
-            target_epsilon=epsilon,
-            target_delta=delta,
-            max_grad_norm=max_grad_norm,
+        self.model, self.optimizer, self.train_loader = (
+            self.privacy_engine.make_private_with_epsilon(
+                module=self.model,
+                optimizer=self.optimizer,
+                data_loader=self.train_loader,
+                epochs=epochs,
+                target_epsilon=epsilon,
+                target_delta=delta,
+                max_grad_norm=max_grad_norm,
+            )
         )
 
         logger.info(f"DP Trainer initialized: ε={epsilon}, δ={delta}")
@@ -125,10 +134,10 @@ class DPDoomTrainer:
         progress = tqdm(self.train_loader, desc=f"DP Epoch {epoch}")
 
         for batch in progress:
-            input_ids = batch['input_ids'].to(self.device)
-            attention_mask = batch['attention_mask'].to(self.device)
-            user_indices = batch['user_idx'].to(self.device)
-            labels = batch['label'].to(self.device)
+            input_ids = batch["input_ids"].to(self.device)
+            attention_mask = batch["attention_mask"].to(self.device)
+            user_indices = batch["user_idx"].to(self.device)
+            labels = batch["label"].to(self.device)
 
             self.optimizer.zero_grad()
 
@@ -149,10 +158,12 @@ class DPDoomTrainer:
 
             # Get current epsilon
             eps = self.privacy_engine.get_epsilon(self.delta)
-            progress.set_postfix({
-                'loss': f"{total_loss/num_batches:.4f}",
-                'ε': f"{eps:.2f}",
-            })
+            progress.set_postfix(
+                {
+                    "loss": f"{total_loss/num_batches:.4f}",
+                    "ε": f"{eps:.2f}",
+                }
+            )
 
         return total_loss / num_batches
 
@@ -167,10 +178,10 @@ class DPDoomTrainer:
         total_loss = 0.0
 
         for batch in tqdm(self.val_loader, desc="DP Evaluating"):
-            input_ids = batch['input_ids'].to(self.device)
-            attention_mask = batch['attention_mask'].to(self.device)
-            user_indices = batch['user_idx'].to(self.device)
-            labels = batch['label'].to(self.device)
+            input_ids = batch["input_ids"].to(self.device)
+            attention_mask = batch["attention_mask"].to(self.device)
+            user_indices = batch["user_idx"].to(self.device)
+            labels = batch["label"].to(self.device)
 
             logits = self.model(
                 x=self.graph_data.x,
@@ -191,7 +202,7 @@ class DPDoomTrainer:
             all_probs.extend(probs[:, 1].cpu().numpy())
 
         acc = accuracy_score(all_labels, all_preds)
-        f1 = f1_score(all_labels, all_preds, average='binary')
+        f1 = f1_score(all_labels, all_preds, average="binary")
         try:
             auc = roc_auc_score(all_labels, all_probs)
         except ValueError:
@@ -200,12 +211,12 @@ class DPDoomTrainer:
         final_epsilon = self.privacy_engine.get_epsilon(self.delta)
 
         metrics = {
-            'val_loss': total_loss / len(self.val_loader),
-            'val_accuracy': acc,
-            'val_f1': f1,
-            'val_auc': auc,
-            'epsilon': final_epsilon,
-            'delta': self.delta,
+            "val_loss": total_loss / len(self.val_loader),
+            "val_accuracy": acc,
+            "val_f1": f1,
+            "val_auc": auc,
+            "epsilon": final_epsilon,
+            "delta": self.delta,
         }
 
         return metrics, all_labels, all_preds
@@ -226,25 +237,27 @@ class DPDoomTrainer:
                 f"ε={metrics['epsilon']:.2f}"
             )
 
-            if metrics['val_f1'] > best_f1:
-                best_f1 = metrics['val_f1']
+            if metrics["val_f1"] > best_f1:
+                best_f1 = metrics["val_f1"]
                 self.save_checkpoint(epoch, metrics, is_best=True)
 
-        logger.info(f"DP Training complete. Best F1: {best_f1:.4f}, Final ε: {metrics['epsilon']:.2f}")
+        logger.info(
+            f"DP Training complete. Best F1: {best_f1:.4f}, Final ε: {metrics['epsilon']:.2f}"
+        )
 
     def save_checkpoint(self, epoch: int, metrics: Dict, is_best: bool = False):
         """Save checkpoint."""
-        model_to_save = self.model._module if hasattr(self.model, '_module') else self.model
+        model_to_save = self.model._module if hasattr(self.model, "_module") else self.model
 
         checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': model_to_save.state_dict(),
-            'metrics': metrics,
-            'privacy': {
-                'epsilon': metrics['epsilon'],
-                'delta': metrics['delta'],
-                'max_grad_norm': self.max_grad_norm,
-            }
+            "epoch": epoch,
+            "model_state_dict": model_to_save.state_dict(),
+            "metrics": metrics,
+            "privacy": {
+                "epsilon": metrics["epsilon"],
+                "delta": metrics["delta"],
+                "max_grad_norm": self.max_grad_norm,
+            },
         }
 
         if is_best:
@@ -258,7 +271,7 @@ def run_dp_experiments(
     graph_data,
     train_dataset,
     val_dataset,
-    epsilons=[0.1, 0.5, 1.0, 2.0, 5.0, float('inf')],
+    epsilons=[0.1, 0.5, 1.0, 2.0, 5.0, float("inf")],
     output_dir="models/dp_experiments",
 ):
     """Run DP training with multiple privacy budgets and return tradeoff data."""
@@ -269,9 +282,10 @@ def run_dp_experiments(
         logger.info(f"Training with ε = {eps}")
         logger.info(f"{'='*50}")
 
-        if eps == float('inf'):
+        if eps == float("inf"):
             # Non-private baseline
             from src.models.multimodal_trainer import MultimodalTrainer
+
             trainer = MultimodalTrainer(
                 model=model,
                 graph_data=graph_data,
@@ -281,8 +295,12 @@ def run_dp_experiments(
                 epochs=5,
             )
             trainer.train()
-            metrics = {'val_accuracy': trainer.best_val_f1, 'val_f1': trainer.best_val_f1, 
-                      'epsilon': float('inf'), 'delta': 0}
+            metrics = {
+                "val_accuracy": trainer.best_val_f1,
+                "val_f1": trainer.best_val_f1,
+                "epsilon": float("inf"),
+                "delta": 0,
+            }
         else:
             trainer = DPDoomTrainer(
                 model=model,
@@ -296,15 +314,18 @@ def run_dp_experiments(
             trainer.train()
             metrics, _, _ = trainer.evaluate()
 
-        results.append({
-            'epsilon': eps,
-            'accuracy': metrics['val_accuracy'],
-            'f1': metrics['val_f1'],
-            'auc': metrics.get('val_auc', 0),
-        })
+        results.append(
+            {
+                "epsilon": eps,
+                "accuracy": metrics["val_accuracy"],
+                "f1": metrics["val_f1"],
+                "auc": metrics.get("val_auc", 0),
+            }
+        )
 
     # Save tradeoff data
     import pandas as pd
+
     df = pd.DataFrame(results)
     df.to_csv(f"{output_dir}/privacy_utility_tradeoff.csv", index=False)
     logger.info(f"Tradeoff data saved to {output_dir}/privacy_utility_tradeoff.csv")

@@ -52,9 +52,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import matplotlib
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -69,10 +70,10 @@ logger = logging.getLogger(__name__)
 try:
     from torch_geometric.data import Data
     from torch_geometric.explain import Explainer, GNNExplainer
-    from torch_geometric.explain.config import (
-        ModelConfig, MaskType, ModelMode, ModelTaskLevel,
-    )
+    from torch_geometric.explain.config import (MaskType, ModelConfig,
+                                                ModelMode, ModelTaskLevel)
     from torch_geometric.utils import k_hop_subgraph
+
     PYG_EXPLAIN = True
 except ImportError:
     PYG_EXPLAIN = False
@@ -83,6 +84,7 @@ except ImportError:
 
 try:
     from captum.attr import IntegratedGradients, LayerIntegratedGradients
+
     CAPTUM = True
 except ImportError:
     CAPTUM = False
@@ -90,6 +92,7 @@ except ImportError:
 
 try:
     import shap
+
     SHAP = True
 except ImportError:
     SHAP = False
@@ -97,6 +100,7 @@ except ImportError:
 
 try:
     import networkx as nx
+
     NX = True
 except ImportError:
     NX = False
@@ -107,58 +111,63 @@ except ImportError:
 # Result dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class GNNExplanationResult:
     """All outputs from GNNExplainer for one node."""
-    node_idx: int
-    doom_score: float            # sigmoid probability [0, 1]
-    confidence: float            # |score - 0.5| * 2  (0=uncertain, 1=certain)
 
-    edge_mask: np.ndarray        # [E] — values in [0,1], 1=critical edge
-    node_feat_mask: np.ndarray   # [F] — values in [0,1], 1=critical feature
+    node_idx: int
+    doom_score: float  # sigmoid probability [0, 1]
+    confidence: float  # |score - 0.5| * 2  (0=uncertain, 1=certain)
+
+    edge_mask: np.ndarray  # [E] — values in [0,1], 1=critical edge
+    node_feat_mask: np.ndarray  # [F] — values in [0,1], 1=critical feature
 
     subgraph_nodes: List[int]
     subgraph_edges: List[Tuple[int, int]]
     subgraph_edge_scores: List[float]
 
     # Top-K summaries for slides/viva
-    top_edges: List[Tuple[int, int, float]]    # (u, v, importance_score)
-    top_features: List[Tuple[str, float]]       # (feature_name, importance)
+    top_edges: List[Tuple[int, int, float]]  # (u, v, importance_score)
+    top_features: List[Tuple[str, float]]  # (feature_name, importance)
 
-    fidelity_score: Optional[float] = None     # |P(full) - P(masked)|
-    raw_explanation: Optional[object] = None   # PyG Explanation object
+    fidelity_score: Optional[float] = None  # |P(full) - P(masked)|
+    raw_explanation: Optional[object] = None  # PyG Explanation object
 
 
 @dataclass
 class IGResult:
     """Captum Integrated Gradients attribution for one instance."""
+
     node_idx: int
     doom_score: float
 
     tokens: List[str]
-    token_attr: np.ndarray           # [seq_len], positive = boosts doom
-    token_convergence: float         # Should be close to 0 (axiom check)
+    token_attr: np.ndarray  # [seq_len], positive = boosts doom
+    token_convergence: float  # Should be close to 0 (axiom check)
 
-    node_feature_attr: np.ndarray    # [num_node_features]
+    node_feature_attr: np.ndarray  # [num_node_features]
     feature_names: List[str]
 
-    top_tokens: List[Tuple[str, float]]    # top 10 by |attr|
+    top_tokens: List[Tuple[str, float]]  # top 10 by |attr|
     top_features: List[Tuple[str, float]]  # top 8 by |attr|
 
 
 @dataclass
 class SHAPResult:
     """SHAP DeepExplainer results over the evaluation set."""
-    shap_values: np.ndarray          # [n_samples, n_features]
+
+    shap_values: np.ndarray  # [n_samples, n_features]
     base_value: float
     feature_names: List[str]
-    mean_abs_shap: np.ndarray        # [n_features], sorted descending
+    mean_abs_shap: np.ndarray  # [n_features], sorted descending
     top_features: List[Tuple[str, float]]  # (name, mean_abs_shap)
 
 
 # ---------------------------------------------------------------------------
 # Internal: wrap the GNN encoder for PyG's Explainer API
 # ---------------------------------------------------------------------------
+
 
 class _GraphEncoderWrapper(nn.Module):
     """
@@ -174,13 +183,14 @@ class _GraphEncoderWrapper(nn.Module):
         self.encoder = model.graph_encoder
 
     def forward(self, x: Tensor, edge_index: Tensor) -> Tensor:
-        emb = self.encoder(x, edge_index)       # [N, hidden_dim]
-        return emb.norm(dim=-1, keepdim=True)   # [N, 1]
+        emb = self.encoder(x, edge_index)  # [N, hidden_dim]
+        return emb.norm(dim=-1, keepdim=True)  # [N, 1]
 
 
 # ---------------------------------------------------------------------------
 # Main explainer class
 # ---------------------------------------------------------------------------
+
 
 class DoomGNNExplainer:
     """
@@ -228,16 +238,14 @@ class DoomGNNExplainer:
         """
         self.model = model.eval()
         self.tokenizer = tokenizer
-        self.device = torch.device(
-            device if torch.cuda.is_available() else "cpu"
-        )
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.feature_names = feature_names or self.DEFAULT_FEATURE_NAMES
         self.num_hops = num_hops
         self.gnn_epochs = gnn_epochs
         self.gnn_lr = gnn_lr
 
-        self._pyg_explainer: Optional[object] = None   # built lazily
+        self._pyg_explainer: Optional[object] = None  # built lazily
 
         logger.info(
             "DoomGNNExplainer | device=%s | GNNExplainer=%s | "
@@ -275,7 +283,8 @@ class DoomGNNExplainer:
         )
         logger.info(
             "PyG GNNExplainer built | epochs=%d | lr=%.4f",
-            self.gnn_epochs, self.gnn_lr,
+            self.gnn_epochs,
+            self.gnn_lr,
         )
 
     def gnnexplainer(
@@ -318,7 +327,10 @@ class DoomGNNExplainer:
 
         logger.info(
             "GNNExplainer | node=%d  doom=%.3f  confidence=%.3f  hops=%d",
-            node_idx, doom_score, confidence, hops,
+            node_idx,
+            doom_score,
+            confidence,
+            hops,
         )
 
         # Optimise the masks (~gnn_epochs iterations of gradient descent)
@@ -350,10 +362,7 @@ class DoomGNNExplainer:
         # Map local sub_edge_index back to global node IDs
         srcs = sub_edge_index[0].cpu().tolist()
         dsts = sub_edge_index[1].cpu().tolist()
-        subgraph_edges = [
-            (subgraph_nodes[s], subgraph_nodes[d])
-            for s, d in zip(srcs, dsts)
-        ]
+        subgraph_edges = [(subgraph_nodes[s], subgraph_nodes[d]) for s, d in zip(srcs, dsts)]
 
         # Edge importance restricted to the subgraph
         in_subgraph = edge_mask_sub.cpu().numpy().astype(bool)
@@ -367,19 +376,20 @@ class DoomGNNExplainer:
         # Top-K edges by importance
         ranked_edges = sorted(
             zip(subgraph_edges, sub_edge_scores),
-            key=lambda t: t[1], reverse=True,
+            key=lambda t: t[1],
+            reverse=True,
         )
         top_edges = [(u, v, s) for (u, v), s in ranked_edges[:10]]
 
         # Top-K node features by importance
         feat_names_padded = (
-            self.feature_names
-            + [f"feat_{i}" for i in range(len(node_feat_mask_np) + 10)]
-        )[:len(node_feat_mask_np)]
+            self.feature_names + [f"feat_{i}" for i in range(len(node_feat_mask_np) + 10)]
+        )[: len(node_feat_mask_np)]
 
         ranked_feats = sorted(
             zip(feat_names_padded, node_feat_mask_np.tolist()),
-            key=lambda t: abs(t[1]), reverse=True,
+            key=lambda t: abs(t[1]),
+            reverse=True,
         )
         top_features = ranked_feats[:8]
 
@@ -423,14 +433,11 @@ class DoomGNNExplainer:
         """
         try:
             important = edge_mask >= threshold
-            keep = torch.tensor(~important, dtype=torch.bool,
-                                device=self.device)
+            keep = torch.tensor(~important, dtype=torch.bool, device=self.device)
             masked_edges = edge_index[:, keep]
 
             with torch.no_grad():
-                p_full = float(torch.sigmoid(
-                    wrapper(x, edge_index)[node_idx]
-                ))
+                p_full = float(torch.sigmoid(wrapper(x, edge_index)[node_idx]))
                 p_masked = (
                     float(torch.sigmoid(wrapper(x, masked_edges)[node_idx]))
                     if masked_edges.shape[1] > 0
@@ -475,13 +482,10 @@ class DoomGNNExplainer:
             IGResult with per-token and per-feature attributions.
         """
         if not CAPTUM:
-            raise RuntimeError(
-                "Captum not installed. Run: pip install captum"
-            )
+            raise RuntimeError("Captum not installed. Run: pip install captum")
         if self.tokenizer is None:
             raise ValueError(
-                "tokenizer= must be provided at construction time "
-                "for text attribution."
+                "tokenizer= must be provided at construction time " "for text attribution."
             )
 
         self.model.eval()
@@ -496,11 +500,9 @@ class DoomGNNExplainer:
             padding="max_length",
             max_length=128,
         )
-        input_ids = enc["input_ids"].to(self.device)           # [1, L]
+        input_ids = enc["input_ids"].to(self.device)  # [1, L]
         attention_mask = enc["attention_mask"].to(self.device)  # [1, L]
-        tokens = self.tokenizer.convert_ids_to_tokens(
-            input_ids[0].cpu().tolist()
-        )
+        tokens = self.tokenizer.convert_ids_to_tokens(input_ids[0].cpu().tolist())
 
         # Baseline doom score (no grad)
         with torch.no_grad():
@@ -530,14 +532,12 @@ class DoomGNNExplainer:
                     inputs_embeds=input_embs,
                     attention_mask=attention_mask,
                 )
-                return out.logits[:, 1:2]   # doom-class logit -> [B, 1]
+                return out.logits[:, 1:2]  # doom-class logit -> [B, 1]
             except Exception:
-                return torch.zeros(
-                    input_embs.shape[0], 1, device=input_embs.device
-                )
+                return torch.zeros(input_embs.shape[0], 1, device=input_embs.device)
 
         lig = LayerIntegratedGradients(_forward_text, embedding_layer)
-        baseline_ids = torch.zeros_like(input_ids)   # PAD token = zero embed
+        baseline_ids = torch.zeros_like(input_ids)  # PAD token = zero embed
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -549,9 +549,7 @@ class DoomGNNExplainer:
             )
 
         # Sum over hidden dim -> scalar per token
-        token_attr_np = (
-            token_attrs.sum(dim=-1).squeeze(0).cpu().detach().numpy()
-        )
+        token_attr_np = token_attrs.sum(dim=-1).squeeze(0).cpu().detach().numpy()
         convergence = float(conv_delta.mean())
 
         # ── 2b: Node feature attribution via IntegratedGradients ──────────
@@ -580,28 +578,28 @@ class DoomGNNExplainer:
 
         # Align feature names to tensor size
         n_feats = feat_attr_np.shape[0]
-        feat_names = (
-            self.feature_names + [f"feat_{i}" for i in range(n_feats + 10)]
-        )[:n_feats]
+        feat_names = (self.feature_names + [f"feat_{i}" for i in range(n_feats + 10)])[:n_feats]
 
         # Top-K summaries
         token_pairs = [
-            (t, float(a)) for t, a in zip(tokens, token_attr_np)
+            (t, float(a))
+            for t, a in zip(tokens, token_attr_np)
             if t not in ("[PAD]", "<pad>", "[CLS]", "[SEP]")
         ]
-        top_tokens = sorted(token_pairs, key=lambda p: abs(p[1]),
-                            reverse=True)[:10]
+        top_tokens = sorted(token_pairs, key=lambda p: abs(p[1]), reverse=True)[:10]
 
         feat_pairs = sorted(
             zip(feat_names, feat_attr_np.tolist()),
-            key=lambda p: abs(p[1]), reverse=True,
+            key=lambda p: abs(p[1]),
+            reverse=True,
         )
         top_features = feat_pairs[:8]
 
         logger.info(
             "IG done | node=%d  doom=%.3f  top_token='%s'(%.3f)  "
             "top_feat='%s'(%.3f)  conv_delta=%.5f",
-            node_idx, doom_score,
+            node_idx,
+            doom_score,
             top_tokens[0][0] if top_tokens else "N/A",
             top_tokens[0][1] if top_tokens else 0,
             top_features[0][0] if top_features else "N/A",
@@ -699,7 +697,7 @@ class DoomGNNExplainer:
                 break
 
         background = torch.cat(bg_tensors, dim=0)[:max_background].to(self.device)
-        eval_data  = torch.cat(ev_tensors, dim=0)[:max_eval].to(self.device)
+        eval_data = torch.cat(ev_tensors, dim=0)[:max_eval].to(self.device)
 
         n_feats = background.shape[1]
         fnames_full = (fnames + [f"feat_{i}" for i in range(n_feats + 10)])[:n_feats]
@@ -709,6 +707,7 @@ class DoomGNNExplainer:
 
         class _TabularHead(nn.Module):
             """Exposes the tabular->logit path for SHAP."""
+
             def forward(self, x: Tensor) -> Tensor:
                 # Try common attribute names for the fusion/classifier head
                 for attr in ("fusion", "classifier", "fc", "head"):
@@ -719,14 +718,16 @@ class DoomGNNExplainer:
                             return out[:, 1:2] if out.shape[-1] > 1 else out
                         except Exception:
                             pass
-                return x[:, :1]   # passthrough if nothing found
+                return x[:, :1]  # passthrough if nothing found
 
         head = _TabularHead().to(self.device)
         head.eval()
 
         logger.info(
             "SHAP DeepExplainer | background=%d  eval=%d  features=%d",
-            background.shape[0], eval_data.shape[0], n_feats,
+            background.shape[0],
+            eval_data.shape[0],
+            n_feats,
         )
 
         with warnings.catch_warnings():
@@ -740,19 +741,17 @@ class DoomGNNExplainer:
         else:
             vals = shap_vals
 
-        vals_np = np.array(vals)                  # [n_samples, n_features]
+        vals_np = np.array(vals)  # [n_samples, n_features]
         base_val = float(np.array(shap_exp.expected_value).flat[0])
-        mean_abs = np.abs(vals_np).mean(axis=0)   # [n_features]
+        mean_abs = np.abs(vals_np).mean(axis=0)  # [n_features]
         order = np.argsort(mean_abs)[::-1]
 
-        top_features = [
-            (fnames_full[i], float(mean_abs[i]))
-            for i in order[:min(15, n_feats)]
-        ]
+        top_features = [(fnames_full[i], float(mean_abs[i])) for i in order[: min(15, n_feats)]]
 
         logger.info(
             "SHAP done | top feature: %s (%.4f)",
-            top_features[0][0], top_features[0][1],
+            top_features[0][0],
+            top_features[0][1],
         )
 
         return SHAPResult(
@@ -788,8 +787,7 @@ class DoomGNNExplainer:
             f"Doom {result.doom_score:.1%}  |  "
             f"Fidelity {result.fidelity_score:.3f}"
             if result.fidelity_score is not None
-            else f"GNNExplainer  |  Node {result.node_idx}  |  "
-                 f"Doom {result.doom_score:.1%}"
+            else f"GNNExplainer  |  Node {result.node_idx}  |  " f"Doom {result.doom_score:.1%}"
         )
         fig.suptitle(title, fontsize=13, fontweight="bold")
 
@@ -804,30 +802,29 @@ class DoomGNNExplainer:
             G.add_edge(u, v, weight=max(0.0, float(s)))
 
         pos = nx.spring_layout(G, seed=42, k=2.5)
-        node_colors = [
-            "#E74C3C" if n == result.node_idx else "#2980B9"
-            for n in G.nodes()
-        ]
+        node_colors = ["#E74C3C" if n == result.node_idx else "#2980B9" for n in G.nodes()]
         node_sizes = [900 if n == result.node_idx else 350 for n in G.nodes()]
 
         ws = [G[u][v]["weight"] for u, v in G.edges()]
         max_w = max(ws) if ws else 1.0
         widths = [max(0.4, (w / max_w) * 6) for w in ws]
-        ecolors = [
-            plt.cm.YlOrRd(w / max_w) if max_w > 0 else (0.7, 0.7, 0.7, 1)
-            for w in ws
-        ]
+        ecolors = [plt.cm.YlOrRd(w / max_w) if max_w > 0 else (0.7, 0.7, 0.7, 1) for w in ws]
 
-        nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colors,
-                               node_size=node_sizes, alpha=0.9)
-        nx.draw_networkx_edges(G, pos, ax=ax, width=widths,
-                               edge_color=ecolors, alpha=0.85,
-                               arrows=True, arrowsize=12)
+        nx.draw_networkx_nodes(
+            G, pos, ax=ax, node_color=node_colors, node_size=node_sizes, alpha=0.9
+        )
+        nx.draw_networkx_edges(
+            G, pos, ax=ax, width=widths, edge_color=ecolors, alpha=0.85, arrows=True, arrowsize=12
+        )
         nx.draw_networkx_labels(G, pos, ax=ax, font_size=6)
-        ax.legend(handles=[
-            mpatches.Patch(color="#E74C3C", label="Target user"),
-            mpatches.Patch(color="#2980B9", label="Neighbour"),
-        ], fontsize=8, loc="upper left")
+        ax.legend(
+            handles=[
+                mpatches.Patch(color="#E74C3C", label="Target user"),
+                mpatches.Patch(color="#2980B9", label="Neighbour"),
+            ],
+            fontsize=8,
+            loc="upper left",
+        )
 
         # Right panel: feature importance
         ax2 = axes[1]
@@ -860,15 +857,15 @@ class DoomGNNExplainer:
         Red = increases doom score, Blue = decreases it.
         """
         pairs = [
-            (t, float(a)) for t, a in zip(result.tokens, result.token_attr)
+            (t, float(a))
+            for t, a in zip(result.tokens, result.token_attr)
             if t not in ("[PAD]", "<pad>", "[CLS]", "[SEP]", "</s>")
         ]
         pairs.sort(key=lambda p: abs(p[1]), reverse=True)
         pairs = pairs[:max_tokens]
 
         if not pairs:
-            pairs = list(zip(result.tokens[:max_tokens],
-                             result.token_attr[:max_tokens].tolist()))
+            pairs = list(zip(result.tokens[:max_tokens], result.token_attr[:max_tokens].tolist()))
 
         toks, attrs = zip(*pairs)
 
@@ -978,7 +975,7 @@ class DoomGNNExplainer:
                 ig_r = self.integrated_gradients(text, graph_data, node_idx)
                 p = f"{out_dir}/tokens_node{node_idx}.png"
                 self.plot_token_attributions(ig_r, save_path=p)
-                summary["doom_score"] = ig_r.doom_score   # more precise
+                summary["doom_score"] = ig_r.doom_score  # more precise
                 if ig_r.top_tokens:
                     summary["top_token"] = ig_r.top_tokens[0]
                 if ig_r.top_features:

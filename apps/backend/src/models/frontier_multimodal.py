@@ -7,9 +7,10 @@ Vision backbone: Qwen2-VL-7B NaViT with native dynamic resolution (up to 1120×1
 Raw vision hidden size: 3584d. Passes through Q-Former before language fusion.
 """
 
-import math
 import logging
+import math
 from typing import Dict, List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,13 +24,20 @@ class LoRALinear(nn.Module):
     W = W_0 + (alpha / r) * B @ A
     """
 
-    def __init__(self, in_features: int, out_features: int, r: int = 16, lora_alpha: float = 32.0, lora_dropout: float = 0.05):
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        r: int = 16,
+        lora_alpha: float = 32.0,
+        lora_dropout: float = 0.05,
+    ):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.r = r
         self.scaling = lora_alpha / r
-        
+
         # Frozen base weight
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features), requires_grad=False)
         self.bias = nn.Parameter(torch.zeros(out_features), requires_grad=False)
@@ -60,27 +68,35 @@ class MultimodalQFormer(nn.Module):
     latent outrage representations for text fusion.
     """
 
-    def __init__(self, num_queries: int = 32, query_dim: int = 4096, vision_dim: int = 3584, num_heads: int = 8):
+    def __init__(
+        self,
+        num_queries: int = 32,
+        query_dim: int = 4096,
+        vision_dim: int = 3584,
+        num_heads: int = 8,
+    ):
         super().__init__()
         self.num_queries = num_queries
         self.query_dim = query_dim
-        
+
         # Learnable queries
         self.queries = nn.Parameter(torch.randn(1, num_queries, query_dim) * 0.02)
-        
+
         # Cross-Attention: Query attends to Vision Patches
         self.vision_proj = nn.Linear(vision_dim, query_dim)
         self.norm_query = nn.LayerNorm(query_dim)
         self.norm_vision = nn.LayerNorm(query_dim)
-        self.cross_attn = nn.MultiheadAttention(embed_dim=query_dim, num_heads=num_heads, batch_first=True)
-        
+        self.cross_attn = nn.MultiheadAttention(
+            embed_dim=query_dim, num_heads=num_heads, batch_first=True
+        )
+
         # Self-Attention & FFN
-        self.self_attn = nn.MultiheadAttention(embed_dim=query_dim, num_heads=num_heads, batch_first=True)
+        self.self_attn = nn.MultiheadAttention(
+            embed_dim=query_dim, num_heads=num_heads, batch_first=True
+        )
         self.norm_self = nn.LayerNorm(query_dim)
         self.mlp = nn.Sequential(
-            nn.Linear(query_dim, query_dim * 4),
-            nn.GELU(),
-            nn.Linear(query_dim * 4, query_dim)
+            nn.Linear(query_dim, query_dim * 4), nn.GELU(), nn.Linear(query_dim * 4, query_dim)
         )
         self.norm_mlp = nn.LayerNorm(query_dim)
 
@@ -124,17 +140,21 @@ class FrontierMultimodalPredictor(nn.Module):
         text_dim: int = 1024,
         graph_dim: int = 128,
         latent_dim: int = 512,
-        num_classes: int = 2
+        num_classes: int = 2,
     ):
         super().__init__()
-        self.q_former = MultimodalQFormer(num_queries=16, query_dim=latent_dim, vision_dim=vision_dim)
+        self.q_former = MultimodalQFormer(
+            num_queries=16, query_dim=latent_dim, vision_dim=vision_dim
+        )
         self.text_proj = LoRALinear(text_dim, latent_dim, r=16)
         self.graph_proj = nn.Linear(graph_dim, latent_dim)
 
         # Joint Multimodal Attention
         self.joint_transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=latent_dim, nhead=8, dim_feedforward=latent_dim * 4, batch_first=True),
-            num_layers=2
+            nn.TransformerEncoderLayer(
+                d_model=latent_dim, nhead=8, dim_feedforward=latent_dim * 4, batch_first=True
+            ),
+            num_layers=2,
         )
 
         # Classification Head
@@ -143,14 +163,14 @@ class FrontierMultimodalPredictor(nn.Module):
             nn.LayerNorm(256),
             nn.GELU(),
             nn.Dropout(0.2),
-            nn.Linear(256, num_classes)
+            nn.Linear(256, num_classes),
         )
 
     def forward(
         self,
         vision_patches: Optional[torch.Tensor],
         text_tokens: torch.Tensor,
-        graph_emb: Optional[torch.Tensor] = None
+        graph_emb: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """
         vision_patches: [B, N_v, vision_dim] or None
@@ -182,13 +202,11 @@ class FrontierMultimodalPredictor(nn.Module):
         pooled = fused_seq.mean(dim=1)
         logits = self.head(pooled)
 
-        return {
-            "logits": logits,
-            "pooled_embedding": pooled,
-            "fused_sequence": fused_seq
-        }
+        return {"logits": logits, "pooled_embedding": pooled, "fused_sequence": fused_seq}
 
-    def compute_infonce_loss(self, z_vision: torch.Tensor, z_text: torch.Tensor, temperature: float = 0.07) -> torch.Tensor:
+    def compute_infonce_loss(
+        self, z_vision: torch.Tensor, z_text: torch.Tensor, temperature: float = 0.07
+    ) -> torch.Tensor:
         """Symmetric InfoNCE cross-modal alignment loss."""
         z_v_norm = F.normalize(z_vision, p=2, dim=-1)
         z_t_norm = F.normalize(z_text, p=2, dim=-1)

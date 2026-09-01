@@ -2,14 +2,17 @@
 Unit and integration tests for FastAPI endpoints.
 Uses TestClient for synchronous testing.
 """
+
+import json
+from unittest.mock import Mock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
-import json
 
 # Import production FastAPI app
 try:
     from src.api.api_v2_production import app, config
+
     config.require_auth = False
 except ImportError:
     app = None
@@ -51,7 +54,7 @@ class TestAnalyzeEndpoints:
         payload = {
             "text": "This is absolutely unacceptable behavior from a public figure!",
             "source": "twitter",
-            "metadata": {"timestamp": "2026-01-01T00:00:00Z"}
+            "metadata": {"timestamp": "2026-01-01T00:00:00Z"},
         }
         response = client.post("/predict", json=payload)
         assert response.status_code == 200
@@ -82,7 +85,7 @@ class TestBatchEndpoints:
             "items": [
                 {"text": "Post 1", "user_id": "u1"},
                 {"text": "Post 2", "user_id": "u2"},
-                {"text": "Post 3", "user_id": "u3"}
+                {"text": "Post 3", "user_id": "u3"},
             ]
         }
         response = client.post("/predict/batch", json=payload)
@@ -108,7 +111,7 @@ class TestAttackEndpoints:
             "num_variants": 3,
             "toxicity_budget": 0.7,
             "use_genetic": True,
-            "min_semantic_similarity": 0.5
+            "min_semantic_similarity": 0.5,
         }
         response = client.post("/attack/simulate", json=payload)
         assert response.status_code == 200

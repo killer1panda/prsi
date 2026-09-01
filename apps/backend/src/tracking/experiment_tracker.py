@@ -42,6 +42,7 @@ try:
     import mlflow
     import mlflow.pytorch
     from mlflow.tracking import MlflowClient
+
     MLFLOW_AVAILABLE = True
 except ImportError:
     MLFLOW_AVAILABLE = False
@@ -50,6 +51,7 @@ except ImportError:
 # Optional WandB
 try:
     import wandb
+
     WANDB_AVAILABLE = True
 except ImportError:
     WANDB_AVAILABLE = False
@@ -58,16 +60,17 @@ except ImportError:
 # GPU monitoring
 try:
     import pynvml
+
     pynvml.nvmlInit()
     PYNVML_AVAILABLE = True
 except Exception:
     PYNVML_AVAILABLE = False
 
 
-
 @dataclass
 class GPUStats:
     """Snapshot of GPU telemetry."""
+
     index: int
     utilization_gpu: float  # Percentage
     utilization_mem: float
@@ -136,7 +139,9 @@ class ExperimentTracker:
         """Initialize MLflow tracking server or local backend."""
         if not MLFLOW_AVAILABLE:
             return
-        uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI", f"file://{self.local_dir.absolute()}")
+        uri = tracking_uri or os.environ.get(
+            "MLFLOW_TRACKING_URI", f"file://{self.local_dir.absolute()}"
+        )
         mlflow.set_tracking_uri(uri)
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name=self.run_name)
@@ -177,7 +182,9 @@ class ExperimentTracker:
             self._local_write({"type": "params", "data": clean_params})
         logger.debug(f"Logged params: {list(clean_params.keys())}")
 
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None, prefix: str = "") -> None:
+    def log_metrics(
+        self, metrics: Dict[str, float], step: Optional[int] = None, prefix: str = ""
+    ) -> None:
         """Log scalar metrics with optional step indexing."""
         if not self._is_master:
             return
@@ -218,6 +225,7 @@ class ExperimentTracker:
             dest = self.local_dir / "artifacts" / (artifact_path or "") / path.name
             dest.parent.mkdir(parents=True, exist_ok=True)
             import shutil
+
             shutil.copy(str(path), str(dest))
 
     def save_model(
@@ -238,11 +246,14 @@ class ExperimentTracker:
         # Save to temporary path
         save_dir = Path(tempfile.gettempdir()) / f"doom_model_{name}"
         save_dir.mkdir(parents=True, exist_ok=True)
-        torch.save({
-            "model_state": model.state_dict(),
-            "metadata": metadata or {},
-            "tracker_run": self.run_name,
-        }, save_dir / "pytorch_model.bin")
+        torch.save(
+            {
+                "model_state": model.state_dict(),
+                "metadata": metadata or {},
+                "tracker_run": self.run_name,
+            },
+            save_dir / "pytorch_model.bin",
+        )
 
         version = None
         if self._mlflow_active:
@@ -268,7 +279,12 @@ class ExperimentTracker:
     def log_dataset_profile(self, dataset_path: str, split: str = "train") -> None:
         """Log dataset statistics as a table artifact."""
         import pandas as pd
-        df = pd.read_parquet(dataset_path) if dataset_path.endswith(".parquet") else pd.read_csv(dataset_path)
+
+        df = (
+            pd.read_parquet(dataset_path)
+            if dataset_path.endswith(".parquet")
+            else pd.read_csv(dataset_path)
+        )
         stats = {
             "rows": len(df),
             "columns": len(df.columns),
@@ -294,19 +310,21 @@ class ExperimentTracker:
                 mem_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_MEM)
                 throttle = pynvml.nvmlDeviceGetCurrentClocksThrottleReasons(handle) != 0
 
-                stats.append(GPUStats(
-                    index=i,
-                    utilization_gpu=util.gpu,
-                    utilization_mem=util.memory,
-                    memory_used_mb=mem.used / (1024 * 1024),
-                    memory_total_mb=mem.total / (1024 * 1024),
-                    temperature_c=temp,
-                    power_draw_w=power,
-                    power_limit_w=power_limit,
-                    clock_sm_mhz=clocks,
-                    clock_mem_mhz=mem_clock,
-                    throttled=throttle,
-                ))
+                stats.append(
+                    GPUStats(
+                        index=i,
+                        utilization_gpu=util.gpu,
+                        utilization_mem=util.memory,
+                        memory_used_mb=mem.used / (1024 * 1024),
+                        memory_total_mb=mem.total / (1024 * 1024),
+                        temperature_c=temp,
+                        power_draw_w=power,
+                        power_limit_w=power_limit,
+                        clock_sm_mhz=clocks,
+                        clock_mem_mhz=mem_clock,
+                        throttled=throttle,
+                    )
+                )
             except Exception as e:
                 logger.debug(f"GPU stat error on device {i}: {e}")
         return stats
@@ -363,14 +381,16 @@ def create_h100_tracker(
         log_gpu_stats=True,
         log_system_metrics=True,
     )
-    tracker.log_params({
-        "hardware": "H100",
-        "num_nodes": nodes,
-        "gpus_per_node": gpus_per_node,
-        "world_size": nodes * gpus_per_node,
-        "cuda_version": torch.version.cuda,
-        "pytorch_version": torch.__version__,
-    })
+    tracker.log_params(
+        {
+            "hardware": "H100",
+            "num_nodes": nodes,
+            "gpus_per_node": gpus_per_node,
+            "world_size": nodes * gpus_per_node,
+            "cuda_version": torch.version.cuda,
+            "pytorch_version": torch.__version__,
+        }
+    )
     return tracker
 
 

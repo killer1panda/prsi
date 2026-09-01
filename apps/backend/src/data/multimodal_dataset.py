@@ -1,18 +1,20 @@
 import json
+
 import httpx
+
 """
 Multimodal dataset loader handling text, image, and graph data with missing modality support.
 Production-grade with caching, augmentation hooks, and efficient collation.
 """
 import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, Callable
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
-import torch
-from torch.utils.data import Dataset
 import pandas as pd
+import torch
 from PIL import Image
+from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +35,14 @@ class MultimodalDataset(Dataset):
     Handles text (tokenized), image (PIL/Path), and graph (PyG Data) modalities.
     """
 
-    def __init__(self, 
-                 df: pd.DataFrame,
-                 text_encoder: Callable,
-                 image_encoder: Optional[Callable] = None,
-                 graph_builder: Optional[Callable] = None,
-                 config: Optional[MultimodalConfig] = None):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        text_encoder: Callable,
+        image_encoder: Optional[Callable] = None,
+        graph_builder: Optional[Callable] = None,
+        config: Optional[MultimodalConfig] = None,
+    ):
         """
         Args:
             df: DataFrame with columns [text, image_path, user_id, label] etc.
@@ -91,7 +95,13 @@ class MultimodalDataset(Dataset):
             try:
                 sample["graph"] = self.graph_builder(row["user_id"])
                 sample["has_graph"] = True
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as e:
                 logger.warning(f"Graph build failed for {row['user_id']}: {e}")
                 sample["graph"] = self._get_missing_graph()
                 sample["has_graph"] = False
@@ -104,7 +114,7 @@ class MultimodalDataset(Dataset):
             "user_id": row.get("user_id", ""),
             "post_id": row.get("post_id", ""),
             "timestamp": row.get("timestamp", ""),
-            "source": row.get("source", "unknown")
+            "source": row.get("source", "unknown"),
         }
 
         return sample
@@ -128,7 +138,7 @@ class MultimodalDataset(Dataset):
         if self.config.missing_modality_strategy == "zero":
             return {
                 "input_ids": torch.zeros(1, self.config.text_max_length, dtype=torch.long),
-                "attention_mask": torch.zeros(1, self.config.text_max_length, dtype=torch.long)
+                "attention_mask": torch.zeros(1, self.config.text_max_length, dtype=torch.long),
             }
         else:
             # Return a learnable token representation handled by model
@@ -151,13 +161,20 @@ class MultimodalDataset(Dataset):
             "labels": torch.stack([b["label"] for b in batch]),
             "has_image": torch.tensor([b["has_image"] for b in batch], dtype=torch.bool),
             "has_graph": torch.tensor([b["has_graph"] for b in batch], dtype=torch.bool),
-            "metadata": [b["metadata"] for b in batch]
+            "metadata": [b["metadata"] for b in batch],
         }
 
         # Collate text
-        if all("input_ids" in b["text_inputs"] and b["text_inputs"]["input_ids"] is not None for b in batch):
-            collated["text_input_ids"] = torch.cat([b["text_inputs"]["input_ids"] for b in batch], dim=0)
-            collated["text_attention_mask"] = torch.cat([b["text_inputs"]["attention_mask"] for b in batch], dim=0)
+        if all(
+            "input_ids" in b["text_inputs"] and b["text_inputs"]["input_ids"] is not None
+            for b in batch
+        ):
+            collated["text_input_ids"] = torch.cat(
+                [b["text_inputs"]["input_ids"] for b in batch], dim=0
+            )
+            collated["text_attention_mask"] = torch.cat(
+                [b["text_inputs"]["attention_mask"] for b in batch], dim=0
+            )
         else:
             collated["text_input_ids"] = None
             collated["text_missing"] = True

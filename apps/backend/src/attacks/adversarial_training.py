@@ -2,9 +2,10 @@
 Adversarial Training module: generates adversarial examples during training
 and trains on them to improve model robustness against shadowban attacks.
 """
+
 import logging
-from typing import Dict, List, Optional, Callable, Tuple
 from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -17,8 +18,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AdvTrainingConfig:
     epsilon: float = 0.3  # PGD perturbation budget
-    alpha: float = 0.01   # PGD step size
-    num_steps: int = 5    # PGD iterations
+    alpha: float = 0.01  # PGD step size
+    num_steps: int = 5  # PGD iterations
     adv_ratio: float = 0.5  # Ratio of adversarial examples in batch
     mixup_alpha: float = 0.2
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -32,8 +33,9 @@ class PGDAttack:
         self.config = config
         self.device = torch.device(config.device)
 
-    def generate(self, embeddings: torch.Tensor, labels: torch.Tensor,
-                 loss_fn: Callable) -> torch.Tensor:
+    def generate(
+        self, embeddings: torch.Tensor, labels: torch.Tensor, loss_fn: Callable
+    ) -> torch.Tensor:
         """
         Generate adversarial embeddings using PGD.
 
@@ -79,9 +81,15 @@ class AdversarialTrainer:
         self.pgd = PGDAttack(model, self.config)
         logger.info("AdversarialTrainer initialized")
 
-    def mixup(self, x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+    def mixup(
+        self, x: torch.Tensor, y: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
         """Mixup augmentation for better generalization."""
-        lam = torch.distributions.Beta(self.config.mixup_alpha, self.config.mixup_alpha).sample().item()
+        lam = (
+            torch.distributions.Beta(self.config.mixup_alpha, self.config.mixup_alpha)
+            .sample()
+            .item()
+        )
         batch_size = x.size(0)
         index = torch.randperm(batch_size, device=x.device)
 
@@ -89,9 +97,12 @@ class AdversarialTrainer:
         y_a, y_b = y, y[index]
         return mixed_x, y_a, y_b, lam
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor],
-                      optimizer: torch.optim.Optimizer,
-                      loss_fn: Callable) -> Dict[str, float]:
+    def training_step(
+        self,
+        batch: Tuple[torch.Tensor, torch.Tensor],
+        optimizer: torch.optim.Optimizer,
+        loss_fn: Callable,
+    ) -> Dict[str, float]:
         """
         Single adversarial training step.
 
@@ -148,12 +159,17 @@ class AdversarialTrainer:
             "loss": total_loss.item(),
             "accuracy": acc,
             "clean_batch_size": clean_emb.size(0),
-            "adv_batch_size": adv_emb.size(0)
+            "adv_batch_size": adv_emb.size(0),
         }
 
-    def fit(self, train_loader: DataLoader, val_loader: Optional[DataLoader],
-            optimizer: torch.optim.Optimizer, loss_fn: Callable,
-            num_epochs: int = 10) -> Dict[str, List[float]]:
+    def fit(
+        self,
+        train_loader: DataLoader,
+        val_loader: Optional[DataLoader],
+        optimizer: torch.optim.Optimizer,
+        loss_fn: Callable,
+        num_epochs: int = 10,
+    ) -> Dict[str, List[float]]:
         """Full adversarial training loop."""
         history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 
@@ -178,9 +194,13 @@ class AdversarialTrainer:
                 val_loss, val_acc = self.evaluate(val_loader, loss_fn)
                 history["val_loss"].append(val_loss)
                 history["val_acc"].append(val_acc)
-                logger.info(f"Epoch {epoch+1}/{num_epochs} | Train Loss: {avg_loss:.4f} Acc: {avg_acc:.4f} | Val Loss: {val_loss:.4f} Acc: {val_acc:.4f}")
+                logger.info(
+                    f"Epoch {epoch+1}/{num_epochs} | Train Loss: {avg_loss:.4f} Acc: {avg_acc:.4f} | Val Loss: {val_loss:.4f} Acc: {val_acc:.4f}"
+                )
             else:
-                logger.info(f"Epoch {epoch+1}/{num_epochs} | Train Loss: {avg_loss:.4f} Acc: {avg_acc:.4f}")
+                logger.info(
+                    f"Epoch {epoch+1}/{num_epochs} | Train Loss: {avg_loss:.4f} Acc: {avg_acc:.4f}"
+                )
 
         return history
 

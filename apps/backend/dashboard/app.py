@@ -3,12 +3,12 @@
 Run with: streamlit run dashboard/app.py
 """
 
-import streamlit as st
-import requests
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
+import streamlit as st
 from plotly.subplots import make_subplots
 
 st.set_page_config(
@@ -20,7 +20,8 @@ st.set_page_config(
 
 # ── Custom CSS ──────────────────────────────────────────────────────────────
 
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main-header { font-size: 3em; font-weight: 900; color: #ff4444; text-align: center; }
     .sub-header { font-size: 1.2em; color: #888; text-align: center; margin-bottom: 30px; }
@@ -31,7 +32,9 @@ st.markdown("""
     .low { color: #00ff66; font-weight: bold; }
     .stProgress > div > div > div > div { background-color: #ff4444; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ── Sidebar ─────────────────────────────────────────────────────────────────
 
@@ -54,16 +57,16 @@ except requests.exceptions.RequestException as e:
 # ── Main Header ─────────────────────────────────────────────────────────────
 
 st.markdown('<div class="main-header">🔥 DOOM INDEX v2</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Predictive Social Doom Index + Shadowban Simulator</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="sub-header">Predictive Social Doom Index + Shadowban Simulator</div>',
+    unsafe_allow_html=True,
+)
 
 # ── Tabs ────────────────────────────────────────────────────────────────────
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🎯 Doom Predictor", 
-    "⚔️ Attack Simulator", 
-    "🏆 Leaderboard",
-    "🔒 Privacy Analysis"
-])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["🎯 Doom Predictor", "⚔️ Attack Simulator", "🏆 Leaderboard", "🔒 Privacy Analysis"]
+)
 
 # ── Tab 1: Doom Predictor ───────────────────────────────────────────────────
 
@@ -123,31 +126,41 @@ with tab1:
                     doom_score = result.get("doom_score", 0)
                     risk_level = result.get("risk_level", "UNKNOWN")
 
-                    color = {"CRITICAL": "#ff0000", "HIGH": "#ff6600", 
-                            "MODERATE": "#ffcc00", "LOW": "#00ff66"}.get(risk_level, "#888")
+                    color = {
+                        "CRITICAL": "#ff0000",
+                        "HIGH": "#ff6600",
+                        "MODERATE": "#ffcc00",
+                        "LOW": "#00ff66",
+                    }.get(risk_level, "#888")
 
-                    fig = go.Figure(go.Indicator(
-                        mode="gauge+number",
-                        value=doom_score,
-                        domain={'x': [0, 1], 'y': [0, 1]},
-                        title={'text': f"Doom Score<br><span style='font-size:0.6em;color:{color}'>{risk_level}</span>"},
-                        gauge={
-                            'axis': {'range': [0, 100]},
-                            'bar': {'color': color},
-                            'steps': [
-                                {'range': [0, 20], 'color': '#1a1a1a'},
-                                {'range': [20, 40], 'color': '#2a2a1a'},
-                                {'range': [40, 70], 'color': '#3a2a1a'},
-                                {'range': [70, 100], 'color': '#3a1a1a'},
-                            ],
-                            'threshold': {
-                                'line': {'color': "red", 'width': 4},
-                                'thickness': 0.75,
-                                'value': doom_score
-                            }
-                        }
-                    ))
-                    fig.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', font={'color': "white"})
+                    fig = go.Figure(
+                        go.Indicator(
+                            mode="gauge+number",
+                            value=doom_score,
+                            domain={"x": [0, 1], "y": [0, 1]},
+                            title={
+                                "text": f"Doom Score<br><span style='font-size:0.6em;color:{color}'>{risk_level}</span>"
+                            },
+                            gauge={
+                                "axis": {"range": [0, 100]},
+                                "bar": {"color": color},
+                                "steps": [
+                                    {"range": [0, 20], "color": "#1a1a1a"},
+                                    {"range": [20, 40], "color": "#2a2a1a"},
+                                    {"range": [40, 70], "color": "#3a2a1a"},
+                                    {"range": [70, 100], "color": "#3a1a1a"},
+                                ],
+                                "threshold": {
+                                    "line": {"color": "red", "width": 4},
+                                    "thickness": 0.75,
+                                    "value": doom_score,
+                                },
+                            },
+                        )
+                    )
+                    fig.update_layout(
+                        height=300, paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"}
+                    )
                     st.plotly_chart(fig, use_container_width=True)
 
                 with res_col2:
@@ -168,7 +181,9 @@ with tab1:
                             color=["Negative", "Positive"],
                             color_discrete_map={"Negative": "#ff4444", "Positive": "#44ff44"},
                         )
-                        fig.update_layout(height=200, showlegend=False, paper_bgcolor='rgba(0,0,0,0)')
+                        fig.update_layout(
+                            height=200, showlegend=False, paper_bgcolor="rgba(0,0,0,0)"
+                        )
                         st.plotly_chart(fig, use_container_width=True)
 
                 with res_col3:
@@ -184,19 +199,23 @@ with tab1:
                                 color=list(attrs.values()),
                                 color_continuous_scale="Reds",
                             )
-                            fig.update_layout(height=250, showlegend=False, paper_bgcolor='rgba(0,0,0,0)')
+                            fig.update_layout(
+                                height=250, showlegend=False, paper_bgcolor="rgba(0,0,0,0)"
+                            )
                             st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.info("Toxicity data unavailable (Perspective API key not set)")
 
                 # Technical details
                 with st.expander("🔬 Technical Details"):
-                    st.json({
-                        "prediction": result.get("prediction"),
-                        "probability": result.get("probability"),
-                        "graph_embedding_norm": result.get("graph_embedding_norm"),
-                        "text_embedding_norm": result.get("text_embedding_norm"),
-                    })
+                    st.json(
+                        {
+                            "prediction": result.get("prediction"),
+                            "probability": result.get("probability"),
+                            "graph_embedding_norm": result.get("graph_embedding_norm"),
+                            "text_embedding_norm": result.get("text_embedding_norm"),
+                        }
+                    )
 
             except requests.exceptions.RequestException as e:
                 st.error(f"Analysis failed: {e}")
@@ -205,7 +224,9 @@ with tab1:
 
 with tab2:
     st.header("⚔️ Shadowban Attack Simulator")
-    st.markdown("Generate adversarial text variants that maximize doom score while evading moderation.")
+    st.markdown(
+        "Generate adversarial text variants that maximize doom score while evading moderation."
+    )
 
     atk_col1, atk_col2 = st.columns([2, 1])
 
@@ -224,7 +245,9 @@ with tab2:
         with atk_params[2]:
             atk_author = st.text_input("Target Author", "anonymous")
 
-        attack_btn = st.button("🧬 Generate Attack Variants", type="primary", use_container_width=True)
+        attack_btn = st.button(
+            "🧬 Generate Attack Variants", type="primary", use_container_width=True
+        )
 
     with atk_col2:
         st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
@@ -269,31 +292,35 @@ with tab2:
 
                     # Comparison chart
                     fig = go.Figure()
-                    fig.add_trace(go.Bar(
-                        name="Original",
-                        x=["Original"],
-                        y=[orig_doom * 100],
-                        marker_color="#444",
-                    ))
+                    fig.add_trace(
+                        go.Bar(
+                            name="Original",
+                            x=["Original"],
+                            y=[orig_doom * 100],
+                            marker_color="#444",
+                        )
+                    )
 
                     colors = px.colors.sequential.Reds[2:]
                     for i, v in enumerate(variants):
-                        fig.add_trace(go.Bar(
-                            name=f"Variant {i+1} ({v['strategy']})",
-                            x=[f"V{i+1}"],
-                            y=[v['attacked_doom'] * 100],
-                            marker_color=colors[i % len(colors)],
-                            text=f"+{v['doom_uplift']*100:.1f}",
-                            textposition="outside",
-                        ))
+                        fig.add_trace(
+                            go.Bar(
+                                name=f"Variant {i+1} ({v['strategy']})",
+                                x=[f"V{i+1}"],
+                                y=[v["attacked_doom"] * 100],
+                                marker_color=colors[i % len(colors)],
+                                text=f"+{v['doom_uplift']*100:.1f}",
+                                textposition="outside",
+                            )
+                        )
 
                     fig.update_layout(
-                        barmode='group',
+                        barmode="group",
                         height=400,
                         title="Doom Score Comparison",
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font_color='white',
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        font_color="white",
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
@@ -302,7 +329,7 @@ with tab2:
                         with st.container():
                             cols = st.columns([3, 1, 1, 1])
                             with cols[0]:
-                                st.code(v['variant_text'], language=None)
+                                st.code(v["variant_text"], language=None)
                             with cols[1]:
                                 st.metric("Doom", f"{v['attacked_doom']*100:.1f}")
                             with cols[2]:
@@ -338,44 +365,58 @@ with tab3:
         with filter_col2:
             min_followers = st.number_input("Min Followers", min_value=0, value=0)
 
-        filtered = df[
-            (df['risk_level'].isin(risk_filter)) &
-            (df['followers'] >= min_followers)
-        ]
+        filtered = df[(df["risk_level"].isin(risk_filter)) & (df["followers"] >= min_followers)]
 
         # Color coding
         def color_risk(val):
-            colors = {"CRITICAL": "background-color: #3a0000", 
-                     "HIGH": "background-color: #3a1a00",
-                     "MODERATE": "background-color: #3a3a00",
-                     "LOW": "background-color: #003a00"}
+            colors = {
+                "CRITICAL": "background-color: #3a0000",
+                "HIGH": "background-color: #3a1a00",
+                "MODERATE": "background-color: #3a3a00",
+                "LOW": "background-color: #003a00",
+            }
             return colors.get(val, "")
 
         st.dataframe(
-            filtered.style.applymap(color_risk, subset=['risk_level']),
+            filtered.style.applymap(color_risk, subset=["risk_level"]),
             use_container_width=True,
             height=500,
         )
 
         # Distribution chart
         fig = px.histogram(
-            df, x="doom_score", color="risk_level",
-            color_discrete_map={"CRITICAL": "#ff0000", "HIGH": "#ff6600", 
-                               "MODERATE": "#ffcc00", "LOW": "#00ff66"},
+            df,
+            x="doom_score",
+            color="risk_level",
+            color_discrete_map={
+                "CRITICAL": "#ff0000",
+                "HIGH": "#ff6600",
+                "MODERATE": "#ffcc00",
+                "LOW": "#00ff66",
+            },
             nbins=20,
             title="Doom Score Distribution",
         )
-        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white"
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     except requests.exceptions.RequestException as e:
         st.error(f"Could not load leaderboard: {e}")
         st.info("Showing mock data for demo purposes.")
 
-        mock_df = pd.DataFrame([
-            {"author_id": f"User_{i}", "doom_score": 95-i*4, "risk_level": "CRITICAL" if i < 5 else "HIGH", "followers": 100000+i*50000}
-            for i in range(20)
-        ])
+        mock_df = pd.DataFrame(
+            [
+                {
+                    "author_id": f"User_{i}",
+                    "doom_score": 95 - i * 4,
+                    "risk_level": "CRITICAL" if i < 5 else "HIGH",
+                    "followers": 100000 + i * 50000,
+                }
+                for i in range(20)
+            ]
+        )
         st.dataframe(mock_df, use_container_width=True)
 
 # ── Tab 4: Privacy Analysis ─────────────────────────────────────────────────
@@ -385,7 +426,7 @@ with tab4:
     st.markdown("Differential Privacy + Federated Learning impact on model performance.")
 
     # Mock data for privacy tradeoff (replace with real experiments)
-    epsilons = [0.1, 0.5, 1.0, 2.0, 5.0, float('inf')]
+    epsilons = [0.1, 0.5, 1.0, 2.0, 5.0, float("inf")]
     accuracies = [0.72, 0.78, 0.82, 0.85, 0.88, 0.91]
     f1_scores = [0.68, 0.75, 0.80, 0.83, 0.86, 0.89]
 
@@ -393,27 +434,31 @@ with tab4:
 
     with priv_col1:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=[str(e) for e in epsilons],
-            y=accuracies,
-            mode='lines+markers',
-            name='Accuracy',
-            line=dict(color='#00ff66', width=3),
-        ))
-        fig.add_trace(go.Scatter(
-            x=[str(e) for e in epsilons],
-            y=f1_scores,
-            mode='lines+markers',
-            name='F1 Score',
-            line=dict(color='#ff6600', width=3),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=[str(e) for e in epsilons],
+                y=accuracies,
+                mode="lines+markers",
+                name="Accuracy",
+                line=dict(color="#00ff66", width=3),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[str(e) for e in epsilons],
+                y=f1_scores,
+                mode="lines+markers",
+                name="F1 Score",
+                line=dict(color="#ff6600", width=3),
+            )
+        )
         fig.update_layout(
             title="Privacy-Utility Tradeoff",
             xaxis_title="Epsilon (Privacy Budget)",
             yaxis_title="Score",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color='white',
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font_color="white",
             height=400,
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -444,14 +489,19 @@ with tab4:
             with st.spinner("Running federated learning simulation..."):
                 # Mock FL convergence
                 rounds = list(range(1, num_rounds + 1))
-                convergence = [0.5 + 0.4 * (1 - np.exp(-r/5)) + np.random.normal(0, 0.02) for r in rounds]
+                convergence = [
+                    0.5 + 0.4 * (1 - np.exp(-r / 5)) + np.random.normal(0, 0.02) for r in rounds
+                ]
 
                 fig = px.line(
-                    x=rounds, y=convergence,
+                    x=rounds,
+                    y=convergence,
                     labels={"x": "Round", "y": "Global Model F1"},
                     title="Federated Learning Convergence",
                 )
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
+                fig.update_layout(
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white"
+                )
                 st.plotly_chart(fig, use_container_width=True)
 
 # ── Footer ──────────────────────────────────────────────────────────────────

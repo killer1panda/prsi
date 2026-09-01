@@ -4,9 +4,10 @@ Models multi-user discussion hyperedges, multi-relational composition (CompGCN),
 and continuous temporal event point processes via learnable Hawkes dynamics.
 """
 
-import math
 import logging
+import math
 from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -39,7 +40,7 @@ class HypergraphConv(nn.Module):
         self,
         x: torch.Tensor,
         hyperedge_index: torch.Tensor,
-        hyperedge_weight: Optional[torch.Tensor] = None
+        hyperedge_weight: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         x: Node feature matrix [N, in_channels]
@@ -72,11 +73,11 @@ class HypergraphConv(nn.Module):
         # 3. Node to Hyperedge Message Passing: H^T D_v^{-1/2} X
         x_norm = x * inv_sqrt_d_v.unsqueeze(-1)
         node_feats_per_pair = x_norm[node_idx]
-        
+
         # Aggregate to hyperedges
         edge_repr = torch.zeros(num_edges, self.in_channels, device=x.device, dtype=x.dtype)
         edge_repr.index_add_(0, edge_idx, node_feats_per_pair)
-        
+
         # Multiply by W_e D_e^{-1}
         edge_repr = edge_repr * (hyperedge_weight * inv_d_e).unsqueeze(-1)
 
@@ -106,7 +107,7 @@ class ContinuousTimeHawkesGAT(nn.Module):
 
         # Sinusoidal continuous-time basis weights
         self.time_w = nn.Parameter(torch.randn(time_dim) * 0.1)
-        
+
         # Hawkes self-excitation decay rate β and baseline intensity μ
         self.beta = nn.Parameter(torch.tensor([0.1]))
         self.mu = nn.Parameter(torch.tensor([1.0]))
@@ -123,10 +124,7 @@ class ContinuousTimeHawkesGAT(nn.Module):
         return torch.cos(time_deltas * self.time_w.unsqueeze(0))
 
     def forward(
-        self,
-        target_node_emb: torch.Tensor,
-        neighbor_embs: torch.Tensor,
-        time_deltas: torch.Tensor
+        self, target_node_emb: torch.Tensor, neighbor_embs: torch.Tensor, time_deltas: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         target_node_emb: [Batch, NodeDim]
@@ -138,8 +136,8 @@ class ContinuousTimeHawkesGAT(nn.Module):
         k_in = torch.cat([neighbor_embs, t_enc], dim=-1)
 
         q = self.q_proj(target_node_emb).unsqueeze(1)  # [B, 1, D]
-        k = self.k_proj(k_in)                          # [B, K, D]
-        v = self.v_proj(k_in)                          # [B, K, D]
+        k = self.k_proj(k_in)  # [B, K, D]
+        v = self.v_proj(k_in)  # [B, K, D]
 
         # Scaled dot-product attention
         scores = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.node_dim)
@@ -148,13 +146,17 @@ class ContinuousTimeHawkesGAT(nn.Module):
         # Hawkes temporal excitation weight: exp(-beta * delta_t)
         decay = torch.exp(-F.softplus(self.beta) * torch.clamp(time_deltas, min=0.0)).unsqueeze(1)
         modulated_weights = attn_weights * decay
-        modulated_weights = modulated_weights / torch.clamp(modulated_weights.sum(dim=-1, keepdim=True), min=1e-6)
+        modulated_weights = modulated_weights / torch.clamp(
+            modulated_weights.sum(dim=-1, keepdim=True), min=1e-6
+        )
 
         out = torch.bmm(modulated_weights, v).squeeze(1)
         out = self.out_proj(out)
 
         # Compute instant point process intensity
-        instant_intensity = F.softplus(self.mu) + F.softplus(self.alpha_excitation) * decay.squeeze(1).sum(dim=-1)
+        instant_intensity = F.softplus(self.mu) + F.softplus(self.alpha_excitation) * decay.squeeze(
+            1
+        ).sum(dim=-1)
 
         return out, instant_intensity
 
@@ -177,7 +179,7 @@ class FrontierHypergraphGNN(nn.Module):
         self,
         x: torch.Tensor,
         hyperedge_index: torch.Tensor,
-        hyperedge_weight: Optional[torch.Tensor] = None
+        hyperedge_weight: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         h = F.gelu(self.input_proj(x))
         h = self.hg_conv1(h, hyperedge_index, hyperedge_weight)
@@ -189,7 +191,15 @@ class HypergraphHGNN(nn.Module):
     """
     Hypergraph Neural Network (HGNN) using incidence matrix convolution.
     """
-    def __init__(self, in_channels: int = 6, hidden_channels: int = 128, out_channels: int = 128, num_layers: int = 2, dropout: float = 0.3):
+
+    def __init__(
+        self,
+        in_channels: int = 6,
+        hidden_channels: int = 128,
+        out_channels: int = 128,
+        num_layers: int = 2,
+        dropout: float = 0.3,
+    ):
         super().__init__()
         self.convs = nn.ModuleList()
         self.convs.append(HypergraphConv(in_channels, hidden_channels, dropout=dropout))

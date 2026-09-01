@@ -6,7 +6,8 @@ and performs filtered k-NN cosine similarity search in sub-millisecond latency.
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -26,13 +27,12 @@ class QdrantVectorEngine:
 
     async def initialize(self):
         """Initialize collection if remote client available."""
-        logger.info(f"Qdrant vector engine initialized for collection '{self.collection_name}' ({self.vector_size}d)")
+        logger.info(
+            f"Qdrant vector engine initialized for collection '{self.collection_name}' ({self.vector_size}d)"
+        )
 
     async def upsert_points(
-        self,
-        ids: List[str],
-        vectors: np.ndarray,
-        payloads: List[Dict[str, Any]]
+        self, ids: List[str], vectors: np.ndarray, payloads: List[Dict[str, Any]]
     ) -> bool:
         """
         Upsert a batch of vectors with associated metadata payloads.
@@ -46,10 +46,7 @@ class QdrantVectorEngine:
         return True
 
     async def search_similar(
-        self,
-        query_vector: np.ndarray,
-        top_k: int = 5,
-        platform_filter: Optional[str] = None
+        self, query_vector: np.ndarray, top_k: int = 5, platform_filter: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Execute filtered cosine k-NN search.
@@ -59,7 +56,9 @@ class QdrantVectorEngine:
 
         vec_matrix = np.array(self._memory_vectors)
         # Normalize for cosine similarity
-        norm_matrix = vec_matrix / np.maximum(np.linalg.norm(vec_matrix, axis=1, keepdims=True), 1e-8)
+        norm_matrix = vec_matrix / np.maximum(
+            np.linalg.norm(vec_matrix, axis=1, keepdims=True), 1e-8
+        )
         norm_query = query_vector / max(np.linalg.norm(query_vector), 1e-8)
 
         cosine_sims = norm_matrix @ norm_query
@@ -80,9 +79,11 @@ class QdrantVectorEngine:
         results = []
         for rank in top_order:
             actual_idx = valid_indices[rank]
-            results.append({
-                "id": self._memory_ids[actual_idx],
-                "score": float(filtered_sims[rank]),
-                "payload": self._memory_payloads[actual_idx]
-            })
+            results.append(
+                {
+                    "id": self._memory_ids[actual_idx],
+                    "score": float(filtered_sims[rank]),
+                    "payload": self._memory_payloads[actual_idx],
+                }
+            )
         return results

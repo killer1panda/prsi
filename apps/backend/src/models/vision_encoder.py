@@ -3,18 +3,19 @@ Qwen2-VL-7B NaViT Vision Encoder for multimodal Doom Index.
 Native dynamic resolution (up to 1120×1120), built-in OCR for meme text,
 temporal video understanding.
 """
-import logging
+
 import hashlib
-from pathlib import Path
-from typing import List, Optional, Union, Dict, Any
+import logging
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
 from PIL import Image
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
-from transformers import BitsAndBytesConfig
 from qwen_vl_utils import process_vision_info
+from transformers import (AutoProcessor, BitsAndBytesConfig,
+                          Qwen2VLForConditionalGeneration)
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class VisionConfig:
     freeze_backbone: bool = False
     projection_dim: int = 512
     max_pixels: int = 1003520  # 1120x1120 approx
-    min_pixels: int = 262144   # 512x512
+    min_pixels: int = 262144  # 512x512
 
 
 class VisionEncoder(nn.Module):
@@ -79,7 +80,7 @@ class VisionEncoder(nn.Module):
             nn.LayerNorm(self.config.projection_dim * 2),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(self.config.projection_dim * 2, self.config.projection_dim)
+            nn.Linear(self.config.projection_dim * 2, self.config.projection_dim),
         ).to(self.device)
 
         self._cache: Dict[str, torch.Tensor] = {}
@@ -114,7 +115,9 @@ class VisionEncoder(nn.Module):
             else:
                 raise ValueError(f"Unsupported image type: {type(img)}")
 
-        messages = [{"role": "user", "content": [{"type": "image", "image": img} for img in pil_images]}]
+        messages = [
+            {"role": "user", "content": [{"type": "image", "image": img} for img in pil_images]}
+        ]
 
         # Apply chat template and extract vision info for the processor
         text = self.processor.apply_chat_template(
@@ -132,8 +135,9 @@ class VisionEncoder(nn.Module):
         return inputs.to(self.device)
 
     @torch.no_grad()
-    def encode(self, images: List[Union[str, Path, Image.Image]],
-               use_cache: bool = True) -> torch.Tensor:
+    def encode(
+        self, images: List[Union[str, Path, Image.Image]], use_cache: bool = True
+    ) -> torch.Tensor:
         """
         Encode images to embedding vectors with caching.
         Extracts the last hidden state from the Qwen2-VL vision tower
@@ -162,7 +166,7 @@ class VisionEncoder(nn.Module):
         # Batch processing
         all_embeddings = []
         for i in range(0, len(images), self.config.batch_size):
-            batch = images[i:i + self.config.batch_size]
+            batch = images[i : i + self.config.batch_size]
             inputs = self.preprocess(batch)
 
             # Extract vision patch embeddings from the Qwen2-VL vision tower
@@ -174,7 +178,11 @@ class VisionEncoder(nn.Module):
 
             # visual_outputs: (total_patches, hidden_size=3584)
             # Pool per image using image_grid_thw
-            patch_counts = inputs.get("image_grid_thw").prod(dim=1).tolist() if inputs.get("image_grid_thw") is not None else [visual_outputs.size(0)]
+            patch_counts = (
+                inputs.get("image_grid_thw").prod(dim=1).tolist()
+                if inputs.get("image_grid_thw") is not None
+                else [visual_outputs.size(0)]
+            )
             pooled_list = []
             for img_patches in torch.split(visual_outputs, patch_counts):
                 pooled_list.append(img_patches.mean(dim=0, keepdim=True))
@@ -194,8 +202,9 @@ class VisionEncoder(nn.Module):
 
         return embeddings
 
-    def forward(self, pixel_values: torch.Tensor,
-                image_grid_thw: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, pixel_values: torch.Tensor, image_grid_thw: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Forward pass for training with preprocessed tensors."""
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
             visual_outputs = self.vision_model.model.visual(
@@ -252,8 +261,7 @@ class VisionEncoder(nn.Module):
         )
         # Trim the input tokens from the generated output
         generated_ids_trimmed = [
-            out_ids[len(in_ids):]
-            for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+            out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
         ]
         output_text = self.processor.batch_decode(
             generated_ids_trimmed,
@@ -262,8 +270,9 @@ class VisionEncoder(nn.Module):
         )
         return output_text[0].strip() if output_text else ""
 
-    def compute_similarity(self, img1: Union[str, Image.Image],
-                           img2: Union[str, Image.Image]) -> float:
+    def compute_similarity(
+        self, img1: Union[str, Image.Image], img2: Union[str, Image.Image]
+    ) -> float:
         """Compute cosine similarity between two images."""
         embs = self.encode([img1, img2], use_cache=False)
         sim = torch.cosine_similarity(embs[0:1], embs[1:2], dim=-1)
@@ -271,10 +280,7 @@ class VisionEncoder(nn.Module):
 
     def save(self, path: str):
         """Save projection head weights and config (backbone weights are managed separately)."""
-        torch.save({
-            "projection": self.projection.state_dict(),
-            "config": self.config
-        }, path)
+        torch.save({"projection": self.projection.state_dict(), "config": self.config}, path)
         logger.info(f"VisionEncoder projection head saved to {path}")
 
     def load(self, path: str):
@@ -293,8 +299,9 @@ class MultimodalFusion(nn.Module):
     (raw Qwen2-VL hidden size is 3584, projected down to 512).
     """
 
-    def __init__(self, text_dim: int = 4096, vision_dim: int = 512,
-                 fusion_dim: int = 512, num_heads: int = 8):
+    def __init__(
+        self, text_dim: int = 4096, vision_dim: int = 512, fusion_dim: int = 512, num_heads: int = 8
+    ):
         super().__init__()
         self.text_proj = nn.Linear(text_dim, fusion_dim)
         self.vision_proj = nn.Linear(vision_dim, fusion_dim)
@@ -307,12 +314,13 @@ class MultimodalFusion(nn.Module):
             nn.LayerNorm(fusion_dim),
             nn.GELU(),
             nn.Dropout(0.15),
-            nn.Linear(fusion_dim, fusion_dim)
+            nn.Linear(fusion_dim, fusion_dim),
         )
         self.output_proj = nn.Linear(fusion_dim, 1)
 
-    def forward(self, text_emb: torch.Tensor,
-                vision_emb: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, text_emb: torch.Tensor, vision_emb: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
             text_emb: (B, text_dim)

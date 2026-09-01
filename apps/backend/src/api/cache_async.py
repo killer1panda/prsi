@@ -5,12 +5,12 @@ Implements probabilistic early expiration:
 to eliminate cache stampedes under high concurrency, with vectorized MGET/MSET.
 """
 
-import math
-import time
-import json
-import random
 import hashlib
+import json
 import logging
+import math
+import random
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class AsyncDoomCache:
         redis_client: Optional[Any] = None,
         default_ttl: int = 3600,
         key_prefix: str = "doom:v2:",
-        beta: float = 1.0
+        beta: float = 1.0,
     ):
         self.redis = redis_client
         self.default_ttl = default_ttl
@@ -40,9 +40,11 @@ class AsyncDoomCache:
         payload = {
             "text": text.strip(),
             "user_id": user_id or "anon",
-            **{k: v for k, v in sorted(kwargs.items()) if v is not None}
+            **{k: v for k, v in sorted(kwargs.items()) if v is not None},
         }
-        raw_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[:24]
+        raw_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[
+            :24
+        ]
         return f"{self.key_prefix}{raw_hash}"
 
     async def get_with_xfetch(self, key: str) -> Tuple[Optional[Dict[str, Any]], bool]:
@@ -90,14 +92,14 @@ class AsyncDoomCache:
         key: str,
         result: Dict[str, Any],
         computation_cost_sec: float = 0.05,
-        ttl: Optional[int] = None
+        ttl: Optional[int] = None,
     ):
         """Set cache entry with computation cost metadata for XFetch."""
         effective_ttl = ttl or self.default_ttl
         payload = {
             "result": result,
             "_computation_cost_sec": computation_cost_sec,
-            "_cached_at": time.time()
+            "_cached_at": time.time(),
         }
 
         if self.redis is not None:
@@ -143,9 +145,7 @@ class AsyncDoomCache:
         return results
 
     async def mset_batch(
-        self,
-        items: List[Tuple[str, Dict[str, Any], float]],
-        ttl: Optional[int] = None
+        self, items: List[Tuple[str, Dict[str, Any], float]], ttl: Optional[int] = None
     ):
         """Vectorized pipeline batch set."""
         if not items:
@@ -157,11 +157,9 @@ class AsyncDoomCache:
             try:
                 pipe = self.redis.pipeline()
                 for key, res, cost in items:
-                    payload = json.dumps({
-                        "result": res,
-                        "_computation_cost_sec": cost,
-                        "_cached_at": time.time()
-                    })
+                    payload = json.dumps(
+                        {"result": res, "_computation_cost_sec": cost, "_cached_at": time.time()}
+                    )
                     pipe.setex(key, effective_ttl, payload)
                 await pipe.execute()
                 return

@@ -5,7 +5,8 @@ and genetic linguistic optimization to test model robustness and safety boundari
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -24,10 +25,7 @@ class GCGOptimizer:
         self.batch_size = batch_size
 
     def step(
-        self,
-        prompt: str,
-        target_class: int = 1,
-        initial_suffix: str = "== critical update =="
+        self, prompt: str, target_class: int = 1, initial_suffix: str = "== critical update =="
     ) -> Dict[str, Any]:
         """
         Execute an optimization step to find adversarial candidate suffixes.
@@ -37,7 +35,7 @@ class GCGOptimizer:
             f"{initial_suffix} urgent PSA",
             f"{initial_suffix} breaking evidence",
             f"{initial_suffix} official statement",
-            f"{initial_suffix} accountability notice"
+            f"{initial_suffix} accountability notice",
         ]
 
         best_suffix = candidate_suffixes[0]
@@ -46,7 +44,7 @@ class GCGOptimizer:
             "best_suffix": best_suffix,
             "perturbed_text": f"{prompt} {best_suffix}",
             "target_class": target_class,
-            "optimization_method": "GCG_Coordinate_Gradient"
+            "optimization_method": "GCG_Coordinate_Gradient",
         }
 
 
@@ -66,12 +64,12 @@ class AutoDANOptimizer:
         mutations = [
             f"Hypothetically speaking, consider: {base_text}",
             f"In a simulated scenario, {base_text}",
-            f"Analyzing community reaction to: {base_text}"
+            f"Analyzing community reaction to: {base_text}",
         ]
         return {
             "original_text": base_text,
             "adversarial_prompt": mutations[0],
             "attack_success": True,
             "perplexity_score": 18.4,
-            "semantic_similarity": 0.91
+            "semantic_similarity": 0.91,
         }

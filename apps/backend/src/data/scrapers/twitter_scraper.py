@@ -29,11 +29,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Generator, Iterable, List, Optional
 
-from loguru import logger
-from tqdm import tqdm
 import httpx
-
+from loguru import logger
 from src.config import get_env_var
+from tqdm import tqdm
 
 # ------------------------------
 # Optional dependencies
@@ -42,6 +41,7 @@ from src.config import get_env_var
 # tweepy (official API)
 try:  # pragma: no cover - optional dependency
     import tweepy
+
     TWEEPY_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency
     tweepy = None  # type: ignore
@@ -50,7 +50,9 @@ except ImportError:  # pragma: no cover - optional dependency
 
 # twikit (unofficial web client)
 try:  # pragma: no cover - optional dependency
-    from twikit import Client as TwikitClient, Tweet as TwikitTweet, User as TwikitUser
+    from twikit import Client as TwikitClient
+    from twikit import Tweet as TwikitTweet
+    from twikit import User as TwikitUser
 
     TWIKIT_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency
@@ -64,6 +66,7 @@ except ImportError:  # pragma: no cover - optional dependency
 # ------------------------------
 # Backend configuration
 # ------------------------------
+
 
 @dataclass
 class TwikitConfig:
@@ -90,6 +93,7 @@ class TwikitConfig:
 # ------------------------------
 # Main scraper
 # ------------------------------
+
 
 class TwitterScraper:
     """Twitter/X scraper that can use either tweepy or Twikit as a backend.
@@ -178,7 +182,13 @@ class TwitterScraper:
                 auth = tweepy.OAuthHandler(self.api_key, self.api_secret)
                 auth.set_access_token(self.access_token, self.access_secret)
                 self.api = tweepy.API(auth, wait_on_rate_limit=True)
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Failed to initialize tweepy v1.1 API: {exc}")
 
         if self.bearer_token:
@@ -191,7 +201,13 @@ class TwitterScraper:
                     access_token_secret=self.access_secret,
                     wait_on_rate_limit=True,
                 )
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Failed to initialize tweepy v2 Client: {exc}")
 
     def _init_twikit_backend(self) -> None:
@@ -219,15 +235,22 @@ class TwitterScraper:
             if cfg.cookies_file:
                 try:
                     import json
-                    with open(cfg.cookies_file, 'r') as f:
+
+                    with open(cfg.cookies_file, "r") as f:
                         browser_cookies = json.load(f)
                     # Convert to Twikit format (dict with name as key)
-                    cookies = {c['name']: c['value'] for c in browser_cookies}
+                    cookies = {c["name"]: c["value"] for c in browser_cookies}
                     client.set_cookies(cookies)
                     logger.info(f"Loaded Twikit cookies from {cfg.cookies_file}")
                     self.twikit_client = client
                     return
-                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:
+                except (
+                    TimeoutError,
+                    ValueError,
+                    KeyError,
+                    httpx.RequestError,
+                    json.JSONDecodeError,
+                ) as exc:
                     logger.warning(f"Failed to load cookies file: {exc}. Trying other methods.")
 
             if cfg.session_file:
@@ -237,8 +260,16 @@ class TwitterScraper:
                     logger.info(f"Loaded Twikit session from {cfg.session_file}")
                     self.twikit_client = client
                     return
-                except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - filesystem/network
-                    logger.warning(f"Failed to load Twikit session file: {exc}. Will try login if credentials exist.")
+                except (
+                    TimeoutError,
+                    ValueError,
+                    KeyError,
+                    httpx.RequestError,
+                    json.JSONDecodeError,
+                ) as exc:  # pragma: no cover - filesystem/network
+                    logger.warning(
+                        f"Failed to load Twikit session file: {exc}. Will try login if credentials exist."
+                    )
 
             # If we have credentials, attempt login
             if cfg.email and cfg.username and cfg.password:
@@ -247,11 +278,21 @@ class TwitterScraper:
                 asyncio.run(self._twikit_login_and_maybe_persist(client, cfg))
                 self.twikit_client = client
             else:
-                logger.debug("Twikit credentials or session file not provided; Twikit backend disabled.")
-        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+                logger.debug(
+                    "Twikit credentials or session file not provided; Twikit backend disabled."
+                )
+        except (
+            TimeoutError,
+            ValueError,
+            KeyError,
+            httpx.RequestError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - network dependent
             logger.error(f"Failed to initialize Twikit backend: {exc}")
 
-    async def _twikit_login_and_maybe_persist(self, client: TwikitClient, cfg: TwikitConfig) -> None:
+    async def _twikit_login_and_maybe_persist(
+        self, client: TwikitClient, cfg: TwikitConfig
+    ) -> None:
         """Async helper to log in with Twikit and save session if a path is given."""
         try:
             # New Twikit API uses auth_info_1 and auth_info_2
@@ -265,7 +306,13 @@ class TwitterScraper:
             if cfg.session_file:
                 client.save_session(cfg.session_file)
                 logger.info(f"Saved Twikit session to {cfg.session_file}")
-        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+        except (
+            TimeoutError,
+            ValueError,
+            KeyError,
+            httpx.RequestError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - network dependent
             logger.error(f"Twikit login failed: {exc}")
 
     # ------------------------------
@@ -309,11 +356,15 @@ class TwitterScraper:
 
         if self.twikit_client:
             logger.info(f"Searching tweets via Twikit with query: {query}")
-            yield from self._twikit_search_cancellation_events(query, start_date, end_date, max_results)
+            yield from self._twikit_search_cancellation_events(
+                query, start_date, end_date, max_results
+            )
             return
 
         if not (self.client and TWEEPY_AVAILABLE):
-            logger.error("No Twitter backend available for search. Install twikit or configure tweepy credentials.")
+            logger.error(
+                "No Twitter backend available for search. Install twikit or configure tweepy credentials."
+            )
             return
 
         logger.info(f"Searching tweets via tweepy with query: {query}")
@@ -335,7 +386,13 @@ class TwitterScraper:
         if self.twikit_client:
             try:
                 return list(self._twikit_get_user_timeline(user_id, max_tweets))
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Error fetching user timeline via Twikit: {exc}")
 
         # Tweepy path
@@ -361,7 +418,13 @@ class TwitterScraper:
         if self.twikit_client:
             try:
                 return list(self._twikit_get_tweet_replies(tweet_id, max_replies))
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Error fetching replies via Twikit: {exc}")
 
         if not (self.client and TWEEPY_AVAILABLE):
@@ -395,7 +458,9 @@ class TwitterScraper:
             logger.info(f"Collecting tweets for: {keyword}")
 
             count = 0
-            for tweet in self.search_cancellation_events(query=keyword, max_results=samples_per_keyword):
+            for tweet in self.search_cancellation_events(
+                query=keyword, max_results=samples_per_keyword
+            ):
                 all_tweets.append(tweet)
                 count += 1
                 if count >= samples_per_keyword:
@@ -424,7 +489,9 @@ class TwitterScraper:
             logger.info(f"Fetching trends via Twikit for location: {location}")
             return self._twikit_get_trends(location)
 
-        logger.warning("No Twikit backend available for trends. Install twikit and configure credentials.")
+        logger.warning(
+            "No Twikit backend available for trends. Install twikit and configure credentials."
+        )
         return []
 
     # ------------------------------
@@ -533,21 +600,41 @@ class TwitterScraper:
         data: Dict[str, Any] = {
             "tweet_id": getattr(tweet, "id", None),
             "text": getattr(tweet, "text", None),
-            "created_at": tweet.created_at.isoformat() if getattr(tweet, "created_at", None) else None,
-            "author_id": self.anonymize_user_id(str(tweet.author_id)) if getattr(tweet, "author_id", None) else None,
+            "created_at": (
+                tweet.created_at.isoformat() if getattr(tweet, "created_at", None) else None
+            ),
+            "author_id": (
+                self.anonymize_user_id(str(tweet.author_id))
+                if getattr(tweet, "author_id", None)
+                else None
+            ),
             "metrics": {
-                "likes": (tweet.public_metrics or {}).get("like_count", 0) if hasattr(tweet, "public_metrics") else 0,
-                "retweets": (tweet.public_metrics or {}).get("retweet_count", 0) if hasattr(tweet, "public_metrics") else 0,
-                "replies": (tweet.public_metrics or {}).get("reply_count", 0) if hasattr(tweet, "public_metrics") else 0,
-                "quotes": (tweet.public_metrics or {}).get("quote_count", 0) if hasattr(tweet, "public_metrics") else 0,
+                "likes": (
+                    (tweet.public_metrics or {}).get("like_count", 0)
+                    if hasattr(tweet, "public_metrics")
+                    else 0
+                ),
+                "retweets": (
+                    (tweet.public_metrics or {}).get("retweet_count", 0)
+                    if hasattr(tweet, "public_metrics")
+                    else 0
+                ),
+                "replies": (
+                    (tweet.public_metrics or {}).get("reply_count", 0)
+                    if hasattr(tweet, "public_metrics")
+                    else 0
+                ),
+                "quotes": (
+                    (tweet.public_metrics or {}).get("quote_count", 0)
+                    if hasattr(tweet, "public_metrics")
+                    else 0
+                ),
             },
             "hashtags": [
-                tag["tag"]
-                for tag in (getattr(tweet, "entities", {}) or {}).get("hashtags", [])
+                tag["tag"] for tag in (getattr(tweet, "entities", {}) or {}).get("hashtags", [])
             ],
             "mentions": [
-                m["username"]
-                for m in (getattr(tweet, "entities", {}) or {}).get("mentions", [])
+                m["username"] for m in (getattr(tweet, "entities", {}) or {}).get("mentions", [])
             ],
             "source": "twitter",
         }
@@ -558,7 +645,9 @@ class TwitterScraper:
                 if getattr(user, "id", None) == tweet.author_id:
                     data["user"] = {
                         "username": getattr(user, "username", None),
-                        "followers": (getattr(user, "public_metrics", {}) or {}).get("followers_count", 0),
+                        "followers": (getattr(user, "public_metrics", {}) or {}).get(
+                            "followers_count", 0
+                        ),
                         "verified": bool(getattr(user, "verified", False)),
                     }
                     break
@@ -591,7 +680,7 @@ class TwitterScraper:
             results: List[Dict[str, Any]] = []
 
             # Use configurable search product (Top or Latest) from TwikitConfig
-            search_product = getattr(self.twikit_config, 'search_product', 'Top')
+            search_product = getattr(self.twikit_config, "search_product", "Top")
             # Twikit's search_tweets returns a TweetList that supports pagination via .next()
             # Reference: https://twikit.readthedocs.io/en/latest/twikit.html#twikit.client.Client.search_tweets
             tweet_list = await client.search_tweets(query=query, product=search_product)
@@ -633,7 +722,13 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error searching tweets via Twikit: {exc}")
             tweets = []
-        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+        except (
+            TimeoutError,
+            ValueError,
+            KeyError,
+            httpx.RequestError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error searching tweets via Twikit: {exc}")
             tweets = []
 
@@ -654,7 +749,13 @@ class TwitterScraper:
                     user = await client.get_user_by_id(user_id)
                 else:
                     user = await client.get_user_by_screen_name(user_id)
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Twikit: failed to resolve user '{user_id}': {exc}")
                 return results
 
@@ -688,13 +789,21 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error fetching user timeline via Twikit: {exc}")
             tweets = []
-        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+        except (
+            TimeoutError,
+            ValueError,
+            KeyError,
+            httpx.RequestError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching user timeline via Twikit: {exc}")
             tweets = []
 
         return tweets
 
-    def _twikit_get_tweet_replies(self, tweet_id: str, max_replies: int) -> Iterable[Dict[str, Any]]:
+    def _twikit_get_tweet_replies(
+        self, tweet_id: str, max_replies: int
+    ) -> Iterable[Dict[str, Any]]:
         client = self.twikit_client
         if client is None:
             return []
@@ -704,7 +813,13 @@ class TwitterScraper:
 
             try:
                 tweet: TwikitTweet = await client.get_tweet_by_id(tweet_id)
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Twikit: failed to get tweet {tweet_id}: {exc}")
                 return results
 
@@ -738,7 +853,13 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error fetching tweet replies via Twikit: {exc}")
             replies = []
-        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+        except (
+            TimeoutError,
+            ValueError,
+            KeyError,
+            httpx.RequestError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching tweet replies via Twikit: {exc}")
             replies = []
 
@@ -746,7 +867,7 @@ class TwitterScraper:
 
     def _twikit_get_trends(self, location: str = "trending") -> List[Dict[str, Any]]:
         """Get trending topics using Twikit backend.
-        
+
         New Twikit API requires category parameter.
         """
         client = self.twikit_client
@@ -758,24 +879,32 @@ class TwitterScraper:
                 # Map location to category
                 category_map = {
                     "trending": "trending",
-                    "for-you": "for-you", 
+                    "for-you": "for-you",
                     "news": "news",
                     "sports": "sports",
-                    "entertainment": "entertainment"
+                    "entertainment": "entertainment",
                 }
                 category = category_map.get(location, "trending")
                 trends = await client.get_trends(category=category)
                 results: List[Dict[str, Any]] = []
                 for trend in trends:
-                    results.append({
-                        "name": getattr(trend, "name", None),
-                        "domain": getattr(trend, "domain_context", None),
-                        "url": getattr(trend, "url", None),
-                        "tweet_volume": getattr(trend, "tweets_count", None),
-                        "location": location,
-                    })
+                    results.append(
+                        {
+                            "name": getattr(trend, "name", None),
+                            "domain": getattr(trend, "domain_context", None),
+                            "url": getattr(trend, "url", None),
+                            "tweet_volume": getattr(trend, "tweets_count", None),
+                            "location": location,
+                        }
+                    )
                 return results
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:  # pragma: no cover - network dependent
                 logger.error(f"Error fetching trends via Twikit: {exc}")
                 return []
 
@@ -790,7 +919,13 @@ class TwitterScraper:
         except httpx.RequestError as exc:
             logger.error(f"Network error fetching trends via Twikit: {exc}")
             trends = []
-        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:  # pragma: no cover - network dependent
+        except (
+            TimeoutError,
+            ValueError,
+            KeyError,
+            httpx.RequestError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - network dependent
             logger.error(f"Error fetching trends via Twikit: {exc}")
             trends = []
 
@@ -826,9 +961,11 @@ class TwitterScraper:
             "tweet_id": getattr(tweet, "id", None) or getattr(tweet, "tweet_id", None),
             "text": getattr(tweet, "text", None) or getattr(tweet, "full_text", None),
             "created_at": created_at.isoformat() if created_at else None,
-            "author_id": self.anonymize_user_id(str(getattr(tweet, "user_id", "")))
-            if getattr(tweet, "user_id", None)
-            else None,
+            "author_id": (
+                self.anonymize_user_id(str(getattr(tweet, "user_id", "")))
+                if getattr(tweet, "user_id", None)
+                else None
+            ),
             "metrics": {
                 "likes": getattr(tweet, "favorite_count", 0),
                 "retweets": getattr(tweet, "retweet_count", 0),
@@ -845,7 +982,8 @@ class TwitterScraper:
         user_obj = getattr(tweet, "user", None)
         if user_obj is not None:
             data["user"] = {
-                "username": getattr(user_obj, "screen_name", None) or getattr(user_obj, "username", None),
+                "username": getattr(user_obj, "screen_name", None)
+                or getattr(user_obj, "username", None),
                 "followers": getattr(user_obj, "followers_count", 0),
                 "verified": bool(getattr(user_obj, "verified", False)),
             }
@@ -882,17 +1020,17 @@ class TwitterScraper:
 
     def get_home_timeline(self, count: int = 100) -> List[Dict[str, Any]]:
         """Get home timeline tweets using Twikit backend.
-        
+
         Args:
             count: Number of tweets to fetch (default: 100)
-            
+
         Returns:
             List of tweet dictionaries.
         """
         if not self.twikit_client:
             logger.warning("No Twikit backend available for timeline.")
             return []
-        
+
         return self._twikit_get_home_timeline(count)
 
     def _twikit_get_home_timeline(self, count: int) -> List[Dict[str, Any]]:
@@ -906,18 +1044,26 @@ class TwitterScraper:
                 timeline = await client.get_latest_timeline(count=count)
                 results: List[Dict[str, Any]] = []
                 for tweet in timeline:
-                    results.append({
-                        "id": tweet.id,
-                        "user": tweet.user.screen_name,
-                        "user_name": tweet.user.name,
-                        "text": tweet.text,
-                        "created_at": str(tweet.created_at) if tweet.created_at else None,
-                        "likes": tweet.favorite_count,
-                        "retweets": tweet.retweet_count,
-                        "replies": tweet.reply_count,
-                    })
+                    results.append(
+                        {
+                            "id": tweet.id,
+                            "user": tweet.user.screen_name,
+                            "user_name": tweet.user.name,
+                            "text": tweet.text,
+                            "created_at": str(tweet.created_at) if tweet.created_at else None,
+                            "likes": tweet.favorite_count,
+                            "retweets": tweet.retweet_count,
+                            "replies": tweet.reply_count,
+                        }
+                    )
                 return results
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:
                 logger.error(f"Error fetching timeline via Twikit: {exc}")
                 return []
 
@@ -928,21 +1074,23 @@ class TwitterScraper:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(_runner())
 
-    def search_tweets(self, query: str, product: str = "Top", count: int = 20) -> List[Dict[str, Any]]:
+    def search_tweets(
+        self, query: str, product: str = "Top", count: int = 20
+    ) -> List[Dict[str, Any]]:
         """Search for tweets using Twikit backend.
-        
+
         Args:
             query: Search query
             product: Search product ("Top", "Latest", or "Media")
             count: Number of results to fetch
-            
+
         Returns:
             List of tweet dictionaries.
         """
         if not self.twikit_client:
             logger.warning("No Twikit backend available for search.")
             return []
-        
+
         return self._twikit_search_tweets(query, product, count)
 
     def _twikit_search_tweets(self, query: str, product: str, count: int) -> List[Dict[str, Any]]:
@@ -956,17 +1104,25 @@ class TwitterScraper:
                 results = await client.search_tweet(query, product=product, count=count)
                 tweets: List[Dict[str, Any]] = []
                 for tweet in results:
-                    tweets.append({
-                        "id": tweet.id,
-                        "user": tweet.user.screen_name,
-                        "user_name": tweet.user.name,
-                        "text": tweet.text,
-                        "created_at": str(tweet.created_at) if tweet.created_at else None,
-                        "likes": tweet.favorite_count,
-                        "retweets": tweet.retweet_count,
-                    })
+                    tweets.append(
+                        {
+                            "id": tweet.id,
+                            "user": tweet.user.screen_name,
+                            "user_name": tweet.user.name,
+                            "text": tweet.text,
+                            "created_at": str(tweet.created_at) if tweet.created_at else None,
+                            "likes": tweet.favorite_count,
+                            "retweets": tweet.retweet_count,
+                        }
+                    )
                 return tweets
-            except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as exc:
+            except (
+                TimeoutError,
+                ValueError,
+                KeyError,
+                httpx.RequestError,
+                json.JSONDecodeError,
+            ) as exc:
                 logger.error(f"Error searching tweets via Twikit: {exc}")
                 return []
 

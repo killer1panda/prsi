@@ -4,9 +4,10 @@ Prevents gradient signal destruction in deep transformers by dynamically tuning
 per-layer clipping thresholds C_l^(t) using private empirical quantile estimators.
 """
 
-import math
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+import math
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import torch
 import torch.nn as nn

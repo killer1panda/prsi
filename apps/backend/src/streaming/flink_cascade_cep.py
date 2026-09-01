@@ -5,10 +5,10 @@ d(Doom)/dt >= θ_accel AND Doom_score >= θ_critical
 across a sliding event-time window with out-of-order event tolerance.
 """
 
-import time
 import json
 import logging
-from typing import Dict, List, Optional, Tuple, Any, Generator
+import time
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class OutrageCascadeDetectorCEP:
         self,
         velocity_threshold: float = 15.0,  # points per second / hour
         critical_score_threshold: float = 75.0,
-        window_duration_sec: float = 10.0
+        window_duration_sec: float = 10.0,
     ):
         self.velocity_threshold = velocity_threshold
         self.critical_score_threshold = critical_score_threshold
@@ -36,7 +36,7 @@ class OutrageCascadeDetectorCEP:
         entity_key: str,
         post_id: str,
         doom_score: float,
-        timestamp_sec: Optional[float] = None
+        timestamp_sec: Optional[float] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         Process a single streaming event and return an alert dict if a cascade is triggered.
@@ -47,11 +47,7 @@ class OutrageCascadeDetectorCEP:
             self.state_buffer[entity_key] = []
 
         history = self.state_buffer[entity_key]
-        history.append({
-            "post_id": post_id,
-            "doom_score": doom_score,
-            "timestamp": now
-        })
+        history.append({"post_id": post_id, "doom_score": doom_score, "timestamp": now})
 
         # Evict events older than window_duration_sec
         cutoff = now - self.window_duration_sec
@@ -69,7 +65,10 @@ class OutrageCascadeDetectorCEP:
 
             if delta_t > 0:
                 velocity = delta_score / delta_t
-                if velocity >= self.velocity_threshold and latest_event["doom_score"] >= self.critical_score_threshold:
+                if (
+                    velocity >= self.velocity_threshold
+                    and latest_event["doom_score"] >= self.critical_score_threshold
+                ):
                     return {
                         "alert_type": "OUTRAGE_CASCADE_SPIKE",
                         "entity_key": entity_key,
@@ -77,7 +76,7 @@ class OutrageCascadeDetectorCEP:
                         "initial_score": first_event["doom_score"],
                         "current_score": latest_event["doom_score"],
                         "events_in_window": len(active_window),
-                        "timestamp": now
+                        "timestamp": now,
                     }
 
         return None

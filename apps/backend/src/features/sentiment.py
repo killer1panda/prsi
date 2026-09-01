@@ -5,22 +5,25 @@ This module provides sentiment analysis capabilities using:
 - HuggingFace Transformers (Mistral-7B-Instruct-based sentiment model)
 """
 
-from typing import Dict, Any, Optional
 import logging
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 # Optional dependencies
 try:
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
     VADER_AVAILABLE = True
 except ImportError:
     VADER_AVAILABLE = False
     logger.warning("vaderSentiment not available")
 
 try:
-    from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification, BitsAndBytesConfig
     import torch
+    from transformers import (AutoModelForSequenceClassification,
+                              AutoTokenizer, BitsAndBytesConfig, pipeline)
+
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
@@ -50,7 +53,7 @@ class SentimentAnalyzer:
                 self._transformer_pipeline = pipeline(
                     "sentiment-analysis",
                     model="mistralai/Mistral-7B-Instruct-v0.3",
-                    return_all_scores=True
+                    return_all_scores=True,
                 )
             except Exception as e:
                 logger.warning(f"Could not load Mistral pipeline: {e}")
@@ -104,7 +107,6 @@ class SentimentAnalyzer:
 
         return self.vader.polarity_scores(text)
 
-
     def analyze_transformer(self, text: str) -> Optional[Dict[str, float]]:
         """Analyze sentiment using HuggingFace transformer.
 
@@ -119,7 +121,7 @@ class SentimentAnalyzer:
             # The pipeline may return a list of dicts or a list of list of dicts
             if not results:
                 return None
-            
+
             if isinstance(results, list):
                 if isinstance(results[0], list):
                     seq = results[0]
@@ -127,8 +129,8 @@ class SentimentAnalyzer:
                     seq = results
                 scores = {}
                 for result in seq:
-                    if isinstance(result, dict) and 'label' in result and 'score' in result:
-                        scores[result['label']] = result['score']
+                    if isinstance(result, dict) and "label" in result and "score" in result:
+                        scores[result["label"]] = result["score"]
                 return scores if scores else None
             return None
         except Exception as e:
@@ -164,7 +166,7 @@ class SentimentAnalyzer:
                 probabilities = torch.nn.functional.softmax(logits, dim=-1)
                 scores = {
                     "LABEL_0": probabilities[0][0].item(),  # Negative
-                    "LABEL_1": probabilities[0][1].item()   # Positive
+                    "LABEL_1": probabilities[0][1].item(),  # Positive
                 }
             return scores
         except Exception as e:
@@ -177,28 +179,29 @@ class SentimentAnalyzer:
         Returns:
             Dict containing vader, sentiment_compound, overall_sentiment, etc.
         """
-        vader_res = self.analyze_vader(text) or {'compound': 0.0, 'pos': 0.0, 'neg': 0.0, 'neu': 1.0}
-        compound = vader_res.get('compound', 0.0)
-
-        result = {
-            'vader': vader_res,
-            'sentiment_compound': compound,
-            'text_length': len(text)
+        vader_res = self.analyze_vader(text) or {
+            "compound": 0.0,
+            "pos": 0.0,
+            "neg": 0.0,
+            "neu": 1.0,
         }
+        compound = vader_res.get("compound", 0.0)
+
+        result = {"vader": vader_res, "sentiment_compound": compound, "text_length": len(text)}
 
         if include_transformers:
-            result['transformer'] = self.analyze_transformer(text)
-            result['mistral'] = self.analyze_mistral(text)
+            result["transformer"] = self.analyze_transformer(text)
+            result["mistral"] = self.analyze_mistral(text)
         else:
-            result['transformer'] = None
-            result['mistral'] = None
+            result["transformer"] = None
+            result["mistral"] = None
 
         if compound >= 0.05:
-            result['overall_sentiment'] = 'positive'
+            result["overall_sentiment"] = "positive"
         elif compound <= -0.05:
-            result['overall_sentiment'] = 'negative'
+            result["overall_sentiment"] = "negative"
         else:
-            result['overall_sentiment'] = 'neutral'
+            result["overall_sentiment"] = "neutral"
 
         return result
 
@@ -206,12 +209,14 @@ class SentimentAnalyzer:
 # Global analyzer instance
 _analyzer = None
 
+
 def get_sentiment_analyzer() -> SentimentAnalyzer:
     """Get or create global sentiment analyzer instance."""
     global _analyzer
     if _analyzer is None:
         _analyzer = SentimentAnalyzer()
     return _analyzer
+
 
 def analyze_text_sentiment(text: str) -> Dict[str, Any]:
     """Convenience function to analyze text sentiment."""

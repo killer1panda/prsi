@@ -4,11 +4,13 @@ This module provides toxicity analysis for text content.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 import requests
 from src.config import get_env_var
 
 logger = logging.getLogger(__name__)
+
 
 class ToxicityAnalyzer:
     """Toxicity analyzer using Google Perspective API."""
@@ -26,7 +28,20 @@ class ToxicityAnalyzer:
 
     def _local_heuristic(self, text: str) -> Dict[str, float]:
         """Local keyword-based heuristic fallback."""
-        toxic_words = {'hate', 'stupid', 'cancel', 'terrible', 'horrible', 'idiot', 'disgusting', 'kill', 'evil', 'trash', 'scam', 'liar'}
+        toxic_words = {
+            "hate",
+            "stupid",
+            "cancel",
+            "terrible",
+            "horrible",
+            "idiot",
+            "disgusting",
+            "kill",
+            "evil",
+            "trash",
+            "scam",
+            "liar",
+        }
         words = set(text.lower().split())
         matches = len(words & toxic_words)
         score = min(1.0, max(0.05, matches * 0.3))
@@ -37,7 +52,7 @@ class ToxicityAnalyzer:
             "identity_attack": 0.0,
             "insult": score * 0.8,
             "profanity": score * 0.4,
-            "threat": 0.0
+            "threat": 0.0,
         }
 
     def analyze_toxicity(self, text: str) -> Dict[str, float]:
@@ -54,16 +69,12 @@ class ToxicityAnalyzer:
                 "IDENTITY_ATTACK": {},
                 "INSULT": {},
                 "PROFANITY": {},
-                "THREAT": {}
-            }
+                "THREAT": {},
+            },
         }
 
         try:
-            response = requests.post(
-                f"{self.endpoint}?key={self.api_key}",
-                json=data,
-                timeout=5
-            )
+            response = requests.post(f"{self.endpoint}?key={self.api_key}", json=data, timeout=5)
             response.raise_for_status()
             result = response.json()
 
@@ -78,7 +89,6 @@ class ToxicityAnalyzer:
             logger.warning(f"Perspective API error ({e}). Using local heuristic fallback.")
             return self._local_heuristic(text)
 
-
     def is_toxic(self, text: str, threshold: float = 0.7) -> bool:
         """Check if text is toxic based on threshold."""
         scores = self.analyze_toxicity(text)
@@ -91,11 +101,13 @@ import threading
 
 _local = threading.local()
 
+
 def get_toxicity_analyzer() -> ToxicityAnalyzer:
     """Get or create thread-local toxicity analyzer instance."""
     if not hasattr(_local, "analyzer") or _local.analyzer is None:
         _local.analyzer = ToxicityAnalyzer()
     return _local.analyzer
+
 
 def analyze_text_toxicity(text: str) -> Optional[Dict[str, float]]:
     """Convenience function to analyze text toxicity."""

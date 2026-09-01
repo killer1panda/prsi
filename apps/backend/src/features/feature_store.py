@@ -3,19 +3,20 @@ Production Feature Store for Doom Index.
 Manages online (low-latency) and offline (training) feature consistency
 with versioning, materialization, and point-in-time correctness.
 """
-import logging
-import json
+
 import hashlib
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
-from dataclasses import dataclass, asdict
-from datetime import datetime
+import json
+import logging
 from collections import defaultdict
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import torch
 import redis
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FeatureView:
     """Definition of a feature view (logical grouping of features)."""
+
     name: str
     entities: List[str]  # e.g., ["user_id", "post_id"]
     features: List[str]
@@ -39,18 +41,22 @@ class FeatureView:
 
     def feature_hash(self) -> str:
         """Generate hash of feature definition for versioning."""
-        content = json.dumps({
-            "name": self.name,
-            "entities": sorted(self.entities),
-            "features": sorted(self.features),
-            "version": self.version
-        }, sort_keys=True)
+        content = json.dumps(
+            {
+                "name": self.name,
+                "entities": sorted(self.entities),
+                "features": sorted(self.features),
+                "version": self.version,
+            },
+            sort_keys=True,
+        )
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
 @dataclass
 class FeatureValue:
     """A single feature value with metadata."""
+
     value: Any
     timestamp: datetime
     feature_view: str
@@ -64,19 +70,29 @@ class FeatureStore:
     Ensures training/serving consistency via feature versioning.
     """
 
-    def __init__(self, redis_host: str = "localhost", redis_port: int = 6379,
-                 redis_db: int = 0, offline_path: str = "data/feature_store"):
+    def __init__(
+        self,
+        redis_host: str = "localhost",
+        redis_port: int = 6379,
+        redis_db: int = 0,
+        offline_path: str = "data/feature_store",
+    ):
         self.redis_client = None
         self._in_memory_online = {}
         try:
             client = redis.Redis(
-                host=redis_host, port=redis_port, db=redis_db,
-                decode_responses=False, socket_connect_timeout=1
+                host=redis_host,
+                port=redis_port,
+                db=redis_db,
+                decode_responses=False,
+                socket_connect_timeout=1,
             )
             client.ping()
             self.redis_client = client
         except Exception as e:
-            logger.warning(f"Redis offline ({e}); FeatureStore operating with in-memory online store.")
+            logger.warning(
+                f"Redis offline ({e}); FeatureStore operating with in-memory online store."
+            )
 
         self.offline_path = Path(offline_path)
         self.offline_path.mkdir(parents=True, exist_ok=True)
@@ -84,21 +100,29 @@ class FeatureStore:
         self.feature_views: Dict[str, FeatureView] = {}
         self._entity_registry: Dict[str, Dict] = defaultdict(dict)
 
-        logger.info(f"FeatureStore initialized: redis={redis_host}:{redis_port}, offline={offline_path}")
+        logger.info(
+            f"FeatureStore initialized: redis={redis_host}:{redis_port}, offline={offline_path}"
+        )
 
     def register_feature_view(self, view: FeatureView):
         """Register a new feature view."""
         self.feature_views[view.name] = view
         logger.info(f"Registered feature view: {view.name} v{view.version}")
 
-    def _make_key(self, entity_type: str, entity_id: str, feature_view: str, 
-                  feature_name: str) -> str:
+    def _make_key(
+        self, entity_type: str, entity_id: str, feature_view: str, feature_name: str
+    ) -> str:
         """Construct Redis key for online store."""
         return f"fs:{feature_view}:{entity_type}:{entity_id}:{feature_name}"
 
-    def push_online(self, entity_type: str, entity_id: str, 
-                    feature_view: str, features: Dict[str, Any],
-                    timestamp: Optional[datetime] = None):
+    def push_online(
+        self,
+        entity_type: str,
+        entity_id: str,
+        feature_view: str,
+        features: Dict[str, Any],
+        timestamp: Optional[datetime] = None,
+    ):
         """Push features to online store (Redis or in-memory fallback)."""
         ts = timestamp or datetime.utcnow()
         ts_str = ts.isoformat()
@@ -113,11 +137,13 @@ class FeatureStore:
                     payload = {
                         "value": self._serialize(value),
                         "timestamp": ts_str,
-                        "version": view.version if view else "unknown"
+                        "version": view.version if view else "unknown",
                     }
                     pipe.set(key, json.dumps(payload), ex=ttl)
                 pipe.execute()
-                logger.debug(f"Pushed {len(features)} features to Redis for {entity_type}:{entity_id}")
+                logger.debug(
+                    f"Pushed {len(features)} features to Redis for {entity_type}:{entity_id}"
+                )
                 return
             except Exception as e:
                 logger.warning(f"Redis write error ({e}), falling back to in-memory store")
@@ -128,11 +154,16 @@ class FeatureStore:
             self._in_memory_online[key] = {
                 "value": self._serialize(value),
                 "timestamp": ts_str,
-                "version": view.version if view else "unknown"
+                "version": view.version if view else "unknown",
             }
 
-    def get_online(self, entity_type: str, entity_id: str,
-                   feature_view: str, feature_names: Optional[List[str]] = None) -> Dict[str, Any]:
+    def get_online(
+        self,
+        entity_type: str,
+        entity_id: str,
+        feature_view: str,
+        feature_names: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         """Fetch features from online store."""
         view = self.feature_views.get(feature_view)
         if feature_names is None and view:
@@ -172,8 +203,9 @@ class FeatureStore:
                 output[feat_name] = None
         return output
 
-    def write_offline(self, df: pd.DataFrame, feature_view: str,
-                      partition_date: Optional[str] = None):
+    def write_offline(
+        self, df: pd.DataFrame, feature_view: str, partition_date: Optional[str] = None
+    ):
         """
         Write feature dataframe to offline store (Parquet) for training.
         Maintains point-in-time correctness via partitioning.
@@ -195,7 +227,7 @@ class FeatureStore:
             "partition": date,
             "num_rows": len(df),
             "columns": list(df.columns),
-            "written_at": datetime.utcnow().isoformat()
+            "written_at": datetime.utcnow().isoformat(),
         }
 
         parquet_path = view_dir / "features.parquet"
@@ -207,10 +239,13 @@ class FeatureStore:
 
         logger.info(f"Wrote {len(df)} rows to offline store: {parquet_path}")
 
-    def read_offline(self, feature_view: str, 
-                     start_date: Optional[str] = None,
-                     end_date: Optional[str] = None,
-                     entity_ids: Optional[List[str]] = None) -> pd.DataFrame:
+    def read_offline(
+        self,
+        feature_view: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        entity_ids: Optional[List[str]] = None,
+    ) -> pd.DataFrame:
         """
         Read features from offline store with time filtering.
 
@@ -278,13 +313,14 @@ class FeatureStore:
             left_on="event_timestamp",
             right_on="timestamp",
             by="entity_id",
-            direction="backward"
+            direction="backward",
         )
 
         return result
 
-    def get_feature_vector(self, entity_type: str, entity_id: str,
-                           feature_views: List[str]) -> Dict[str, Any]:
+    def get_feature_vector(
+        self, entity_type: str, entity_id: str, feature_views: List[str]
+    ) -> Dict[str, Any]:
         """Get complete feature vector from multiple views for online inference."""
         vector = {}
         for view_name in feature_views:
@@ -315,5 +351,5 @@ class FeatureStore:
             "redis_online": redis_ok,
             "offline_path_exists": self.offline_path.exists(),
             "registered_views": list(self.feature_views.keys()),
-            "status": "healthy" if redis_ok else "degraded"
+            "status": "healthy" if redis_ok else "degraded",
         }

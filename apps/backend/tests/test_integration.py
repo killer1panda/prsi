@@ -2,11 +2,13 @@
 Integration tests for the complete Doom Index pipeline.
 Tests end-to-end flows: data ingestion -> feature extraction -> prediction -> API response.
 """
-import pytest
-import torch
+
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
+import pytest
+import torch
 
 
 class TestDataPipeline:
@@ -18,7 +20,11 @@ class TestDataPipeline:
 
         preprocessor = DataPreprocessor()
         raw_posts = [
-            {"post_id": "p1", "text": "Check this out http://example.com #viral @user1", "author": "u1"},
+            {
+                "post_id": "p1",
+                "text": "Check this out http://example.com #viral @user1",
+                "author": "u1",
+            },
             {"post_id": "p2", "text": "Normal discussion post without links", "author": "u2"},
         ]
 
@@ -49,7 +55,9 @@ class TestDataPipeline:
 
         mongo = get_mongodb()
         assert mongo is not None
-        post_id = mongo.insert_post({"post_id": "test_integration_1", "text": "Integration test post"})
+        post_id = mongo.insert_post(
+            {"post_id": "test_integration_1", "text": "Integration test post"}
+        )
         assert post_id is not None
 
         neo = get_neo4j()
@@ -61,7 +69,8 @@ class TestModelPipeline:
 
     def test_distilbert_forward(self):
         """Test DistilBERT model forward pass."""
-        from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
+        from transformers import (DistilBertForSequenceClassification,
+                                  DistilBertTokenizer)
 
         model = DistilBertForSequenceClassification.from_pretrained(
             "distilbert-base-uncased", num_labels=2
@@ -128,7 +137,7 @@ class TestStreamingPipeline:
 
     def test_kafka_pipeline_init(self):
         """Test Kafka pipeline initialization."""
-        from src.streaming.kafka_pipeline import KafkaPipeline, KafkaConfig
+        from src.streaming.kafka_pipeline import KafkaConfig, KafkaPipeline
 
         def mock_predictor(posts):
             return [{"doom_score": 50.0, "risk_level": "medium"}]
@@ -147,15 +156,14 @@ class TestStreamingPipeline:
             name="user_features",
             entities=["user_id"],
             features=["follower_count", "avg_sentiment"],
-            online=True
+            online=True,
         )
         store.register_feature_view(view)
 
         # Push online
-        store.push_online("user", "u123", "user_features", {
-            "follower_count": 1000,
-            "avg_sentiment": -0.2
-        })
+        store.push_online(
+            "user", "u123", "user_features", {"follower_count": 1000, "avg_sentiment": -0.2}
+        )
 
         features = store.get_online("user", "u123", "user_features")
         assert features["follower_count"] == 1000

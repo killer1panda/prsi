@@ -7,23 +7,23 @@ Optimized for H100 clusters. Supports:
 - WandB logging (optional)
 """
 
-import os
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Optional
 
+import numpy as np
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.distributed as dist
+from sklearn.metrics import (accuracy_score, classification_report, f1_score,
+                             roc_auc_score)
+from src.models.gnn_model import MultimodalDoomPredictor
+from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
-from torch.cuda.amp import autocast, GradScaler
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, classification_report
 from tqdm import tqdm
-import numpy as np
-
-from src.models.gnn_model import MultimodalDoomPredictor
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class FocalLoss(nn.Module):
         reduction: 'mean' | 'sum' | 'none'
     """
 
-    def __init__(self, gamma: float = 2.0, alpha: float = 0.25, reduction: str = 'mean'):
+    def __init__(self, gamma: float = 2.0, alpha: float = 0.25, reduction: str = "mean"):
         super().__init__()
         self.gamma = gamma
         self.alpha = alpha
@@ -61,10 +61,10 @@ class FocalLoss(nn.Module):
             # Regression mode: MSE-based focal weighting
             logits = logits.squeeze(-1)
             targets = targets.float()
-            mse = F.mse_loss(logits, targets, reduction='none')
+            mse = F.mse_loss(logits, targets, reduction="none")
             # Weight by how surprising the prediction is (like hard example mining)
             residual = torch.abs(targets - torch.sigmoid(logits))
-            focal_weight = (residual ** self.gamma).detach()
+            focal_weight = (residual**self.gamma).detach()
             loss = focal_weight * mse
         else:
             # Classification mode: standard focal loss
@@ -74,19 +74,19 @@ class FocalLoss(nn.Module):
             log_p_t = log_prob.gather(1, targets_long.unsqueeze(1)).squeeze(1)
             p_t = prob.gather(1, targets_long.unsqueeze(1)).squeeze(1)
             # α weighting: α for positive class, (1-α) for negative
-            alpha_t = torch.where(targets_long == 1,
-                                  torch.tensor(self.alpha, device=logits.device),
-                                  torch.tensor(1 - self.alpha, device=logits.device))
+            alpha_t = torch.where(
+                targets_long == 1,
+                torch.tensor(self.alpha, device=logits.device),
+                torch.tensor(1 - self.alpha, device=logits.device),
+            )
             focal_weight = alpha_t * (1 - p_t) ** self.gamma
             loss = -focal_weight * log_p_t
 
-        if self.reduction == 'mean':
+        if self.reduction == "mean":
             return loss.mean()
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             return loss.sum()
         return loss
-
-
 
 
 class DoomDataset(Dataset):
@@ -114,16 +114,16 @@ class DoomDataset(Dataset):
         encoding = self.tokenizer(
             text,
             truncation=True,
-            padding='max_length',
+            padding="max_length",
             max_length=self.max_length,
-            return_tensors='pt'
+            return_tensors="pt",
         )
 
         return {
-            'input_ids': encoding['input_ids'].squeeze(0),
-            'attention_mask': encoding['attention_mask'].squeeze(0),
-            'user_idx': torch.tensor(user_idx, dtype=torch.long),
-            'label': torch.tensor(label, dtype=torch.long),
+            "input_ids": encoding["input_ids"].squeeze(0),
+            "attention_mask": encoding["attention_mask"].squeeze(0),
+            "user_idx": torch.tensor(user_idx, dtype=torch.long),
+            "label": torch.tensor(label, dtype=torch.long),
         }
 
 
@@ -237,7 +237,7 @@ class MultimodalTrainer:
 
     def _create_optimizer(self):
         """Create AdamW with weight decay."""
-        no_decay = ['bias', 'LayerNorm.weight']
+        no_decay = ["bias", "LayerNorm.weight"]
 
         # Separate parameters: graph, text, fusion
         graph_params = []
@@ -247,43 +247,43 @@ class MultimodalTrainer:
         for name, param in self.model.named_parameters():
             if not param.requires_grad:
                 continue
-            if 'graph_encoder' in name:
+            if "graph_encoder" in name:
                 graph_params.append((name, param))
-            elif 'text_encoder' in name:
+            elif "text_encoder" in name:
                 text_params.append((name, param))
             else:
                 fusion_params.append((name, param))
 
         optimizer_grouped_parameters = [
             {
-                'params': [p for n, p in graph_params if not any(nd in n for nd in no_decay)],
-                'weight_decay': self.weight_decay,
-                'lr': self.learning_rate * 2,  # Graph can use higher LR
+                "params": [p for n, p in graph_params if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.weight_decay,
+                "lr": self.learning_rate * 2,  # Graph can use higher LR
             },
             {
-                'params': [p for n, p in graph_params if any(nd in n for nd in no_decay)],
-                'weight_decay': 0.0,
-                'lr': self.learning_rate * 2,
+                "params": [p for n, p in graph_params if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+                "lr": self.learning_rate * 2,
             },
             {
-                'params': [p for n, p in text_params if not any(nd in n for nd in no_decay)],
-                'weight_decay': self.weight_decay,
-                'lr': self.learning_rate,
+                "params": [p for n, p in text_params if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.weight_decay,
+                "lr": self.learning_rate,
             },
             {
-                'params': [p for n, p in text_params if any(nd in n for nd in no_decay)],
-                'weight_decay': 0.0,
-                'lr': self.learning_rate,
+                "params": [p for n, p in text_params if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+                "lr": self.learning_rate,
             },
             {
-                'params': [p for n, p in fusion_params if not any(nd in n for nd in no_decay)],
-                'weight_decay': self.weight_decay,
-                'lr': self.learning_rate * 3,  # Fusion head trains faster
+                "params": [p for n, p in fusion_params if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.weight_decay,
+                "lr": self.learning_rate * 3,  # Fusion head trains faster
             },
             {
-                'params': [p for n, p in fusion_params if any(nd in n for nd in no_decay)],
-                'weight_decay': 0.0,
-                'lr': self.learning_rate * 3,
+                "params": [p for n, p in fusion_params if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+                "lr": self.learning_rate * 3,
             },
         ]
 
@@ -314,10 +314,10 @@ class MultimodalTrainer:
         self.optimizer.zero_grad()
 
         for step, batch in enumerate(progress):
-            input_ids = batch['input_ids'].to(self.device)
-            attention_mask = batch['attention_mask'].to(self.device)
-            user_indices = batch['user_idx'].to(self.device)
-            labels = batch['label'].to(self.device)
+            input_ids = batch["input_ids"].to(self.device)
+            attention_mask = batch["attention_mask"].to(self.device)
+            user_indices = batch["user_idx"].to(self.device)
+            labels = batch["label"].to(self.device)
 
             with autocast(enabled=self.fp16):
                 logits = self.model(
@@ -326,9 +326,9 @@ class MultimodalTrainer:
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                     user_indices=user_indices,
-                    edge_weight=getattr(self.graph_data, 'edge_weight', None),
-                    hyperedge_index=getattr(self.graph_data, 'hyperedge_index', None),
-                    edge_type=getattr(self.graph_data, 'edge_type', None),
+                    edge_weight=getattr(self.graph_data, "edge_weight", None),
+                    hyperedge_index=getattr(self.graph_data, "hyperedge_index", None),
+                    edge_type=getattr(self.graph_data, "edge_type", None),
                 )
 
                 # Focal Loss — blueprint-required for imbalanced doom score distribution
@@ -357,10 +357,12 @@ class MultimodalTrainer:
             num_batches += 1
 
             if self.local_rank == 0:
-                progress.set_postfix({
-                    'loss': f"{total_loss / num_batches:.4f}",
-                    'lr': f"{self.scheduler.get_last_lr()[0]:.2e}"
-                })
+                progress.set_postfix(
+                    {
+                        "loss": f"{total_loss / num_batches:.4f}",
+                        "lr": f"{self.scheduler.get_last_lr()[0]:.2e}",
+                    }
+                )
 
         return total_loss / num_batches
 
@@ -375,10 +377,10 @@ class MultimodalTrainer:
         total_loss = 0.0
 
         for batch in tqdm(self.val_loader, desc="Evaluating", disable=self.local_rank != 0):
-            input_ids = batch['input_ids'].to(self.device)
-            attention_mask = batch['attention_mask'].to(self.device)
-            user_indices = batch['user_idx'].to(self.device)
-            labels = batch['label'].to(self.device)
+            input_ids = batch["input_ids"].to(self.device)
+            attention_mask = batch["attention_mask"].to(self.device)
+            user_indices = batch["user_idx"].to(self.device)
+            labels = batch["label"].to(self.device)
 
             with autocast(enabled=self.fp16):
                 logits = self.model(
@@ -387,9 +389,9 @@ class MultimodalTrainer:
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                     user_indices=user_indices,
-                    edge_weight=getattr(self.graph_data, 'edge_weight', None),
-                    hyperedge_index=getattr(self.graph_data, 'hyperedge_index', None),
-                    edge_type=getattr(self.graph_data, 'edge_type', None),
+                    edge_weight=getattr(self.graph_data, "edge_weight", None),
+                    hyperedge_index=getattr(self.graph_data, "hyperedge_index", None),
+                    edge_type=getattr(self.graph_data, "edge_type", None),
                 )
 
                 loss = nn.functional.cross_entropy(logits, labels)
@@ -405,7 +407,7 @@ class MultimodalTrainer:
 
         # Metrics
         acc = accuracy_score(all_labels, all_preds)
-        f1 = f1_score(all_labels, all_preds, average='binary')
+        f1 = f1_score(all_labels, all_preds, average="binary")
 
         try:
             auc = roc_auc_score(all_labels, all_probs)
@@ -415,10 +417,10 @@ class MultimodalTrainer:
         avg_loss = total_loss / len(self.val_loader)
 
         metrics = {
-            'val_loss': avg_loss,
-            'val_accuracy': acc,
-            'val_f1': f1,
-            'val_auc': auc,
+            "val_loss": avg_loss,
+            "val_accuracy": acc,
+            "val_f1": f1,
+            "val_auc": auc,
         }
 
         return metrics, all_labels, all_preds
@@ -426,7 +428,9 @@ class MultimodalTrainer:
     def train(self):
         """Full training loop."""
         logger.info(f"Starting training on {self.device}")
-        logger.info(f"Train samples: {len(self.train_dataset)}, Val samples: {len(self.val_dataset)}")
+        logger.info(
+            f"Train samples: {len(self.train_dataset)}, Val samples: {len(self.val_dataset)}"
+        )
         logger.info(f"Graph: {self.graph_data.num_nodes} nodes, {self.graph_data.num_edges} edges")
 
         for epoch in range(1, self.epochs + 1):
@@ -448,8 +452,8 @@ class MultimodalTrainer:
                 )
 
                 # Save best model
-                if metrics['val_f1'] > self.best_val_f1:
-                    self.best_val_f1 = metrics['val_f1']
+                if metrics["val_f1"] > self.best_val_f1:
+                    self.best_val_f1 = metrics["val_f1"]
                     self.save_checkpoint(epoch, metrics, is_best=True)
 
                 # Save periodic checkpoint
@@ -468,11 +472,11 @@ class MultimodalTrainer:
         model_to_save = self.model.module if self.ddp else self.model
 
         checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': model_to_save.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
-            'metrics': metrics,
+            "epoch": epoch,
+            "model_state_dict": model_to_save.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "scheduler_state_dict": self.scheduler.state_dict(),
+            "metrics": metrics,
         }
 
         if is_best:
@@ -486,32 +490,37 @@ class MultimodalTrainer:
         # Save config
         config_path = self.output_dir / "model_config.pt"
         if not config_path.exists():
-            torch.save({
-                'graph_in_channels': 6,
-                'graph_hidden': 128,
-                'graph_out': 128,
-                'graph_layers': 2,
-                'text_model': "mistralai/Mistral-7B-Instruct-v0.3",
-                'fusion_hidden': 256,
-            }, config_path)
+            torch.save(
+                {
+                    "graph_in_channels": 6,
+                    "graph_hidden": 128,
+                    "graph_out": 128,
+                    "graph_layers": 2,
+                    "text_model": "mistralai/Mistral-7B-Instruct-v0.3",
+                    "fusion_hidden": 256,
+                },
+                config_path,
+            )
 
 
 def setup_ddp():
     """Initialize distributed training."""
-    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        rank = int(os.environ['RANK'])
-        world_size = int(os.environ['WORLD_SIZE'])
-        local_rank = int(os.environ.get('LOCAL_RANK', 0))
+    if "RANK" in os.environ and "WORLD_SIZE" in os.environ:
+        rank = int(os.environ["RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+        local_rank = int(os.environ.get("LOCAL_RANK", 0))
 
         dist.init_process_group(
-            backend='nccl',
-            init_method='env://',
+            backend="nccl",
+            init_method="env://",
             world_size=world_size,
             rank=rank,
         )
 
         torch.cuda.set_device(local_rank)
-        logger.info(f"DDP initialized: rank={rank}, world_size={world_size}, local_rank={local_rank}")
+        logger.info(
+            f"DDP initialized: rank={rank}, world_size={world_size}, local_rank={local_rank}"
+        )
         return local_rank, world_size
     else:
         return 0, 1

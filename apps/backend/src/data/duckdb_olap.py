@@ -4,10 +4,11 @@ Executes sub-10ms analytical aggregations, percentile ranks, and cascade summari
 directly over multi-gigabyte Parquet archives and Arrow streams.
 """
 
-import os
 import logging
+import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 try:
     import duckdb
     import pyarrow as pa
+
     DUCKDB_AVAILABLE = True
 except ImportError:
     DUCKDB_AVAILABLE = False
@@ -92,7 +94,7 @@ class DuckDBAnalyticsEngine:
                 "author_hash": author_hash,
                 "total_posts": res[0],
                 "avg_doom_score": float(res[1] or 0.0),
-                "percentile_rank": float(res[2] or 0.5)
+                "percentile_rank": float(res[2] or 0.5),
             }
         return {"author_hash": author_hash, "percentile_rank": 0.50, "total_posts": 0}
 

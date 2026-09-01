@@ -2,9 +2,10 @@
 Fairness analysis for Doom Index: demographic parity, equalized odds,
 and disparate impact across language groups, user types, and engagement levels.
 """
+
 import logging
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -54,8 +55,9 @@ class FairnessAnalyzer:
 
         return results
 
-    def equalized_odds(self, y_true: np.ndarray, y_pred: np.ndarray, 
-                       groups: np.ndarray) -> Dict[str, Dict[str, float]]:
+    def equalized_odds(
+        self, y_true: np.ndarray, y_pred: np.ndarray, groups: np.ndarray
+    ) -> Dict[str, Dict[str, float]]:
         """
         Measure equalized odds: TPR and FPR should be equal across groups.
 
@@ -85,11 +87,7 @@ class FairnessAnalyzer:
             tpr_list.append(tpr)
             fpr_list.append(fpr)
 
-            results[str(g)] = {
-                "tpr": float(tpr),
-                "fpr": float(fpr),
-                "sample_size": int(mask.sum())
-            }
+            results[str(g)] = {"tpr": float(tpr), "fpr": float(fpr), "sample_size": int(mask.sum())}
 
         if tpr_list and fpr_list:
             results["max_tpr_disparity"] = float(max(tpr_list) - min(tpr_list))
@@ -128,11 +126,14 @@ class FairnessAnalyzer:
             "impact_ratio": float(impact_ratio),
             "threshold": self.config.fairness_threshold,
             "violation": impact_ratio < self.config.fairness_threshold,
-            "severity": "critical" if impact_ratio < 0.6 else "high" if impact_ratio < 0.8 else "low"
+            "severity": (
+                "critical" if impact_ratio < 0.6 else "high" if impact_ratio < 0.8 else "low"
+            ),
         }
 
-    def calibration(self, y_true: np.ndarray, y_prob: np.ndarray, 
-                    groups: np.ndarray, n_bins: int = 10) -> Dict[str, any]:
+    def calibration(
+        self, y_true: np.ndarray, y_prob: np.ndarray, groups: np.ndarray, n_bins: int = 10
+    ) -> Dict[str, any]:
         """
         Measure calibration across groups: predicted prob should match actual rate.
 
@@ -176,13 +177,18 @@ class FairnessAnalyzer:
                 "bin_accuracies": bin_accs,
                 "bin_confidences": bin_confs,
                 "bin_counts": bin_counts,
-                "well_calibrated": ece < 0.05
+                "well_calibrated": ece < 0.05,
             }
 
         return results
 
-    def full_audit(self, y_true: np.ndarray, y_pred: np.ndarray, 
-                   y_prob: np.ndarray, groups: Dict[str, np.ndarray]) -> Dict[str, any]:
+    def full_audit(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        y_prob: np.ndarray,
+        groups: Dict[str, np.ndarray],
+    ) -> Dict[str, any]:
         """
         Run complete fairness audit across all protected attributes.
 
@@ -195,14 +201,7 @@ class FairnessAnalyzer:
         Returns:
             Comprehensive fairness report
         """
-        report = {
-            "summary": {
-                "fair": True,
-                "violations": [],
-                "overall_score": 1.0
-            },
-            "details": {}
-        }
+        report = {"summary": {"fair": True, "violations": [], "overall_score": 1.0}, "details": {}}
 
         total_violations = 0
         total_checks = 0

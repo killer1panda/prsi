@@ -32,9 +32,10 @@ logger = logging.getLogger(__name__)
 
 # TensorRT imports with graceful degradation
 try:
-    import tensorrt as trt
-    import pycuda.driver as cuda
     import pycuda.autoinit  # noqa: F401
+    import pycuda.driver as cuda
+    import tensorrt as trt
+
     TRT_AVAILABLE = True
 except ImportError:
     TRT_AVAILABLE = False
@@ -43,6 +44,7 @@ except ImportError:
 try:
     import onnx
     import onnx_graphsurgeon as gs
+
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
@@ -242,7 +244,9 @@ class H100TensorRTOptimizer:
                 self.data = np.load(data_path)
                 self.batch_size = 16
                 self.current_index = 0
-                self.device_input = cuda.mem_alloc(self.batch_size * self.data["input_ids"].shape[1] * 4)
+                self.device_input = cuda.mem_alloc(
+                    self.batch_size * self.data["input_ids"].shape[1] * 4
+                )
 
             def get_batch_size(self) -> int:
                 return self.batch_size
@@ -250,7 +254,9 @@ class H100TensorRTOptimizer:
             def get_batch(self, names: List[str]) -> List[int]:
                 if self.current_index >= len(self.data["input_ids"]):
                     return None
-                batch = self.data["input_ids"][self.current_index : self.current_index + self.batch_size]
+                batch = self.data["input_ids"][
+                    self.current_index : self.current_index + self.batch_size
+                ]
                 cuda.memcpy_htod(self.device_input, batch.astype(np.int32))
                 self.current_index += self.batch_size
                 return [int(self.device_input)]
@@ -292,7 +298,9 @@ class H100TensorRTOptimizer:
             for i in range(self.parser.num_errors):
                 logger.error(f"ONNX parse error {i}: {self.parser.get_error(i)}")
             raise RuntimeError("ONNX parsing failed")
-        logger.info(f"ONNX parsed: {self.network.num_layers} layers, {self.network.num_inputs} inputs")
+        logger.info(
+            f"ONNX parsed: {self.network.num_layers} layers, {self.network.num_inputs} inputs"
+        )
 
         # Step 4: Profile and config
         profile = self._build_profile()
@@ -388,11 +396,15 @@ class H100TensorRTOptimizer:
             "tensor_core_optimized": self.fp16,
             "sm_version": self.sm_version,
         }
-        logger.info(f"Benchmark: p50={results['latency_p50_ms']:.2f}ms, "
-                    f"throughput={results['throughput_qps']:.1f} qps")
+        logger.info(
+            f"Benchmark: p50={results['latency_p50_ms']:.2f}ms, "
+            f"throughput={results['throughput_qps']:.1f} qps"
+        )
         return results
 
-    def export_triton_config(self, model_repository: str, model_name: str = "doom_classifier") -> str:
+    def export_triton_config(
+        self, model_repository: str, model_name: str = "doom_classifier"
+    ) -> str:
         """Generate Triton Inference Server model configuration.
 
         Returns:
@@ -405,6 +417,7 @@ class H100TensorRTOptimizer:
         dest = repo_path / "model.plan"
         if self.engine_path.exists():
             import shutil
+
             shutil.copy(self.engine_path, dest)
 
         # Write config.pbtxt

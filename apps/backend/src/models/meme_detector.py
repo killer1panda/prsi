@@ -3,14 +3,15 @@ Meme detection and virality scoring using Qwen2-VL-7B embeddings.
 Detects known meme templates and estimates meme virality potential.
 Leverages Qwen2-VL's built-in OCR capability for meme text extraction.
 """
-import logging
-from pathlib import Path
-from typing import List, Dict, Optional, Union
-from dataclasses import dataclass
 
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MemeDetectorConfig:
     """Configuration for the MemeDetector model, defining thresholds and weights."""
+
     template_dir: str = "data/meme_templates"
     similarity_threshold: float = 0.82
     virality_threshold: float = 0.65
@@ -52,7 +54,7 @@ class MemeDetector:
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         ).to(self.device)
 
         self._load_templates()
@@ -69,22 +71,23 @@ class MemeDetector:
             try:
                 emb = self.vision_encoder.encode([str(template_file)], use_cache=True)
                 self.template_embeddings[template_file.stem] = emb[0]
-                
+
                 # Fetch template virality from MongoDB with graceful fallback
                 avg_virality = 0.7
                 try:
                     from src.data.db_connectors import get_mongodb
+
                     mongo = get_mongodb()
                     doc = mongo.db["meme_templates"].find_one({"template_name": template_file.stem})
                     if doc and "avg_virality" in doc:
                         avg_virality = float(doc["avg_virality"])
                 except Exception:
                     pass
-                    
+
                 self.template_metadata[template_file.stem] = {
                     "name": template_file.stem,
                     "path": str(template_file),
-                    "avg_virality": avg_virality
+                    "avg_virality": avg_virality,
                 }
             except Exception as e:
                 logger.error(f"Failed to load template {template_file}: {e}")
@@ -122,17 +125,20 @@ class MemeDetector:
         # Compute similarities to all templates
         similarities = {}
         for name, template_emb in self.template_embeddings.items():
-            sim = torch.cosine_similarity(emb.unsqueeze(0),
-                                          template_emb.unsqueeze(0).to(self.device),
-                                          dim=-1).item()
+            sim = torch.cosine_similarity(
+                emb.unsqueeze(0), template_emb.unsqueeze(0).to(self.device), dim=-1
+            ).item()
             similarities[name] = sim
 
         # Top-K matches
         sorted_sims = sorted(similarities.items(), key=lambda x: x[1], reverse=True)
         top_matches = [
-            {"template": name, "similarity": round(sim, 4),
-             "metadata": self.template_metadata.get(name, {})}
-            for name, sim in sorted_sims[:self.config.top_k_templates]
+            {
+                "template": name,
+                "similarity": round(sim, 4),
+                "metadata": self.template_metadata.get(name, {}),
+            }
+            for name, sim in sorted_sims[: self.config.top_k_templates]
         ]
 
         best_sim = sorted_sims[0][1] if sorted_sims else 0.0
@@ -140,10 +146,11 @@ class MemeDetector:
 
         # Virality scoring using visual features + template history
         visual_features = self._extract_visual_features(image, ocr_text=ocr_text)
-        virality_input = torch.cat([
-            emb.detach().cpu(),
-            torch.tensor(visual_features, dtype=torch.float32)
-        ]).unsqueeze(0).to(self.device)
+        virality_input = (
+            torch.cat([emb.detach().cpu(), torch.tensor(visual_features, dtype=torch.float32)])
+            .unsqueeze(0)
+            .to(self.device)
+        )
 
         with torch.no_grad():
             virality_score = self.virality_scorer(virality_input).item()
@@ -178,14 +185,16 @@ class MemeDetector:
         ocr_has_text = 1.0 if len(ocr_text.strip()) > 0 else 0.0
 
         features = [
-            img_array.std() / 255.0,                                     # Contrast
-            np.mean(np.abs(np.diff(img_array, axis=0))) / 255.0,          # Vertical edge density
-            np.mean(np.abs(np.diff(img_array, axis=1))) / 255.0,          # Horizontal edge density
-            img.size[0] / img.size[1],                                    # Aspect ratio
-            1.0 if img.size[0] < 500 else 0.0,                           # Low resolution flag
-            ocr_has_text,                                                  # Has OCR text (Qwen2-VL)
-            ocr_density,                                                   # OCR text density
-            0.0, 0.0, 0.0                                                  # Reserved
+            img_array.std() / 255.0,  # Contrast
+            np.mean(np.abs(np.diff(img_array, axis=0))) / 255.0,  # Vertical edge density
+            np.mean(np.abs(np.diff(img_array, axis=1))) / 255.0,  # Horizontal edge density
+            img.size[0] / img.size[1],  # Aspect ratio
+            1.0 if img.size[0] < 500 else 0.0,  # Low resolution flag
+            ocr_has_text,  # Has OCR text (Qwen2-VL)
+            ocr_density,  # OCR text density
+            0.0,
+            0.0,
+            0.0,  # Reserved
         ]
         return np.array(features[:10], dtype=np.float32)
 

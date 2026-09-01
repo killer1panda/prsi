@@ -18,9 +18,9 @@ import json
 import logging
 import math
 import os
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -55,54 +55,62 @@ class DeepSpeedConfig:
     amp: Dict[str, bool] = field(default_factory=lambda: {"enabled": False})
 
     # ZeRO Optimization (H100: ZeRO-3 with aggressive partitioning)
-    zero_optimization: Dict[str, Any] = field(default_factory=lambda: {
-        "stage": 3,
-        "offload_optimizer": {
-            "device": "cpu",
-            "pin_memory": True,
-            "ratio": 1.0,
-        },
-        "offload_param": {
-            "device": "cpu",
-            "pin_memory": True,
-            "ratio": 1.0,
-        },
-        "overlap_comm": True,
-        "contiguous_gradients": True,
-        "reduce_bucket_size": 5e8,
-        "stage3_prefetch_bucket_size": 5e8,
-        "stage3_param_persistence_threshold": 1e6,
-        "stage3_max_live_parameters": 1e9,
-        "stage3_max_reuse_distance": 1e9,
-        "stage3_gather_16bit_weights_on_model_save": True,
-    })
+    zero_optimization: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "stage": 3,
+            "offload_optimizer": {
+                "device": "cpu",
+                "pin_memory": True,
+                "ratio": 1.0,
+            },
+            "offload_param": {
+                "device": "cpu",
+                "pin_memory": True,
+                "ratio": 1.0,
+            },
+            "overlap_comm": True,
+            "contiguous_gradients": True,
+            "reduce_bucket_size": 5e8,
+            "stage3_prefetch_bucket_size": 5e8,
+            "stage3_param_persistence_threshold": 1e6,
+            "stage3_max_live_parameters": 1e9,
+            "stage3_max_reuse_distance": 1e9,
+            "stage3_gather_16bit_weights_on_model_save": True,
+        }
+    )
 
     # Communication (tuned for NVLink H100 nodes)
-    communication_options: Dict[str, Any] = field(default_factory=lambda: {
-        "bucket_size": 5e8,
-        "allgather_partitions": True,
-        "allgather_bucket_size": 5e8,
-        "reduce_scatter": True,
-        "overlap_comm": True,
-    })
+    communication_options: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "bucket_size": 5e8,
+            "allgather_partitions": True,
+            "allgather_bucket_size": 5e8,
+            "reduce_scatter": True,
+            "overlap_comm": True,
+        }
+    )
 
     # Activation checkpointing (trade compute for memory)
-    activation_checkpointing: Dict[str, Any] = field(default_factory=lambda: {
-        "partition_activations": True,
-        "cpu_checkpointing": False,
-        "contiguous_memory_optimization": True,
-        "number_checkpoints": None,
-        "synchronize_checkpoint_boundary": False,
-        "profile": False,
-    })
+    activation_checkpointing: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "partition_activations": True,
+            "cpu_checkpointing": False,
+            "contiguous_memory_optimization": True,
+            "number_checkpoints": None,
+            "synchronize_checkpoint_boundary": False,
+            "profile": False,
+        }
+    )
 
     # Flops profiler (for H100 utilization analysis)
-    flops_profiler: Dict[str, Any] = field(default_factory=lambda: {
-        "enabled": True,
-        "profile_step": 50,
-        "detailed": True,
-        "output_file": "logs/flops_profiler.log",
-    })
+    flops_profiler: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "enabled": True,
+            "profile_step": 50,
+            "detailed": True,
+            "output_file": "logs/flops_profiler.log",
+        }
+    )
 
     # Logging
     steps_per_print: int = 100
@@ -110,10 +118,12 @@ class DeepSpeedConfig:
     dump_state: bool = False
 
     # Checkpointing
-    checkpoint: Dict[str, Any] = field(default_factory=lambda: {
-        "tag": "doom_checkpoint",
-        "load_universal": False,
-    })
+    checkpoint: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "tag": "doom_checkpoint",
+            "load_universal": False,
+        }
+    )
 
     def to_json(self, path: str) -> None:
         """Serialize configuration to DeepSpeed-compatible JSON."""
@@ -206,16 +216,18 @@ class DeepSpeedConfig:
             for key, val in overrides.items():
                 setattr(base, key, val)
         base.train_batch_size = (
-            base.train_micro_batch_size_per_gpu
-            * base.gradient_accumulation_steps
-            * 4  # 4 GPUs
+            base.train_micro_batch_size_per_gpu * base.gradient_accumulation_steps * 4  # 4 GPUs
         )
-        logger.info(f"H100 4-GPU config generated for {model_size}: "
-                    f"global_batch={base.train_batch_size}")
+        logger.info(
+            f"H100 4-GPU config generated for {model_size}: "
+            f"global_batch={base.train_batch_size}"
+        )
         return base
 
     @classmethod
-    def for_h100_multinode(cls, nodes: int = 2, gpus_per_node: int = 4, model_size: str = "mistral_7b_qlora") -> "DeepSpeedConfig":
+    def for_h100_multinode(
+        cls, nodes: int = 2, gpus_per_node: int = 4, model_size: str = "mistral_7b_qlora"
+    ) -> "DeepSpeedConfig":
         """Factory method for multi-node H100 cluster.
 
         Args:
@@ -227,16 +239,16 @@ class DeepSpeedConfig:
         base = cls.for_h100_4gpu(model_size)
         # Scale global batch but keep per-GPU micro batch constant
         base.train_batch_size = (
-            base.train_micro_batch_size_per_gpu
-            * base.gradient_accumulation_steps
-            * total_gpus
+            base.train_micro_batch_size_per_gpu * base.gradient_accumulation_steps * total_gpus
         )
         # Tune communication for inter-node IB/Ethernet
         base.zero_optimization["reduce_bucket_size"] = 2e8
         base.zero_optimization["stage3_prefetch_bucket_size"] = 2e8
         base.communication_options["allgather_bucket_size"] = 2e8
-        logger.info(f"Multi-node H100 config: {nodes}x{gpus_per_node} GPUs, "
-                    f"global_batch={base.train_batch_size}")
+        logger.info(
+            f"Multi-node H100 config: {nodes}x{gpus_per_node} GPUs, "
+            f"global_batch={base.train_batch_size}"
+        )
         return base
 
 
@@ -271,7 +283,8 @@ class FSDPConfig:
 
     def get_policy(self):
         """Return PyTorch FSDP constructor kwargs."""
-        from torch.distributed.fsdp import ShardingStrategy, BackwardPrefetch
+        from torch.distributed.fsdp import BackwardPrefetch, ShardingStrategy
+
         return {
             "sharding_strategy": ShardingStrategy[self.sharding_strategy],
             "backward_prefetch": BackwardPrefetch[self.backward_prefetch],
@@ -284,6 +297,7 @@ class FSDPConfig:
 
     def _get_mp_policy(self):
         from torch.distributed.fsdp import MixedPrecision
+
         if self.mixed_precision == "bf16":
             return MixedPrecision(
                 param_dtype=torch.bfloat16,
@@ -312,8 +326,14 @@ def generate_all_configs(output_dir: str = "configs/training") -> List[str]:
         ("ds_h100_4gpu_mistral_7b_qlora.json", DeepSpeedConfig.for_h100_4gpu("mistral_7b_qlora")),
         ("ds_h100_4gpu_bert_base.json", DeepSpeedConfig.for_h100_4gpu("bert_base")),
         ("ds_h100_4gpu_bert_large.json", DeepSpeedConfig.for_h100_4gpu("bert_large")),
-        ("ds_h100_2node_mistral_7b_qlora.json", DeepSpeedConfig.for_h100_multinode(2, 4, "mistral_7b_qlora")),
-        ("ds_h100_4node_mistral_7b_qlora.json", DeepSpeedConfig.for_h100_multinode(4, 4, "mistral_7b_qlora")),
+        (
+            "ds_h100_2node_mistral_7b_qlora.json",
+            DeepSpeedConfig.for_h100_multinode(2, 4, "mistral_7b_qlora"),
+        ),
+        (
+            "ds_h100_4node_mistral_7b_qlora.json",
+            DeepSpeedConfig.for_h100_multinode(4, 4, "mistral_7b_qlora"),
+        ),
     ]
 
     for filename, config in scenarios:

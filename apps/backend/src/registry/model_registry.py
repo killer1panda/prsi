@@ -21,7 +21,7 @@ Usage:
         dataset_version="v2.3.1",
         stage="Staging"
     )
-    registry.promote("doom_mistral7b", version, target="Production", 
+    registry.promote("doom_mistral7b", version, target="Production",
                      required_metrics={"f1": 0.90})
 """
 
@@ -30,7 +30,7 @@ import logging
 import os
 import re
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -41,9 +41,10 @@ logger = logging.getLogger(__name__)
 
 try:
     import mlflow
-    from mlflow.tracking import MlflowClient
-    from mlflow.models.signature import infer_signature
     from mlflow.exceptions import RestException
+    from mlflow.models.signature import infer_signature
+    from mlflow.tracking import MlflowClient
+
     MLFLOW_AVAILABLE = True
 except ImportError:
     MLFLOW_AVAILABLE = False
@@ -53,6 +54,7 @@ except ImportError:
 @dataclass
 class ModelVersion:
     """Structured model version record."""
+
     name: str
     version: str
     stage: str
@@ -70,6 +72,7 @@ class ModelVersion:
 @dataclass
 class PromotionGate:
     """Gate conditions for model promotion between stages."""
+
     min_f1: float = 0.88
     max_latency_p99_ms: float = 50.0
     max_drift_score: float = 0.15
@@ -82,7 +85,9 @@ class PromotionGate:
         if metrics.get("f1", 0.0) < self.min_f1:
             failures.append(f"F1 {metrics.get('f1'):.3f} < {self.min_f1}")
         if metrics.get("latency_p99_ms", 9999.0) > self.max_latency_p99_ms:
-            failures.append(f"Latency p99 {metrics.get('latency_p99_ms'):.1f}ms > {self.max_latency_p99_ms}ms")
+            failures.append(
+                f"Latency p99 {metrics.get('latency_p99_ms'):.1f}ms > {self.max_latency_p99_ms}ms"
+            )
         if metrics.get("drift_score", 0.0) > self.max_drift_score:
             failures.append(f"Drift {metrics.get('drift_score'):.3f} > {self.max_drift_score}")
         return len(failures) == 0, failures
@@ -109,7 +114,9 @@ class ModelRegistry:
 
         if MLFLOW_AVAILABLE:
             try:
-                uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI", f"file://{self.local_registry_dir / 'mlruns'}")
+                uri = tracking_uri or os.environ.get(
+                    "MLFLOW_TRACKING_URI", f"file://{self.local_registry_dir / 'mlruns'}"
+                )
                 mlflow.set_tracking_uri(uri)
                 self._client = MlflowClient()
                 self._mlflow_active = True
@@ -171,10 +178,12 @@ class ModelRegistry:
             try:
                 # Log model as artifact in a run
                 with mlflow.start_run(run_name=f"register_{name}_v{version_str}"):
-                    mlflow.log_params({
-                        "model_name": name,
-                        "dataset_version": dataset_version,
-                    })
+                    mlflow.log_params(
+                        {
+                            "model_name": name,
+                            "dataset_version": dataset_version,
+                        }
+                    )
                     mlflow.log_metrics(metrics)
                     mlflow.log_artifact(model_path, artifact_path="model")
                     run_id = mlflow.active_run().info.run_id
@@ -342,14 +351,18 @@ class ModelRegistry:
             "metrics": metric_diff,
         }
 
-    def tag_ab_test(self, name: str, champion: str, challenger: str, traffic_split: float = 0.1) -> None:
+    def tag_ab_test(
+        self, name: str, champion: str, challenger: str, traffic_split: float = 0.1
+    ) -> None:
         """Tag two versions for A/B testing."""
         for ver, role in [(champion, "champion"), (challenger, "challenger")]:
             record = self.get_version(name, ver)
             if record:
                 record.tags["ab_test"] = "true"
                 record.tags["ab_role"] = role
-                record.tags["ab_traffic"] = str(traffic_split) if role == "challenger" else str(1.0 - traffic_split)
+                record.tags["ab_traffic"] = (
+                    str(traffic_split) if role == "challenger" else str(1.0 - traffic_split)
+                )
                 self._write_local_manifest(record)
         logger.info(f"A/B test configured: {champion} (champion) vs {challenger} (challenger)")
 
@@ -382,7 +395,9 @@ class ModelRegistry:
 def main():
     parser = argparse.ArgumentParser(description="Model Registry CLI")
     parser.add_argument("--name", default="doom_mistral7b")
-    parser.add_argument("--action", choices=["register", "promote", "list", "rollback", "compare"], required=True)
+    parser.add_argument(
+        "--action", choices=["register", "promote", "list", "rollback", "compare"], required=True
+    )
     parser.add_argument("--version")
     parser.add_argument("--target", default="Production")
     parser.add_argument("--model-path")
@@ -416,7 +431,9 @@ def main():
     elif args.action == "list":
         versions = registry.list_versions(args.name)
         for v in versions:
-            print(f"  {v.version}: stage={v.stage}, f1={v.metrics.get('f1', 'N/A')}, created={v.created_at}")
+            print(
+                f"  {v.version}: stage={v.stage}, f1={v.metrics.get('f1', 'N/A')}, created={v.created_at}"
+            )
 
     elif args.action == "rollback":
         v = registry.rollback(args.name)

@@ -2,15 +2,16 @@
 Graph Attention Network (GAT) with multi-head attention for social graph analysis.
 Alternative to GraphSAGE with learnable edge weights.
 """
+
 import logging
-from typing import Optional, Tuple
 from dataclasses import dataclass
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GATConv, BatchNorm
 from torch_geometric.data import Data
+from torch_geometric.nn import BatchNorm, GATConv
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class GraphAttentionNetwork(nn.Module):
                     dropout=config.dropout,
                     edge_dim=config.edge_dim,
                     add_self_loops=True,
-                    bias=True
+                    bias=True,
                 )
             )
 
@@ -82,9 +83,13 @@ class GraphAttentionNetwork(nn.Module):
 
         logger.info(f"GAT initialized: {config.num_layers} layers, {config.num_heads} heads")
 
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
-                edge_attr: Optional[torch.Tensor] = None,
-                batch: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: Optional[torch.Tensor] = None,
+        batch: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Args:
             x: (N, in_channels) node features
@@ -109,8 +114,9 @@ class GraphAttentionNetwork(nn.Module):
 
         return x
 
-    def predict_node_risk(self, x: torch.Tensor, edge_index: torch.Tensor,
-                          node_ids: torch.Tensor) -> torch.Tensor:
+    def predict_node_risk(
+        self, x: torch.Tensor, edge_index: torch.Tensor, node_ids: torch.Tensor
+    ) -> torch.Tensor:
         """Predict cancellation risk for specific nodes."""
         embeddings = self.forward(x, edge_index)
         node_emb = embeddings[node_ids]
@@ -118,9 +124,13 @@ class GraphAttentionNetwork(nn.Module):
         risk_score = torch.sigmoid(node_emb.mean(dim=-1))
         return risk_score
 
-    def get_attention_weights(self, x: torch.Tensor, edge_index: torch.Tensor,
-                              edge_attr: Optional[torch.Tensor] = None,
-                              layer: int = 0) -> torch.Tensor:
+    def get_attention_weights(
+        self,
+        x: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: Optional[torch.Tensor] = None,
+        layer: int = 0,
+    ) -> torch.Tensor:
         """Extract attention weights for interpretability."""
         x = self.input_proj(x)
         for i in range(layer):

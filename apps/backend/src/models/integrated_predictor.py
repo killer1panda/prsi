@@ -5,16 +5,15 @@ prediction interface compatible with the existing API.
 """
 
 import logging
-from typing import Dict, Any, Tuple, Optional
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
-import torch
 import numpy as np
 import pandas as pd
-
-from src.models.gnn_model import MultimodalDoomPredictor
+import torch
 from src.features.graph_extractor import GraphExtractor
 from src.models.calibration import FollowerStratifiedCalibrator
+from src.models.gnn_model import MultimodalDoomPredictor
 from src.models.multilingual import MultilingualConfig, MultilingualEncoder
 
 logger = logging.getLogger(__name__)
@@ -48,7 +47,9 @@ class IntegratedDoomPredictor:
         if Path(model_path).exists() and Path(config_path).exists():
             self.load_model()
         else:
-            logger.info(f"Model checkpoint not found at {model_path}. Initializing default MultimodalDoomPredictor.")
+            logger.info(
+                f"Model checkpoint not found at {model_path}. Initializing default MultimodalDoomPredictor."
+            )
             self.model = MultimodalDoomPredictor().to(self.device)
             self.model.eval()
 
@@ -61,30 +62,46 @@ class IntegratedDoomPredictor:
                 cfg = MultilingualConfig(device=self.device)
                 self._multilingual_encoder = MultilingualEncoder(cfg)
             except Exception as e:
-                logger.warning(f"Could not load full MultilingualEncoder backbone ({e}). Using regex language detector.")
+                logger.warning(
+                    f"Could not load full MultilingualEncoder backbone ({e}). Using regex language detector."
+                )
+
                 # Minimal fallback object with detect_language and preprocess methods
                 class RegexLanguageDetector:
                     def __init__(self):
                         import re
+
                         self.patterns = {
-                            "roman_hindi": re.compile(r'\b(kya|nahi|hai|main|tu|aap|kaise|kyun|bahut|achha|bura|bhai|yaar|desh|modi|bjp|congress)\b', re.I),
-                            "hindi_script": re.compile(r'[\u0900-\u097F]+'),
-                            "english": re.compile(r'\b(the|is|are|was|were|have|has|had|do|does|did|will|would|could|should)\b', re.I),
+                            "roman_hindi": re.compile(
+                                r"\b(kya|nahi|hai|main|tu|aap|kaise|kyun|bahut|achha|bura|bhai|yaar|desh|modi|bjp|congress)\b",
+                                re.I,
+                            ),
+                            "hindi_script": re.compile(r"[\u0900-\u097F]+"),
+                            "english": re.compile(
+                                r"\b(the|is|are|was|were|have|has|had|do|does|did|will|would|could|should)\b",
+                                re.I,
+                            ),
                         }
+
                     def detect_language(self, text: str) -> str:
                         has_hi = bool(self.patterns["hindi_script"].search(text))
                         has_rh = bool(self.patterns["roman_hindi"].search(text))
                         has_en = bool(self.patterns["english"].search(text))
-                        if has_hi and has_en: return "mixed"
-                        if has_hi: return "hi"
-                        if has_rh: return "hinglish"
+                        if has_hi and has_en:
+                            return "mixed"
+                        if has_hi:
+                            return "hi"
+                        if has_rh:
+                            return "hinglish"
                         return "en"
+
                     def preprocess(self, texts: list) -> list:
                         import re
-                        return [re.sub(r'(.)\1{3,}', r'\1\1\1', t.lower().strip()) for t in texts]
+
+                        return [re.sub(r"(.)\1{3,}", r"\1\1\1", t.lower().strip()) for t in texts]
+
                 self._multilingual_encoder = RegexLanguageDetector()
         return self._multilingual_encoder
-
 
     def load_model(self):
         """Load trained multimodal model."""
@@ -95,55 +112,75 @@ class IntegratedDoomPredictor:
 
         # Create model
         self.model = MultimodalDoomPredictor(
-            graph_in_channels=config.get('graph_in_channels', 6),
-            graph_hidden=config.get('graph_hidden', 128),
-            graph_out=config.get('graph_out', 128),
-            graph_layers=config.get('graph_layers', 2),
-            text_model=config.get('text_model', 'mistralai/Mistral-7B-Instruct-v0.3'),
+            graph_in_channels=config.get("graph_in_channels", 6),
+            graph_hidden=config.get("graph_hidden", 128),
+            graph_out=config.get("graph_out", 128),
+            graph_layers=config.get("graph_layers", 2),
+            text_model=config.get("text_model", "mistralai/Mistral-7B-Instruct-v0.3"),
             text_freeze=6,  # All frozen for inference
-            fusion_hidden=config.get('fusion_hidden', 256),
+            fusion_hidden=config.get("fusion_hidden", 256),
             num_classes=2,
             dropout=0.0,  # No dropout for inference
         )
 
         # Load weights
         checkpoint = torch.load(self.model_path, map_location=self.device)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.to(self.device)
         self.model.eval()
 
-        logger.info(f"Model loaded. Epoch {checkpoint.get('epoch', '?')}, "
-                   f"Best F1: {checkpoint.get('metrics', {}).get('val_f1', 0):.4f}")
+        logger.info(
+            f"Model loaded. Epoch {checkpoint.get('epoch', '?')}, "
+            f"Best F1: {checkpoint.get('metrics', {}).get('val_f1', 0):.4f}"
+        )
 
     def build_graph_from_posts(self, posts_df: pd.DataFrame):
         """Build or update graph from a DataFrame of posts.
 
         Args:
-            posts_df: DataFrame with columns [author_id, followers, verified, 
+            posts_df: DataFrame with columns [author_id, followers, verified,
                                              sentiment_polarity, toxicity, ...]
         """
         logger.info(f"Building graph from {len(posts_df)} posts")
 
         # Aggregate user features
-        user_features = posts_df.groupby('author_id').agg({
-            'followers': 'first',
-            'verified': 'first',
-            'sentiment_polarity': 'mean',
-            'toxicity_toxicity': 'mean',
-            'text_length': 'count',  # post count
-        }).reset_index()
+        user_features = (
+            posts_df.groupby("author_id")
+            .agg(
+                {
+                    "followers": "first",
+                    "verified": "first",
+                    "sentiment_polarity": "mean",
+                    "toxicity_toxicity": "mean",
+                    "text_length": "count",  # post count
+                }
+            )
+            .reset_index()
+        )
 
-        user_features.columns = ['user_id', 'followers', 'verified', 
-                                  'avg_sentiment', 'avg_toxicity', 'post_count']
-        user_features['controversy_rate'] = 0.0  # Would need labels
-        user_features['verified'] = user_features['verified'].astype(float)
+        user_features.columns = [
+            "user_id",
+            "followers",
+            "verified",
+            "avg_sentiment",
+            "avg_toxicity",
+            "post_count",
+        ]
+        user_features["controversy_rate"] = 0.0  # Would need labels
+        user_features["verified"] = user_features["verified"].astype(float)
 
         # Create mapping
-        self.user_to_idx = {uid: i for i, uid in enumerate(user_features['user_id'].tolist())}
+        self.user_to_idx = {uid: i for i, uid in enumerate(user_features["user_id"].tolist())}
 
         # Build features
-        feature_cols = ['followers', 'verified', 'post_count', 
-                       'avg_sentiment', 'avg_toxicity', 'controversy_rate']
+        feature_cols = [
+            "followers",
+            "verified",
+            "post_count",
+            "avg_sentiment",
+            "avg_toxicity",
+            "controversy_rate",
+        ]
         features = user_features[feature_cols].fillna(0).values.astype(np.float32)
 
         # Log transform followers
@@ -156,12 +193,12 @@ class IntegratedDoomPredictor:
 
         # Create synthetic edges (co-occurrence in same thread/subreddit)
         edges = []
-        if 'subreddit' in posts_df.columns:
+        if "subreddit" in posts_df.columns:
             # Users who posted in same subreddit are connected
-            subreddits = posts_df.groupby('subreddit')['author_id'].apply(list)
+            subreddits = posts_df.groupby("subreddit")["author_id"].apply(list)
             for authors in subreddits:
                 for i, a1 in enumerate(authors):
-                    for a2 in authors[i+1:]:
+                    for a2 in authors[i + 1 :]:
                         if a1 in self.user_to_idx and a2 in self.user_to_idx:
                             edges.append([self.user_to_idx[a1], self.user_to_idx[a2]])
 
@@ -180,7 +217,9 @@ class IntegratedDoomPredictor:
         self.graph_data = Data(x=x, edge_index=edge_index, num_nodes=len(user_features))
         self.graph_data.to(self.device)
 
-        logger.info(f"Graph built: {self.graph_data.num_nodes} nodes, {self.graph_data.num_edges} edges")
+        logger.info(
+            f"Graph built: {self.graph_data.num_nodes} nodes, {self.graph_data.num_edges} edges"
+        )
 
     def predict(
         self,
@@ -218,7 +257,9 @@ class IntegratedDoomPredictor:
                 "Call build_graph_from_posts() to enable full GNN inference.",
                 author_id,
             )
-            return self._text_only_predict(processed_text, author_id, followers, verified, language=language)
+            return self._text_only_predict(
+                processed_text, author_id, followers, verified, language=language
+            )
 
         # ── Ensure user exists in graph (add new node if unseen) ────────────
         if author_id not in self.user_to_idx:
@@ -302,7 +343,11 @@ class IntegratedDoomPredictor:
     ) -> Dict[str, Any]:
         """Construct standardised result dict from prediction outputs."""
         # Follower-stratified calibration
-        calibrated_prob = self.calibrator.calibrate_single(prob, followers) if hasattr(self, "calibrator") else prob
+        calibrated_prob = (
+            self.calibrator.calibrate_single(prob, followers)
+            if hasattr(self, "calibrator")
+            else prob
+        )
         doom_score = int(calibrated_prob * 100)
 
         if calibrated_prob > 0.7:
@@ -315,7 +360,8 @@ class IntegratedDoomPredictor:
             risk_level = "LOW"
 
         follower_stratum = (
-            "low_follower" if followers < 1000
+            "low_follower"
+            if followers < 1000
             else ("mid_reach" if followers <= 50000 else "high_influencer")
         )
 
@@ -333,7 +379,6 @@ class IntegratedDoomPredictor:
             "inference_mode": "full_multimodal",
         }
 
-
     def predict_batch(self, texts: list, author_ids: list) -> list:
         """Predict for a batch of posts."""
         results = []
@@ -349,9 +394,11 @@ class IntegratedDoomPredictor:
         self.user_to_idx[user_id] = idx
 
         # Create feature vector (normalized same way as training)
-        new_features = torch.tensor([
-            [np.log1p(followers), float(verified), 1.0, 0.0, 0.0, 0.0]
-        ], dtype=torch.float, device=self.device)
+        new_features = torch.tensor(
+            [[np.log1p(followers), float(verified), 1.0, 0.0, 0.0, 0.0]],
+            dtype=torch.float,
+            device=self.device,
+        )
 
         # Append to graph
         self.graph_data.x = torch.cat([self.graph_data.x, new_features], dim=0)

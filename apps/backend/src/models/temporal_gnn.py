@@ -2,10 +2,11 @@
 Temporal Graph Network (TGN) implementation for evolving social graphs.
 Models how user interactions change over time to predict future cancellation cascades.
 """
+
 import logging
 import math
-from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -56,13 +57,13 @@ class MemoryModule(nn.Module):
         self.memory_dim = memory_dim
         # Use register_buffer: persistent state, NOT learnable params
         # nn.Parameter would crash autograd on in-place index assignment
-        self.register_buffer('memory', torch.zeros(num_nodes, memory_dim))
-        self.register_buffer('last_update', torch.zeros(num_nodes))
+        self.register_buffer("memory", torch.zeros(num_nodes, memory_dim))
+        self.register_buffer("last_update", torch.zeros(num_nodes))
 
         self.msg_func = nn.Sequential(
             nn.Linear(memory_dim * 2 + 64, memory_dim),  # src_mem + dst_mem + edge_feat
             nn.ReLU(),
-            nn.Linear(memory_dim, memory_dim)
+            nn.Linear(memory_dim, memory_dim),
         )
         self.gru = nn.GRUCell(memory_dim, memory_dim)
 
@@ -76,9 +77,13 @@ class MemoryModule(nn.Module):
         # In-place assign with detach to avoid autograd graph issues on buffers
         self.memory[node_ids] = updated.detach()
 
-
-    def compute_messages(self, src_ids: torch.Tensor, dst_ids: torch.Tensor,
-                         edge_feats: torch.Tensor, timestamps: torch.Tensor) -> torch.Tensor:
+    def compute_messages(
+        self,
+        src_ids: torch.Tensor,
+        dst_ids: torch.Tensor,
+        edge_feats: torch.Tensor,
+        timestamps: torch.Tensor,
+    ) -> torch.Tensor:
         """Compute messages for edge updates."""
         src_mem = self.memory[src_ids]
         dst_mem = self.memory[dst_ids]
@@ -109,20 +114,24 @@ class TemporalGraphNetwork(nn.Module):
         self.node_embedding = nn.Embedding(num_nodes, config.node_dim).to(self.device)
 
         # Graph attention layers for temporal neighbors
-        self.attention_layers = nn.ModuleList([
-            nn.MultiheadAttention(
-                embed_dim=config.node_dim + config.time_dim + config.memory_dim,
-                num_heads=config.num_heads,
-                dropout=config.dropout,
-                batch_first=True
-            ).to(self.device)
-            for _ in range(config.num_layers)
-        ])
+        self.attention_layers = nn.ModuleList(
+            [
+                nn.MultiheadAttention(
+                    embed_dim=config.node_dim + config.time_dim + config.memory_dim,
+                    num_heads=config.num_heads,
+                    dropout=config.dropout,
+                    batch_first=True,
+                ).to(self.device)
+                for _ in range(config.num_layers)
+            ]
+        )
 
-        self.layer_norms = nn.ModuleList([
-            nn.LayerNorm(config.node_dim + config.time_dim + config.memory_dim).to(self.device)
-            for _ in range(config.num_layers)
-        ])
+        self.layer_norms = nn.ModuleList(
+            [
+                nn.LayerNorm(config.node_dim + config.time_dim + config.memory_dim).to(self.device)
+                for _ in range(config.num_layers)
+            ]
+        )
 
         # Output projection
         total_dim = config.node_dim + config.time_dim + config.memory_dim
@@ -130,17 +139,20 @@ class TemporalGraphNetwork(nn.Module):
             nn.Linear(total_dim, total_dim // 2),
             nn.ReLU(),
             nn.Dropout(config.dropout),
-            nn.Linear(total_dim // 2, config.node_dim)
+            nn.Linear(total_dim // 2, config.node_dim),
         ).to(self.device)
 
         self.dropout = nn.Dropout(config.dropout)
         logger.info(f"TGN initialized: {num_nodes} nodes, {config.num_layers} layers")
 
-    def forward(self, node_ids: torch.Tensor, 
-                neighbor_ids: List[torch.Tensor],
-                edge_feats: List[torch.Tensor],
-                timestamps: List[torch.Tensor],
-                time_diffs: List[torch.Tensor]) -> torch.Tensor:
+    def forward(
+        self,
+        node_ids: torch.Tensor,
+        neighbor_ids: List[torch.Tensor],
+        edge_feats: List[torch.Tensor],
+        timestamps: List[torch.Tensor],
+        time_diffs: List[torch.Tensor],
+    ) -> torch.Tensor:
         """
         Forward pass with temporal neighborhood sampling.
 
@@ -168,7 +180,9 @@ class TemporalGraphNetwork(nn.Module):
             if layer_idx < len(neighbor_ids):
                 nbr_ids = neighbor_ids[layer_idx]  # (B, N)
                 nbr_emb = self.node_embedding(nbr_ids)  # (B, N, node_dim)
-                nbr_mem = self.memory.get_memory(nbr_ids.view(-1)).view(B, -1, self.config.memory_dim)
+                nbr_mem = self.memory.get_memory(nbr_ids.view(-1)).view(
+                    B, -1, self.config.memory_dim
+                )
 
                 # Time encoding for neighbors
                 td = time_diffs[layer_idx]  # (B, N)
@@ -179,17 +193,20 @@ class TemporalGraphNetwork(nn.Module):
                 nbr_combined = torch.cat([nbr_emb, time_enc, nbr_mem], dim=-1)  # (B, N, D)
 
                 # Self-attention between central node and neighbors
-                attn_out, _ = self.attention_layers[layer_idx](
-                    x, nbr_combined, nbr_combined
-                )
+                attn_out, _ = self.attention_layers[layer_idx](x, nbr_combined, nbr_combined)
                 x = x + self.dropout(attn_out)
                 x = self.layer_norms[layer_idx](x)
 
         x = x.squeeze(1)  # (B, D)
         return self.output_mlp(x)
 
-    def update_memory_from_batch(self, src_ids: torch.Tensor, dst_ids: torch.Tensor,
-                                  edge_feats: torch.Tensor, timestamps: torch.Tensor):
+    def update_memory_from_batch(
+        self,
+        src_ids: torch.Tensor,
+        dst_ids: torch.Tensor,
+        edge_feats: torch.Tensor,
+        timestamps: torch.Tensor,
+    ):
         """Update memory after processing a batch of edges."""
         messages = self.memory.compute_messages(src_ids, dst_ids, edge_feats, timestamps)
 
@@ -219,12 +236,16 @@ class TemporalGraphNetwork(nn.Module):
 
 from .hypergraph_gnn import ContinuousTimeHawkesGAT
 
+
 class CTDGAHawkesEncoder(nn.Module):
     """CTDGA Encoder using Hawkes point processes."""
+
     def __init__(self, node_dim: int = 128, time_dim: int = 32, num_heads: int = 4):
         super().__init__()
-        self.hawkes_gat = ContinuousTimeHawkesGAT(node_dim=node_dim, time_dim=time_dim, num_heads=num_heads)
-        
+        self.hawkes_gat = ContinuousTimeHawkesGAT(
+            node_dim=node_dim, time_dim=time_dim, num_heads=num_heads
+        )
+
     def forward(self, target_node_emb, neighbor_embs, time_deltas):
         # hawkes_gat returns out, instant_intensity
         out, intensity = self.hawkes_gat(target_node_emb, neighbor_embs, time_deltas)

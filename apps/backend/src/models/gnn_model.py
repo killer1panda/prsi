@@ -1,7 +1,7 @@
 """GraphSAGE + Multimodal Fusion Model.
 
-GraphSAGE for user network embeddings + DistilBERT for text embeddings,
-fused via MLP for final cancellation prediction.
+Hypergraph HGNN + CompGCN for user network embeddings + Mistral-7B-Instruct with 4-bit QLoRA
+for text embeddings, fused via MLP for final cancellation prediction.
 """
 
 import logging
@@ -11,7 +11,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import SAGEConv, global_mean_pool
-from transformers import DistilBertModel, DistilBertTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model, TaskType
 
 logger = logging.getLogger(__name__)
 
@@ -65,29 +66,58 @@ class GraphSAGEEncoder(nn.Module):
 
 
 class TextEncoder(nn.Module):
-    """DistilBERT-based text encoder."""
+    """Mistral-7B-Instruct text encoder with 4-bit QLoRA (r=16)."""
 
-    def __init__(self, model_name: str = "distilbert-base-uncased", freeze_layers: int = 5):
+    def __init__(self, model_name: str = "mistralai/Mistral-7B-Instruct-v0.3", freeze_layers: int = 5):
         super().__init__()
 
-        self.bert = DistilBertModel.from_pretrained(model_name)
-        self.hidden_size = self.bert.config.hidden_size  # 768
+        # 4-bit BitsAndBytes quantization config
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
 
-        # Freeze bottom layers for faster training / less overfitting
-        if freeze_layers > 0:
-            for param in self.bert.parameters():
-                param.requires_grad = False
-            # Unfreeze top layers
-            for layer in self.bert.transformer.layer[freeze_layers:]:
-                for param in layer.parameters():
-                    param.requires_grad = True
-            logger.info(f"Frozen DistilBERT layers 0-{freeze_layers-1}, unfrozen {freeze_layers}-5")
+        base_model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            quantization_config=bnb_config,
+            device_map="auto",
+            trust_remote_code=True,
+        )
+
+        # QLoRA adapter: r=16, alpha=32, target q_proj and v_proj
+        lora_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            target_modules=["q_proj", "v_proj"],
+            lora_dropout=0.05,
+            bias="none",
+            task_type=TaskType.CAUSAL_LM,
+        )
+        self.model = get_peft_model(base_model, lora_config)
+        self.hidden_size = self.model.config.hidden_size  # 4096
+
+        logger.info(
+            f"TextEncoder: Mistral-7B-Instruct loaded with 4-bit QLoRA "
+            f"(r=16, alpha=32). hidden_size={self.hidden_size}"
+        )
 
     def forward(self, input_ids, attention_mask):
-        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-        # Use [CLS] token embedding (first token)
-        cls_embedding = outputs.last_hidden_state[:, 0, :]
-        return cls_embedding
+        outputs = self.model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=True,
+        )
+        # Mistral is causal/decoder-only — use the LAST token of the last hidden state
+        last_hidden = outputs.hidden_states[-1]  # [B, seq_len, 4096]
+        # Gather the position of the last real (non-padded) token per sample
+        seq_lengths = attention_mask.sum(dim=-1) - 1  # [B]
+        batch_size = last_hidden.size(0)
+        last_token_emb = last_hidden[
+            torch.arange(batch_size, device=last_hidden.device), seq_lengths
+        ]  # [B, 4096]
+        return last_token_emb
 
     def encode_text(self, text: str, tokenizer, device="cuda"):
         """Encode a single text string."""
@@ -97,7 +127,7 @@ class TextEncoder(nn.Module):
             return_tensors="pt",
             truncation=True,
             padding=True,
-            max_length=512
+            max_length=1024
         ).to(device)
 
         with torch.no_grad():
@@ -112,7 +142,7 @@ class FusionMLP(nn.Module):
     def __init__(
         self,
         graph_dim: int = 128,
-        text_dim: int = 768,
+        text_dim: int = 4096,
         hidden_dim: int = 256,
         num_classes: int = 2,
         dropout: float = 0.4,
@@ -150,7 +180,7 @@ class FusionMLP(nn.Module):
 class MultimodalDoomPredictor(nn.Module):
     """End-to-end multimodal doom predictor.
 
-    Combines GraphSAGE (user network) + DistilBERT (text) + Fusion MLP.
+    Combines GraphSAGE (user network) + Mistral-7B QLoRA (text) + Fusion MLP.
     """
 
     def __init__(
@@ -159,7 +189,7 @@ class MultimodalDoomPredictor(nn.Module):
         graph_hidden: int = 128,
         graph_out: int = 128,
         graph_layers: int = 2,
-        text_model: str = "distilbert-base-uncased",
+        text_model: str = "mistralai/Mistral-7B-Instruct-v0.3",
         text_freeze: int = 5,
         fusion_hidden: int = 256,
         num_classes: int = 2,
@@ -182,13 +212,14 @@ class MultimodalDoomPredictor(nn.Module):
 
         self.fusion = FusionMLP(
             graph_dim=graph_out,
-            text_dim=768,
+            text_dim=4096,
             hidden_dim=fusion_hidden,
             num_classes=num_classes,
             dropout=dropout,
         )
 
-        self.tokenizer = DistilBertTokenizer.from_pretrained(text_model)
+        self.tokenizer = AutoTokenizer.from_pretrained(text_model)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
 
     def forward(
         self,
@@ -219,7 +250,7 @@ class MultimodalDoomPredictor(nn.Module):
         user_embeddings = graph_embeddings[user_indices]  # [batch_size, graph_out]
 
         # Text embeddings
-        text_embeddings = self.text_encoder(input_ids, attention_mask)  # [batch_size, 768]
+        text_embeddings = self.text_encoder(input_ids, attention_mask)  # [batch_size, 4096]
 
         # Fusion
         logits = self.fusion(user_embeddings, text_embeddings)  # [batch_size, num_classes]
@@ -249,7 +280,7 @@ class MultimodalDoomPredictor(nn.Module):
             return_tensors="pt",
             truncation=True,
             padding=True,
-            max_length=512
+            max_length=1024
         ).to(device)
 
         # Move graph to device
@@ -288,7 +319,7 @@ class MultimodalDoomPredictor(nn.Module):
             return_tensors="pt",
             truncation=True,
             padding=True,
-            max_length=512
+            max_length=1024
         ).to(device)
 
         x = x.to(device)

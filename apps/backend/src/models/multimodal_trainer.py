@@ -484,7 +484,7 @@ class MultimodalTrainer:
                 'graph_hidden': 128,
                 'graph_out': 128,
                 'graph_layers': 2,
-                'text_model': "distilbert-base-uncased",
+                'text_model': "mistralai/Mistral-7B-Instruct-v0.3",
                 'fusion_hidden': 256,
             }, config_path)
 

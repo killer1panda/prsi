@@ -152,7 +152,7 @@ def main():
             graph_hidden=args.graph_hidden,
             graph_out=128,
             graph_layers=args.graph_layers,
-            text_model="distilbert-base-uncased",
+            text_model="mistralai/Mistral-7B-Instruct-v0.3",
             text_freeze=args.freeze_bert_layers,
             fusion_hidden=args.fusion_hidden,
             num_classes=2,

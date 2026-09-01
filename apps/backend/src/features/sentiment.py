@@ -2,7 +2,7 @@
 
 This module provides sentiment analysis capabilities using:
 - VADER (Valence Aware Dictionary and sEntiment Reasoner)
-- HuggingFace Transformers (RoBERTa-based sentiment model)
+- HuggingFace Transformers (Mistral-7B-Instruct-based sentiment model)
 """
 
 from typing import Dict, Any, Optional
@@ -19,7 +19,7 @@ except ImportError:
     logger.warning("vaderSentiment not available")
 
 try:
-    from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+    from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification, BitsAndBytesConfig
     import torch
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
@@ -33,8 +33,8 @@ class SentimentAnalyzer:
     def __init__(self):
         self.vader = None
         self._transformer_pipeline = None
-        self._distilbert_model = None
-        self._distilbert_tokenizer = None
+        self._mistral_model = None
+        self._mistral_tokenizer = None
 
         if VADER_AVAILABLE:
             try:
@@ -44,34 +44,47 @@ class SentimentAnalyzer:
 
     @property
     def transformer_pipeline(self):
-        """Lazy load RoBERTa pipeline on demand."""
+        """Lazy load Mistral pipeline on demand."""
         if self._transformer_pipeline is None and TRANSFORMERS_AVAILABLE:
             try:
                 self._transformer_pipeline = pipeline(
                     "sentiment-analysis",
-                    model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+                    model="mistralai/Mistral-7B-Instruct-v0.3",
                     return_all_scores=True
                 )
             except Exception as e:
-                logger.warning(f"Could not load RoBERTa pipeline: {e}")
+                logger.warning(f"Could not load Mistral pipeline: {e}")
         return self._transformer_pipeline
 
     @property
-    def distilbert_model(self):
-        """Lazy load DistilBERT model on demand."""
-        if self._distilbert_model is None and TRANSFORMERS_AVAILABLE:
+    def mistral_model(self):
+        """Lazy load Mistral model on demand with 4-bit quantization."""
+        if self._mistral_model is None and TRANSFORMERS_AVAILABLE:
             try:
-                self._distilbert_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-                self._distilbert_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                    bnb_4bit_use_double_quant=True,
+                )
+                self._mistral_tokenizer = AutoTokenizer.from_pretrained(
+                    "mistralai/Mistral-7B-Instruct-v0.3"
+                )
+                self._mistral_tokenizer.pad_token = self._mistral_tokenizer.eos_token
+                self._mistral_model = AutoModelForSequenceClassification.from_pretrained(
+                    "mistralai/Mistral-7B-Instruct-v0.3",
+                    quantization_config=bnb_config,
+                    device_map="auto",
+                )
             except Exception as e:
-                logger.warning(f"Could not load DistilBERT model: {e}")
-        return self._distilbert_model
+                logger.warning(f"Could not load Mistral model: {e}")
+        return self._mistral_model
 
     @property
-    def distilbert_tokenizer(self):
-        if self._distilbert_tokenizer is None and TRANSFORMERS_AVAILABLE:
-            _ = self.distilbert_model
-        return self._distilbert_tokenizer
+    def mistral_tokenizer(self):
+        if self._mistral_tokenizer is None and TRANSFORMERS_AVAILABLE:
+            _ = self.mistral_model
+        return self._mistral_tokenizer
 
     def analyze(self, text: str) -> Dict[str, float]:
         """Convenience method returning sentiment scores (VADER fast path)."""
@@ -121,27 +134,40 @@ class SentimentAnalyzer:
             logger.error(f"Transformer analysis failed: {e}")
             return None
 
-    def analyze_distilbert(self, text: str) -> Optional[Dict[str, float]]:
-        """Analyze sentiment using DistilBERT for multimodal analysis.
+    def analyze_mistral(self, text: str) -> Optional[Dict[str, float]]:
+        """Analyze sentiment using Mistral-7B-Instruct for multimodal analysis.
+
+        Uses last-token pooling (causal/decoder-only) then projects through
+        the classification head.
 
         Returns:
             Dict with LABEL_0 (negative) and LABEL_1 (positive) scores
         """
-        if not self.distilbert_model or not self.distilbert_tokenizer:
+        if not self.mistral_model or not self.mistral_tokenizer:
             return None
 
         try:
-            inputs = self.distilbert_tokenizer(text[:512], return_tensors="pt", truncation=True, padding=True)
+            inputs = self.mistral_tokenizer(
+                text[:512], return_tensors="pt", truncation=True, padding=True
+            )
             with torch.no_grad():
-                outputs = self.distilbert_model(**inputs)
-                probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1)
+                outputs = self.mistral_model(**inputs, output_hidden_states=True)
+                # Mistral is causal: take last token of last hidden state
+                last_hidden = outputs.hidden_states[-1]  # [B, seq, hidden]
+                seq_lengths = inputs["attention_mask"].sum(dim=-1) - 1  # [B]
+                last_token = last_hidden[
+                    torch.arange(last_hidden.size(0)), seq_lengths
+                ]  # [B, hidden]
+                # Project through classification head
+                logits = self.mistral_model.score(last_token)
+                probabilities = torch.nn.functional.softmax(logits, dim=-1)
                 scores = {
                     "LABEL_0": probabilities[0][0].item(),  # Negative
                     "LABEL_1": probabilities[0][1].item()   # Positive
                 }
             return scores
         except Exception as e:
-            logger.error(f"DistilBERT analysis failed: {e}")
+            logger.error(f"Mistral analysis failed: {e}")
             return None
 
     def analyze_combined(self, text: str, include_transformers: bool = False) -> Dict[str, Any]:
@@ -161,10 +187,10 @@ class SentimentAnalyzer:
 
         if include_transformers:
             result['transformer'] = self.analyze_transformer(text)
-            result['distilbert'] = self.analyze_distilbert(text)
+            result['mistral'] = self.analyze_mistral(text)
         else:
             result['transformer'] = None
-            result['distilbert'] = None
+            result['mistral'] = None
 
         if compound >= 0.05:
             result['overall_sentiment'] = 'positive'

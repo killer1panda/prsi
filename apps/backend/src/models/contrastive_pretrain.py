@@ -1,6 +1,8 @@
 """
 Contrastive pretraining for user embeddings using SimCLR-style NT-Xent loss.
 Learns robust user representations from augmented social graph views.
+When multimodal vision features are incorporated, they are sourced from the
+Qwen2-VL-7B NaViT vision tower (3584d hidden, projected to 512d before fusion).
 """
 import logging
 from typing import Tuple, Optional, Callable
@@ -93,6 +95,9 @@ class UserEmbeddingProjector(nn.Module):
 class ContrastivePretrainer:
     """
     SimCLR-style pretraining for user embeddings on graph augmentations.
+    When vision modality is enabled, image features from the Qwen2-VL-7B
+    vision tower (projected to 512d) are concatenated with graph embeddings
+    before the NT-Xent contrastive objective.
     """
 
     def __init__(self, encoder: nn.Module, config: Optional[ContrastiveConfig] = None):

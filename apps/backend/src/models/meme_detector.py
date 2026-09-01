@@ -1,6 +1,7 @@
 """
-Meme detection and virality scoring using CLIP embeddings.
+Meme detection and virality scoring using Qwen2-VL-7B embeddings.
 Detects known meme templates and estimates meme virality potential.
+Leverages Qwen2-VL's built-in OCR capability for meme text extraction.
 """
 import logging
 from pathlib import Path
@@ -26,8 +27,10 @@ class MemeDetectorConfig:
 
 class MemeDetector:
     """
-    Detects memes by comparing against a bank of known templates.
-    Also scores virality based on visual complexity and text overlay density.
+    Detects memes by comparing against a bank of known templates using
+    Qwen2-VL-7B vision embeddings (projected to 512d).
+    Also scores virality based on visual complexity, text overlay density,
+    and OCR-extracted meme text via Qwen2-VL's built-in OCR capability.
     """
 
     def __init__(self, vision_encoder, config: Optional[MemeDetectorConfig] = None):
@@ -39,7 +42,8 @@ class MemeDetector:
         self.template_embeddings: Dict[str, torch.Tensor] = {}
         self.template_metadata: Dict[str, Dict] = {}
 
-        # Virality scoring MLP (trained on historical virality data)
+        # Virality scoring MLP (trained on historical virality data).
+        # Input = Qwen2-VL projection output (512d) + 10 visual/OCR features.
         self.virality_scorer = nn.Sequential(
             nn.Linear(self.vision_encoder.config.projection_dim + 10, 128),
             nn.ReLU(),
@@ -87,12 +91,21 @@ class MemeDetector:
     def detect(self, image: Union[str, Path, Image.Image]) -> Dict[str, any]:
         """
         Detect if image is a meme and identify template.
+        Uses Qwen2-VL-7B projected embeddings (512d) for similarity matching
+        and OCR for meme text extraction.
 
         Returns:
-            Dict with keys: is_meme, template_matches, virality_score, 
-                           confidence, meme_type
+            Dict with keys: is_meme, template_matches, virality_score,
+                           confidence, meme_type, ocr_text
         """
         emb = self.vision_encoder.encode([image], use_cache=False)[0]
+
+        # OCR-based meme text extraction via Qwen2-VL vision tower
+        ocr_text = ""
+        try:
+            ocr_text = self.vision_encoder.ocr_extract(image)
+        except Exception as e:
+            logger.debug(f"OCR extraction failed: {e}")
 
         if not self.template_embeddings:
             # No templates loaded; use heuristic virality score
@@ -101,21 +114,22 @@ class MemeDetector:
                 "template_matches": [],
                 "virality_score": 0.0,
                 "confidence": 0.0,
-                "meme_type": "unknown"
+                "meme_type": "unknown",
+                "ocr_text": ocr_text,
             }
 
         # Compute similarities to all templates
         similarities = {}
         for name, template_emb in self.template_embeddings.items():
-            sim = torch.cosine_similarity(emb.unsqueeze(0), 
-                                          template_emb.unsqueeze(0).to(self.device), 
+            sim = torch.cosine_similarity(emb.unsqueeze(0),
+                                          template_emb.unsqueeze(0).to(self.device),
                                           dim=-1).item()
             similarities[name] = sim
 
         # Top-K matches
         sorted_sims = sorted(similarities.items(), key=lambda x: x[1], reverse=True)
         top_matches = [
-            {"template": name, "similarity": round(sim, 4), 
+            {"template": name, "similarity": round(sim, 4),
              "metadata": self.template_metadata.get(name, {})}
             for name, sim in sorted_sims[:self.config.top_k_templates]
         ]
@@ -124,9 +138,9 @@ class MemeDetector:
         is_meme = best_sim > self.config.similarity_threshold
 
         # Virality scoring using visual features + template history
-        visual_features = self._extract_visual_features(image)
+        visual_features = self._extract_visual_features(image, ocr_text=ocr_text)
         virality_input = torch.cat([
-            emb.detach().cpu(), 
+            emb.detach().cpu(),
             torch.tensor(visual_features, dtype=torch.float32)
         ]).unsqueeze(0).to(self.device)
 
@@ -138,11 +152,19 @@ class MemeDetector:
             "template_matches": top_matches,
             "virality_score": round(virality_score, 4),
             "confidence": round(best_sim, 4),
-            "meme_type": sorted_sims[0][0] if is_meme else "original"
+            "meme_type": sorted_sims[0][0] if is_meme else "original",
+            "ocr_text": ocr_text,
         }
 
-    def _extract_visual_features(self, image: Union[str, Path, Image.Image]) -> np.ndarray:
-        """Extract heuristic visual features for virality prediction."""
+    def _extract_visual_features(
+        self,
+        image: Union[str, Path, Image.Image],
+        ocr_text: str = "",
+    ) -> np.ndarray:
+        """
+        Extract heuristic visual features for virality prediction.
+        Includes OCR text density derived from Qwen2-VL's OCR output.
+        """
         if isinstance(image, (str, Path)):
             img = Image.open(image).convert("RGB")
         else:
@@ -150,13 +172,19 @@ class MemeDetector:
 
         img_array = np.array(img)
 
+        # Normalised OCR text length as proxy for text overlay density
+        ocr_density = min(len(ocr_text) / 200.0, 1.0)
+        ocr_has_text = 1.0 if len(ocr_text.strip()) > 0 else 0.0
+
         features = [
-            img_array.std() / 255.0,  # Contrast
-            np.mean(np.abs(np.diff(img_array, axis=0))) / 255.0,  # Vertical edge density
-            np.mean(np.abs(np.diff(img_array, axis=1))) / 255.0,  # Horizontal edge density
-            img.size[0] / img.size[1],  # Aspect ratio
-            1.0 if img.size[0] < 500 else 0.0,  # Low resolution flag
-            0.0, 0.0, 0.0, 0.0, 0.0  # Reserved for OCR text density, etc.
+            img_array.std() / 255.0,                                     # Contrast
+            np.mean(np.abs(np.diff(img_array, axis=0))) / 255.0,          # Vertical edge density
+            np.mean(np.abs(np.diff(img_array, axis=1))) / 255.0,          # Horizontal edge density
+            img.size[0] / img.size[1],                                    # Aspect ratio
+            1.0 if img.size[0] < 500 else 0.0,                           # Low resolution flag
+            ocr_has_text,                                                  # Has OCR text (Qwen2-VL)
+            ocr_density,                                                   # OCR text density
+            0.0, 0.0, 0.0                                                  # Reserved
         ]
         return np.array(features[:10], dtype=np.float32)
 

@@ -68,8 +68,8 @@ class DoomIndexHandler:
             raise RuntimeError(f"Model file not found: {model_pt_path}")
 
         # Load tokenizers
-        from transformers import DistilBertTokenizer
-        self.tokenizer = DistilBertTokenizer.from_pretrained(model_dir)
+        from transformers import AutoTokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
 
         self.initialized = True
         logger.info(f"Handler initialized on {self.device}")

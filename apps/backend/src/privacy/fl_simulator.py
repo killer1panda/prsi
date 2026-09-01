@@ -11,7 +11,14 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
+
 import numpy as np
+try:
+    import tenseal as ts
+    TENSEAL_AVAILABLE = True
+except ImportError:
+    TENSEAL_AVAILABLE = False
+
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +232,7 @@ class FLSimulator:
             graph_hidden=128,
             graph_out=128,
             graph_layers=2,
-            text_model="distilbert-base-uncased",
+            text_model="mistralai/Mistral-7B-Instruct-v0.3",
             text_freeze=6,
             fusion_hidden=256,
             num_classes=2,
@@ -319,3 +326,18 @@ FederatedSimulator = FLSimulator
 
 if __name__ == "__main__":
     print("FL Simulator module. Import and use in training scripts.")
+
+
+
+from dataclasses import dataclass, field
+
+@dataclass
+class HEContext:
+    poly_modulus_degree: int = 8192
+    coeff_mod_bit_sizes: list = field(default_factory=lambda: [60, 40, 40, 60])
+    scale: float = 2**40
+
+class HomomorphicAggregator:
+    def setup_context(self, he_ctx: HEContext):
+        if not TENSEAL_AVAILABLE: return None
+        return ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=he_ctx.poly_modulus_degree, coeff_mod_bit_sizes=he_ctx.coeff_mod_bit_sizes)

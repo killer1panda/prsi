@@ -1,6 +1,7 @@
 """
-Production-grade CLIP-based Vision Encoder for multimodal Doom Index.
-Handles image preprocessing, batch embedding extraction, and meme-aware encoding.
+Qwen2-VL-7B NaViT Vision Encoder for multimodal Doom Index.
+Native dynamic resolution (up to 1120×1120), built-in OCR for meme text,
+temporal video understanding.
 """
 import logging
 import hashlib
@@ -11,26 +12,31 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from PIL import Image
-from transformers import CLIPProcessor, CLIPVisionModel, CLIPModel
+from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from transformers import BitsAndBytesConfig
+from qwen_vl_utils import process_vision_info
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class VisionConfig:
-    model_name: str = "openai/clip-vit-base-patch32"
+    model_name: str = "Qwen/Qwen2-VL-7B-Instruct"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    batch_size: int = 32
+    batch_size: int = 8  # Smaller batch due to higher resolution
     cache_dir: str = "./cache/vision"
-    embedding_dim: int = 512
+    embedding_dim: int = 3584  # Qwen2-VL hidden size
     freeze_backbone: bool = False
-    projection_dim: int = 256
+    projection_dim: int = 512
+    max_pixels: int = 1003520  # 1120x1120 approx
+    min_pixels: int = 262144   # 512x512
 
 
 class VisionEncoder(nn.Module):
     """
-    CLIP-based vision encoder with optional projection head and caching.
-    Production features: batching, disk caching, mixed precision support.
+    Qwen2-VL-7B NaViT vision encoder with optional projection head and caching.
+    Production features: 4-bit quantization, dynamic resolution, batching,
+    disk caching, built-in OCR via the Qwen2-VL language head.
     """
 
     def __init__(self, config: Optional[VisionConfig] = None):
@@ -38,23 +44,38 @@ class VisionEncoder(nn.Module):
         self.config = config or VisionConfig()
         self.device = torch.device(self.config.device)
 
-        # Load CLIP vision components
-        self.processor = CLIPProcessor.from_pretrained(
-            self.config.model_name, 
-            cache_dir=self.config.cache_dir
+        # 4-bit quantization config (NF4, double quant, bfloat16 compute)
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
         )
-        self.vision_model = CLIPVisionModel.from_pretrained(
+
+        # Load Qwen2-VL vision-language model
+        self.vision_model = Qwen2VLForConditionalGeneration.from_pretrained(
             self.config.model_name,
-            cache_dir=self.config.cache_dir
-        ).to(self.device)
+            torch_dtype=torch.bfloat16,
+            quantization_config=bnb_config,
+            device_map="auto",
+            cache_dir=self.config.cache_dir,
+        )
+
+        # AutoProcessor handles dynamic resolution tiling via min/max_pixels
+        self.processor = AutoProcessor.from_pretrained(
+            self.config.model_name,
+            cache_dir=self.config.cache_dir,
+            min_pixels=self.config.min_pixels,
+            max_pixels=self.config.max_pixels,
+        )
 
         if self.config.freeze_backbone:
-            for param in self.vision_model.parameters():
+            for param in self.vision_model.model.visual.parameters():
                 param.requires_grad = False
 
-        # Projection head for domain adaptation
+        # Projection head: 3584 (Qwen2-VL hidden size) → projection_dim (512)
         self.projection = nn.Sequential(
-            nn.Linear(self.vision_model.config.hidden_size, self.config.projection_dim * 2),
+            nn.Linear(3584, self.config.projection_dim * 2),
             nn.LayerNorm(self.config.projection_dim * 2),
             nn.GELU(),
             nn.Dropout(0.1),
@@ -72,15 +93,17 @@ class VisionEncoder(nn.Module):
             return hashlib.sha256(content).hexdigest()[:16]
         return hashlib.sha256(str(image_path).encode()).hexdigest()[:16]
 
-    def preprocess(self, images: List[Union[str, Path, Image.Image]]) -> torch.Tensor:
+    def preprocess(self, images: List[Union[str, Path, Image.Image]]):
         """
-        Preprocess images for CLIP. Handles file paths, PIL Images, and URLs.
+        Preprocess images for Qwen2-VL. Handles file paths and PIL Images.
+        Uses the Qwen2-VL message format with dynamic resolution tiling
+        (min_pixels=512×512, max_pixels≈1120×1120).
 
         Args:
             images: List of image paths or PIL Images
 
         Returns:
-            Preprocessed pixel values tensor
+            Processed inputs dict ready for the Qwen2-VL model
         """
         pil_images = []
         for img in images:
@@ -91,15 +114,30 @@ class VisionEncoder(nn.Module):
             else:
                 raise ValueError(f"Unsupported image type: {type(img)}")
 
-        inputs = self.processor(images=pil_images, return_tensors="pt", padding=True)
-        return inputs["pixel_values"].to(self.device)
+        messages = [{"role": "user", "content": [{"type": "image", "image": img} for img in pil_images]}]
 
-    @torch.cuda.amp.autocast()
+        # Apply chat template and extract vision info for the processor
+        text = self.processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        image_inputs, video_inputs = process_vision_info(messages)
+
+        inputs = self.processor(
+            text=[text],
+            images=image_inputs,
+            videos=video_inputs,
+            padding=True,
+            return_tensors="pt",
+        )
+        return inputs.to(self.device)
+
     @torch.no_grad()
-    def encode(self, images: List[Union[str, Path, Image.Image]], 
+    def encode(self, images: List[Union[str, Path, Image.Image]],
                use_cache: bool = True) -> torch.Tensor:
         """
         Encode images to embedding vectors with caching.
+        Extracts the last hidden state from the Qwen2-VL vision tower
+        (model.model.visual) and applies the learnable projection head.
 
         Args:
             images: List of images
@@ -125,11 +163,20 @@ class VisionEncoder(nn.Module):
         all_embeddings = []
         for i in range(0, len(images), self.config.batch_size):
             batch = images[i:i + self.config.batch_size]
-            pixel_values = self.preprocess(batch)
+            inputs = self.preprocess(batch)
 
-            vision_outputs = self.vision_model(pixel_values=pixel_values)
-            pooled = vision_outputs.pooler_output  # (B, hidden_size)
-            projected = self.projection(pooled)  # (B, projection_dim)
+            # Extract vision patch embeddings from the Qwen2-VL vision tower
+            with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
+                visual_outputs = self.vision_model.model.visual(
+                    pixel_values=inputs["pixel_values"],
+                    image_grid_thw=inputs.get("image_grid_thw"),
+                )
+
+            # visual_outputs: (total_patches, hidden_size=3584)
+            # Mean-pool across all patch tokens to get a pooled vision vector
+            pooled = visual_outputs.mean(dim=0, keepdim=True)  # (1, 3584)
+
+            projected = self.projection(pooled.float())  # (1, projection_dim)
             projected = nn.functional.normalize(projected, p=2, dim=-1)
 
             all_embeddings.append(projected)
@@ -143,13 +190,75 @@ class VisionEncoder(nn.Module):
 
         return embeddings
 
-    def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+    def forward(self, pixel_values: torch.Tensor,
+                image_grid_thw: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass for training with preprocessed tensors."""
-        vision_outputs = self.vision_model(pixel_values=pixel_values)
-        pooled = vision_outputs.pooler_output
-        return self.projection(pooled)
+        with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
+            visual_outputs = self.vision_model.model.visual(
+                pixel_values=pixel_values,
+                image_grid_thw=image_grid_thw,
+            )
+        pooled = visual_outputs.mean(dim=0, keepdim=True)
+        return self.projection(pooled.float())
 
-    def compute_similarity(self, img1: Union[str, Image.Image], 
+    @torch.no_grad()
+    def ocr_extract(self, image: Union[str, Path, Image.Image]) -> str:
+        """
+        Extract all text visible in an image using Qwen2-VL's built-in OCR capability.
+        Useful for meme text extraction, caption detection, and overlay text parsing.
+
+        Args:
+            image: A single image path or PIL Image
+
+        Returns:
+            Extracted text string (may be empty if no text is detected)
+        """
+        if isinstance(image, (str, Path)):
+            pil_image = Image.open(image).convert("RGB")
+        elif isinstance(image, Image.Image):
+            pil_image = image.convert("RGB")
+        else:
+            raise ValueError(f"Unsupported image type: {type(image)}")
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": pil_image},
+                    {"type": "text", "text": "Extract all text visible in this image:"},
+                ],
+            }
+        ]
+
+        text = self.processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        image_inputs, video_inputs = process_vision_info(messages)
+
+        inputs = self.processor(
+            text=[text],
+            images=image_inputs,
+            videos=video_inputs,
+            return_tensors="pt",
+        ).to(self.device)
+
+        generated_ids = self.vision_model.generate(
+            **inputs,
+            max_new_tokens=256,
+        )
+        # Trim the input tokens from the generated output
+        generated_ids_trimmed = [
+            out_ids[len(in_ids):]
+            for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+        ]
+        output_text = self.processor.batch_decode(
+            generated_ids_trimmed,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
+        )
+        return output_text[0].strip() if output_text else ""
+
+    def compute_similarity(self, img1: Union[str, Image.Image],
                            img2: Union[str, Image.Image]) -> float:
         """Compute cosine similarity between two images."""
         embs = self.encode([img1, img2], use_cache=False)
@@ -157,29 +266,30 @@ class VisionEncoder(nn.Module):
         return sim.item()
 
     def save(self, path: str):
-        """Save model weights and config."""
+        """Save projection head weights and config (backbone weights are managed separately)."""
         torch.save({
-            "vision_model": self.vision_model.state_dict(),
             "projection": self.projection.state_dict(),
             "config": self.config
         }, path)
-        logger.info(f"VisionEncoder saved to {path}")
+        logger.info(f"VisionEncoder projection head saved to {path}")
 
     def load(self, path: str):
-        """Load model weights."""
+        """Load projection head weights."""
         checkpoint = torch.load(path, map_location=self.device)
-        self.vision_model.load_state_dict(checkpoint["vision_model"])
         self.projection.load_state_dict(checkpoint["projection"])
-        logger.info(f"VisionEncoder loaded from {path}")
+        logger.info(f"VisionEncoder projection head loaded from {path}")
 
 
 class MultimodalFusion(nn.Module):
     """
     Late fusion module combining vision + text embeddings.
     Uses cross-modal attention for fine-grained alignment.
+    Vision input is expected at projection_dim (512) — the output of
+    the Qwen2-VL-7B vision tower after the learned projection head
+    (raw Qwen2-VL hidden size is 3584, projected down to 512).
     """
 
-    def __init__(self, text_dim: int = 768, vision_dim: int = 256, 
+    def __init__(self, text_dim: int = 768, vision_dim: int = 512,
                  fusion_dim: int = 512, num_heads: int = 8):
         super().__init__()
         self.text_proj = nn.Linear(text_dim, fusion_dim)
@@ -197,12 +307,12 @@ class MultimodalFusion(nn.Module):
         )
         self.output_proj = nn.Linear(fusion_dim, 1)
 
-    def forward(self, text_emb: torch.Tensor, 
+    def forward(self, text_emb: torch.Tensor,
                 vision_emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Args:
             text_emb: (B, text_dim)
-            vision_emb: (B, vision_dim) or None
+            vision_emb: (B, vision_dim=512) or None — Qwen2-VL projected embedding
         Returns:
             logits: (B, 1)
         """

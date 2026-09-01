@@ -288,9 +288,9 @@ class ModelManager:
     
     def _load(self):
         """Load ONNX model or initialize transformer fallback."""
-        from transformers import DistilBertTokenizer
+        from transformers import AutoTokenizer
         try:
-            self.tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+            self.tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3")
         except Exception as e:
             logger.warning(f"Tokenizer pretrained load failed ({e}); using basic fallback")
             self.tokenizer = None

@@ -15,7 +15,7 @@ Features:
 - Model registry staging (None -> Staging -> Production)
 
 Usage:
-    tracker = ExperimentTracker(experiment_name="doom_distilbert_h100")
+    tracker = ExperimentTracker(experiment_name="doom_mistral7b_h100")
     tracker.log_params({"lr": 2e-5, "batch_size": 32})
     tracker.log_metrics({"train_loss": 0.42}, step=epoch)
     tracker.save_model(model, "checkpoint_epoch_5", metadata={"f1": 0.89})
@@ -377,7 +377,7 @@ def create_h100_tracker(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     with create_h100_tracker("test_run", nodes=1, gpus_per_node=1) as tracker:
-        tracker.log_params({"lr": 2e-5, "model": "distilbert"})
+        tracker.log_params({"lr": 2e-5, "model": "mistral7b"})
         for step in range(10):
             tracker.log_metrics({"loss": 1.0 / (step + 1), "acc": step * 0.1}, step=step)
             time.sleep(0.1)

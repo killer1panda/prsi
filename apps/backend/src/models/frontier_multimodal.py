@@ -1,7 +1,10 @@
 """
-Frontier Vision-Language Architecture (Qwen2-VL + Mistral-7B QLoRA + Q-Former).
+Frontier Vision-Language Architecture (Qwen2-VL-7B + Mistral-7B QLoRA + Q-Former).
 Implements a Multimodal Perceiver Resampler (Q-Former) with learnable latent query tokens
 and InfoNCE cross-modal contrastive alignment for nuanced meme & text outrage modeling.
+
+Vision backbone: Qwen2-VL-7B NaViT with native dynamic resolution (up to 1120×1120).
+Raw vision hidden size: 3584d. Passes through Q-Former before language fusion.
 """
 
 import math
@@ -53,10 +56,11 @@ class MultimodalQFormer(nn.Module):
     """
     Multimodal Perceiver Resampler / Q-Former Bridge.
     Uses learnable query tokens to compress arbitrary vision patch sequences
-    into fixed-length latent outrage representations for text fusion.
+    (from the Qwen2-VL-7B NaViT tower, hidden_size=3584) into fixed-length
+    latent outrage representations for text fusion.
     """
 
-    def __init__(self, num_queries: int = 32, query_dim: int = 768, vision_dim: int = 1280, num_heads: int = 8):
+    def __init__(self, num_queries: int = 32, query_dim: int = 768, vision_dim: int = 3584, num_heads: int = 8):
         super().__init__()
         self.num_queries = num_queries
         self.query_dim = query_dim
@@ -108,13 +112,15 @@ class MultimodalQFormer(nn.Module):
 class FrontierMultimodalPredictor(nn.Module):
     """
     Unified Frontier Multimodal Architecture.
-    Combines Vision Patches (Qwen2-VL), Text Sequences (Mistral QLoRA),
-    and Graph Latents via Q-Former cross-attention and InfoNCE alignment.
+    Combines Vision Patches (Qwen2-VL-7B, 3584d hidden → Q-Former compressed),
+    Text Sequences (Mistral QLoRA), and Graph Latents via Q-Former cross-attention
+    and InfoNCE alignment. Vision patches are fed raw (3584d) into the Q-Former;
+    after compression they are projected to latent_dim for joint transformer fusion.
     """
 
     def __init__(
         self,
-        vision_dim: int = 1280,
+        vision_dim: int = 3584,  # Qwen2-VL-7B NaViT hidden size (before Q-Former)
         text_dim: int = 1024,
         graph_dim: int = 128,
         latent_dim: int = 512,

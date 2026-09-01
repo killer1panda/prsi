@@ -5,6 +5,9 @@ Senior-level implementation featuring:
 - Gated fusion with learnable modality weights
 - Residual connections and layer normalization
 - Optional transformer-style fusion layers
+
+When vision embeddings are present they arrive at 512d — the output of the
+Qwen2-VL-7B NaViT vision tower (raw 3584d) after the learned projection head.
 """
 
 import logging

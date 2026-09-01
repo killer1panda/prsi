@@ -16,12 +16,12 @@ Usage:
     registry = ModelRegistry(experiment_name="doom_index")
     version = registry.register(
         model_path="checkpoints/epoch_10.pt",
-        name="doom_distilbert",
+        name="doom_mistral7b",
         metrics={"f1": 0.912, "latency_p99_ms": 12.4},
         dataset_version="v2.3.1",
         stage="Staging"
     )
-    registry.promote("doom_distilbert", version, target="Production", 
+    registry.promote("doom_mistral7b", version, target="Production", 
                      required_metrics={"f1": 0.90})
 """
 
@@ -381,7 +381,7 @@ class ModelRegistry:
 
 def main():
     parser = argparse.ArgumentParser(description="Model Registry CLI")
-    parser.add_argument("--name", default="doom_distilbert")
+    parser.add_argument("--name", default="doom_mistral7b")
     parser.add_argument("--action", choices=["register", "promote", "list", "rollback", "compare"], required=True)
     parser.add_argument("--version")
     parser.add_argument("--target", default="Production")

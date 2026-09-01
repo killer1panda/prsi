@@ -12,13 +12,13 @@ import os
 from pathlib import Path
 
 
-def download_distilbert():
+def download_mistral7b():
     """Download DistilBERT base uncased."""
     print("Downloading DistilBERT base uncased...")
-    from transformers import DistilBertModel, DistilBertTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    model = DistilBertModel.from_pretrained("distilbert-base-uncased")
-    tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+    model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3")
+    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3")
 
     print(f"  Model cached at: {Path.home()}/.cache/huggingface/")
     print(f"  Model size: ~250MB")
@@ -32,12 +32,12 @@ def download_sentiment_models():
 
     # DistilBERT sentiment
     print("  - DistilBERT sentiment")
-    pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+    pipeline("sentiment-analysis", model="mistralai/Mistral-7B-Instruct-v0.3-finetuned-sst-2-english")
 
     # RoBERTa sentiment (if used)
     try:
         print("  - RoBERTa sentiment")
-        pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest")
+        pipeline("sentiment-analysis", model="mistralai/Mistral-7B-Instruct-v0.3")
     except Exception as e:
         print(f"    Skipped: {e}")
 
@@ -79,7 +79,7 @@ def main():
     print("=" * 60)
     print()
 
-    download_distilbert()
+    download_mistral7b()
     print()
 
     download_sentiment_models()

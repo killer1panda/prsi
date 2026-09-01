@@ -22,7 +22,7 @@ Usage:
     python -m src.data.webdataset_converter \
         --input data/reddit_processed.parquet \
         --output data/shards/ \
-        --tokenizer distilbert-base-uncased \
+        --tokenizer mistralai/Mistral-7B-Instruct-v0.3 \
         --max-len 256 \
         --shard-size 10000 \
         --compression zstd
@@ -129,7 +129,7 @@ class WebDatasetConverter:
 
     def __init__(
         self,
-        tokenizer_name: str = "distilbert-base-uncased",
+        tokenizer_name: str = "mistralai/Mistral-7B-Instruct-v0.3",
         max_length: int = 256,
         num_workers: int = 8,
     ):
@@ -313,7 +313,7 @@ def main():
     parser.add_argument("--input", required=True, help="Input Parquet/CSV")
     parser.add_argument("--output", required=True, help="Output directory or .arrow file")
     parser.add_argument("--format", choices=["webdataset", "arrow"], default="webdataset")
-    parser.add_argument("--tokenizer", default="distilbert-base-uncased")
+    parser.add_argument("--tokenizer", default="mistralai/Mistral-7B-Instruct-v0.3")
     parser.add_argument("--max-len", type=int, default=256)
     parser.add_argument("--shard-size", type=int, default=10000)
     parser.add_argument("--compression", default="gz", choices=["gz", "bz2", "xz", "zstd"])

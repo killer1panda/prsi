@@ -1,6 +1,7 @@
 """
 Async Qdrant HNSW Vector Search Engine.
-Stores high-dimensional multimodal embeddings (768d CLIP/DistilBERT)
+Stores high-dimensional multimodal embeddings (768d text + 512d Qwen2-VL vision,
+projected from 3584d Qwen2-VL-7B NaViT hidden size)
 and performs filtered k-NN cosine similarity search in sub-millisecond latency.
 """
 

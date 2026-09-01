@@ -1,6 +1,6 @@
 """Integrated multimodal predictor — replaces CancellationPredictor.
 
-Loads the trained GraphSAGE + DistilBERT model and provides a unified
+Loads the trained GraphSAGE + Mistral-7B model and provides a unified
 prediction interface compatible with the existing API.
 """
 
@@ -99,7 +99,7 @@ class IntegratedDoomPredictor:
             graph_hidden=config.get('graph_hidden', 128),
             graph_out=config.get('graph_out', 128),
             graph_layers=config.get('graph_layers', 2),
-            text_model=config.get('text_model', 'distilbert-base-uncased'),
+            text_model=config.get('text_model', 'mistralai/Mistral-7B-Instruct-v0.3'),
             text_freeze=6,  # All frozen for inference
             fusion_hidden=config.get('fusion_hidden', 256),
             num_classes=2,

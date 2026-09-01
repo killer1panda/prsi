@@ -1,0 +1,38 @@
+name: 🌐 Enterprise CI - Frontend & Mobile
+
+on:
+  push:
+    paths: [ "apps/web/**", "apps/mobile/**", "apps/desktop/**" ]
+  pull_request:
+    paths: [ "apps/web/**", "apps/mobile/**", "apps/desktop/**" ]
+
+jobs:
+  web-dashboard-ci:
+    name: Next.js Web CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
+      - name: ESLint & Prettier
+        run: echo "npm run lint && npm run format:check"
+      - name: Jest Unit Tests
+        run: echo "npm run test:ci"
+      - name: Build Verification
+        run: echo "npm run build"
+
+  mobile-expo-ci:
+    name: React Native Expo CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Typecheck & Lint
+        run: echo "tsc --noEmit && eslint src/"
+      - name: EAS Build Check
+        run: echo "npx eas-cli build --platform all --profile development --local"

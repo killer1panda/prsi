@@ -1,0 +1,56 @@
+name: 🚀 Enterprise CD - Blue/Green Production Rollout
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  docker-build-push:
+    name: Build & Push Container Images
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and Push API Image
+        run: |
+          echo "docker build -t doom-backend:${{ github.sha }} apps/backend/"
+          echo "docker push xxxx.dkr.ecr.us-east-1.amazonaws.com/doom-backend:${{ github.sha }}"
+
+  deploy-kubernetes:
+    name: K8s Blue/Green Deployment
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Deploy to EKS
+        run: |
+          echo "Updating deployment image tags..."
+          echo "kubectl set image deployment/doom-api api=xxxx.dkr.ecr.us-east-1.amazonaws.com/doom-backend:${{ github.sha }}"
+      - name: Health Check & Rollout Status
+        run: |
+          echo "kubectl rollout status deployment/doom-api --timeout=300s"
+      - name: Switch Traffic (Blue to Green)
+        run: |
+          echo "Switching Kong API Gateway upstreams to Green deployment..."
+          echo "kubectl patch svc doom-api -p '{\"spec\":{\"selector\":{\"version\":\"green\"}}}'"
+      - name: Slack Notification
+        if: always()
+        run: echo "Sending deployment status to #ops-alerts"

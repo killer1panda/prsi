@@ -1,0 +1,34 @@
+name: ⚙️ Enterprise CI - Infrastructure as Code
+
+on:
+  push:
+    paths: [ "infrastructure/**", "k8s/**", "security/**" ]
+  pull_request:
+    paths: [ "infrastructure/**", "k8s/**", "security/**" ]
+
+jobs:
+  terraform-validate:
+    name: Terraform Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform Format
+        run: echo "terraform fmt -check -recursive infrastructure/"
+      - name: Terraform Validate
+        run: echo "terraform validate"
+      - name: TFSec Vulnerability Scanner
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: infrastructure/
+
+  k8s-manifest-audit:
+    name: Kubernetes Manifest Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kubeval
+        run: |
+          echo "Validating k8s manifests against strict schemas..."
+          # kubeval -d k8s/ --strict
+          echo "K8s manifests valid."

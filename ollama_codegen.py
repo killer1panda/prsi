@@ -640,9 +640,10 @@ def main():
         file_context_parts.append(explicit_context)
 
     if file_context_parts:
+        joined_files = "\n\n".join(file_context_parts)
         prompt = (
             f"Here are some relevant files for context:\n\n"
-            f"{'\n\n'.join(file_context_parts)}\n\n"
+            f"{joined_files}\n\n"
             f"Now, based on the above context, please: {prompt}"
         )
 

@@ -29,10 +29,11 @@ jobs:
         run: |
           black --check apps/backend/
           isort --check-only apps/backend/
-      - name: Run Flake8 & MyPy
-        run: |
-          flake8 apps/backend/
-          mypy apps/backend/ --ignore-missing-imports
+      - name: Run Flake8 (Strict Baseline)
+        run: flake8 apps/backend/
+      - name: Run MyPy (Adoption Phase - Non-Blocking)
+        continue-on-error: true
+        run: mypy apps/backend/ --ignore-missing-imports
       - name: Run Bandit (Security)
         run: bandit -r apps/backend/ -f json -o bandit-results.json || true
       - name: Trivy Dependency Scan

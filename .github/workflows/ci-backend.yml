@@ -3,7 +3,7 @@ name: 🧠 Enterprise CI - Backend & ML
 on:
   push:
     branches: [ "main", "develop" ]
-    paths: [ "apps/backend/**", ".github/workflows/ci-backend.yml" ]
+    paths: [ "apps/backend/**", ".github/workflows/ci-backend.yml", ".flake8" ]
   pull_request:
     branches: [ "main" ]
     paths: [ "apps/backend/**" ]

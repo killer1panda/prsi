@@ -86,7 +86,7 @@ export default function ThreatIntelligenceDashboard() {
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-rose-900/30 bg-zinc-950/80 px-6 backdrop-blur-md">
         <div className="flex items-center gap-2 text-rose-500">
           <BrainCircuit className="h-6 w-6" />
-          <span className="text-lg font-bold tracking-tighter">PRSI // DOOM-INDEX</span>
+          <h1 className="text-lg font-bold tracking-tighter">PRSI // DOOM-INDEX</h1>
         </div>
         <div className="ml-auto flex items-center gap-4 text-xs">
           <Badge variant="outline" className="border-rose-500/50 text-rose-400 bg-rose-950/20">
@@ -161,7 +161,12 @@ export default function ThreatIntelligenceDashboard() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto p-0">
+            <CardContent
+              className="flex-1 overflow-y-auto p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-inset"
+              tabIndex={0}
+              role="region"
+              aria-label="Inference Output Stream"
+            >
               <div className="divide-y divide-zinc-800/50">
                 
                 {/* Stream Item 1 */}
@@ -267,19 +272,19 @@ export default function ThreatIntelligenceDashboard() {
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-zinc-500">Triton Inference Server</span>
-                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">ONLINE</Badge>
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>ONLINE</Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-zinc-500">Kafka MSK Cluster</span>
-                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">ONLINE</Badge>
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{ animationDelay: '150ms' }}></span>ONLINE</Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-zinc-500">Adversarial Generator</span>
-                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">ONLINE</Badge>
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{ animationDelay: '300ms' }}></span>ONLINE</Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-zinc-500">Neo4j Graph Store</span>
-                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">ONLINE</Badge>
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{ animationDelay: '450ms' }}></span>ONLINE</Badge>
               </div>
             </CardContent>
           </Card>

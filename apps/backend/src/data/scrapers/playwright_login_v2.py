@@ -7,6 +7,7 @@ Try x.com and with proxy support.
 
 import asyncio
 import json
+import os
 
 from playwright.async_api import async_playwright
 from playwright.errors import Error as PlaywrightError

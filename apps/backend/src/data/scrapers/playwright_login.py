@@ -6,6 +6,7 @@ Use Playwright to login to Twitter/X and extract cookies.
 
 import asyncio
 import json
+import os
 
 from playwright.async_api import async_playwright
 from playwright.errors import Error as PlaywrightError

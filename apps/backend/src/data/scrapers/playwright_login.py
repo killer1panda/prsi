@@ -12,9 +12,9 @@ from playwright.errors import Error as PlaywrightError
 from playwright.errors import TimeoutError as PlaywrightTimeoutError
 
 # Credentials
-EMAIL = "vaasha038@gmail.com"
-USERNAME = "doomlord14686"
-PASSWORD = "Hesoyam1@"
+EMAIL = os.getenv("TWITTER_EMAIL", "")
+USERNAME = os.getenv("TWITTER_USERNAME", "")
+PASSWORD = os.getenv("TWITTER_PASSWORD", "")
 
 COOKIES_FILE = "twitter_cookies.json"
 

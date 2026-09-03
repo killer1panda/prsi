@@ -1,0 +1,4 @@
+## 2026-09-03 - Hardcoded Credentials in Twitter Scrapers
+**Vulnerability:** Twitter scraping modules (`selenium_login.py`, `run_twitter_scraper.py`, `uc_login.py`, `playwright_login.py`, `playwright_login_v2.py`) had hardcoded plain-text passwords and emails for authentication.
+**Learning:** Development testing scripts for scraping tend to be committed with hardcoded developer credentials. This poses a severe risk of exposing live credentials when pushed to version control, highlighting a lack of environmental variable usage in scraper logic.
+**Prevention:** Always enforce the use of `os.getenv` or configuration files that are explicitly git-ignored for managing credentials, even in seemingly internal or experimental scraper scripts. Integrate secret scanning tools in the CI pipeline to catch hardcoded passwords before they hit version control.

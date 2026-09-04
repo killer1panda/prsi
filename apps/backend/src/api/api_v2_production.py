@@ -35,6 +35,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
+import secrets
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -269,10 +270,11 @@ async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(sec
 
     # In production, validate against database or cache
     valid_keys = os.environ.get("API_KEYS", "").split(",")
-    if credentials.credentials not in valid_keys:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
+    for valid_key in valid_keys:
+        if secrets.compare_digest(credentials.credentials, valid_key):
+            return credentials.credentials
 
-    return credentials.credentials
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
 
 class ModelPredictorAdapter:

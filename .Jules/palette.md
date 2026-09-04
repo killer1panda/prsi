@@ -1,0 +1,3 @@
+## 2024-09-04 - Accessible Scrollable Regions
+**Learning:** Custom scrollable containers (using `overflow-y-auto` or similar) are inaccessible to keyboard-only and screen reader users by default. Without keyboard focus, they cannot be scrolled using the keyboard, and without a role/label, screen readers ignore them. This is particularly important for live data streams or logs.
+**Action:** Always add `tabIndex={0}`, `role="region"`, `aria-label`, and `focus-visible` styling (like `focus-visible:outline-none focus-visible:ring-2`) to scrollable container elements to ensure proper keyboard navigation and screen reader announcement.

@@ -219,13 +219,13 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.failures = 0
-        self.last_failure_time = None
+        self.last_failure_time: Optional[float] = None
         self.state = "closed"  # closed, open, half-open
         self._lock = asyncio.Lock()
 
     async def call(self, func: Callable, *args, **kwargs):
         async with self._lock:
-            if self.state == "open":
+            if self.state == "open" and self.last_failure_time is not None:
                 if time.time() - self.last_failure_time > self.recovery_timeout:
                     self.state = "half-open"
                     self.failures = 0
@@ -290,10 +290,12 @@ class ModelPredictorAdapter:
             if results
             else {"doom_score": 50.0, "risk_level": "medium", "confidence": 0.5}
         )
-        prob = max(0.01, min(0.99, float(res["doom_score"]) / 100.0))
+        doom_score_raw = res.get("doom_score", 50.0)
+        doom_score = float(str(doom_score_raw))
+        prob = max(0.01, min(0.99, doom_score / 100.0))
         return {
             "probability": prob,
-            "doom_score": float(res["doom_score"]),
+            "doom_score": doom_score,
             "risk_level": res.get("risk_level", "medium"),
             "confidence": res.get("confidence", 0.5),
         }
@@ -351,7 +353,7 @@ class ModelManager:
     def predict(self, texts: List[str]) -> List[Dict[str, Any]]:
         """Run batch prediction."""
         start_time = time.time()
-        results = []
+        results: List[Dict[str, Any]] = []
 
         if self.session and self.tokenizer:
             try:

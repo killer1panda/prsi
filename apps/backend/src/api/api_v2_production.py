@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -35,7 +36,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
-import secrets
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from prometheus_client import (
     CONTENT_TYPE_LATEST,

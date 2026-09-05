@@ -161,7 +161,12 @@ export default function ThreatIntelligenceDashboard() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto p-0">
+            <CardContent
+              className="flex-1 overflow-y-auto p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+              tabIndex={0}
+              role="region"
+              aria-label="Inference Output Stream"
+            >
               <div className="divide-y divide-zinc-800/50">
                 
                 {/* Stream Item 1 */}

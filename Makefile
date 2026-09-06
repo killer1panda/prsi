@@ -51,15 +51,15 @@ install-hpc: ## Install HPC-specific dependencies (CUDA 12.x)
 # =============================================================================
 lint: ## Run all linters (flake8, mypy, bandit)
 	@echo "$(BLUE)Running linters...$(NC)"
-	flake8 src/ tests/ --max-line-length=100 --extend-ignore=E203,W503
-	mypy src/ --ignore-missing-imports --show-error-codes
-	bandit -r src/ -f json -o reports/bandit.json || true
+	flake8 apps/backend/src/ apps/backend/tests/ --max-line-length=100 --extend-ignore=E203,W503
+	mypy apps/backend/src/ --ignore-missing-imports --show-error-codes
+	bandit -r apps/backend/src/ -f json -o reports/bandit.json || true
 	@echo "$(GREEN)Linting complete.$(NC)"
 
 format: ## Format code with black and isort
 	@echo "$(BLUE)Formatting code...$(NC)"
-	black src/ tests/ scripts/
-	isort src/ tests/ scripts/
+	black apps/backend/src/ apps/backend/tests/ apps/backend/scripts/
+	isort apps/backend/src/ apps/backend/tests/ apps/backend/scripts/
 	@echo "$(GREEN)Formatting complete.$(NC)"
 
 format-check: ## Check formatting without modifying files
@@ -88,7 +88,7 @@ test-load: ## Run load tests with Locust
 
 test-security: ## Run security scans
 	@echo "$(BLUE)Running security scans...$(NC)"
-	bandit -r src/ -f json
+	bandit -r apps/backend/src/ -f json
 	safety check -r requirements.txt
 
 # =============================================================================

@@ -1,0 +1,4 @@
+## 2025-02-23 - Hardcoded Credentials in Twitter Scrapers
+**Vulnerability:** Hardcoded Twitter email, username, and passwords (e.g., `PASSWORD = "Hesoyam1@"`) were discovered scattered across multiple scraper scripts within `apps/backend/src/data/scrapers/` (including `selenium_login.py`, `playwright_login_v2.py`, `playwright_login.py`, `run_twitter_scraper.py`, and `uc_login.py`).
+**Learning:** Having hardcoded credentials in scripts directly exposes sensitive authentication details in version control, making them accessible to anyone with repository access. These test scripts bypassed standard credential management (like `.env` loading).
+**Prevention:** Always use environment variables (e.g. `os.getenv("TWITTER_PASSWORD", "")`) for all credentials, even in temporary, test, or isolated login automation scripts. Implement pre-commit hooks to scan for known secrets and enforce the use of secrets management tools.

@@ -18,9 +18,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 # Credentials
-EMAIL = "vaasha038@gmail.com"
-USERNAME = "doomlord14686"
-PASSWORD = "Hesoyam1@"
+EMAIL = os.environ.get("TWITTER_EMAIL", "")
+USERNAME = os.environ.get("TWITTER_USERNAME", "")
+PASSWORD = os.environ.get("TWITTER_PASSWORD", "")
 
 COOKIES_FILE = "twitter_cookies.json"
 

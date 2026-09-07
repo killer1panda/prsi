@@ -6,10 +6,7 @@ Simple script to run twikit scraper with provided credentials.
 Usage:
     python run_twitter_scraper.py
 
-Credentials provided:
-- Username: doomlord14686
-- Email: vaasha038@gmail.com
-- Password: Hesoyam1@
+Credentials are provided via environment variables.
 """
 
 import asyncio

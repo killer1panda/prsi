@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -218,13 +219,13 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.failures = 0
-        self.last_failure_time = None
+        self.last_failure_time: Optional[float] = None
         self.state = "closed"  # closed, open, half-open
         self._lock = asyncio.Lock()
 
     async def call(self, func: Callable, *args, **kwargs):
         async with self._lock:
-            if self.state == "open":
+            if self.state == "open" and self.last_failure_time is not None:
                 if time.time() - self.last_failure_time > self.recovery_timeout:
                     self.state = "half-open"
                     self.failures = 0
@@ -269,10 +270,11 @@ async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(sec
 
     # In production, validate against database or cache
     valid_keys = os.environ.get("API_KEYS", "").split(",")
-    if credentials.credentials not in valid_keys:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
+    for valid_key in valid_keys:
+        if secrets.compare_digest(credentials.credentials, valid_key):
+            return credentials.credentials
 
-    return credentials.credentials
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
 
 class ModelPredictorAdapter:
@@ -288,10 +290,12 @@ class ModelPredictorAdapter:
             if results
             else {"doom_score": 50.0, "risk_level": "medium", "confidence": 0.5}
         )
-        prob = max(0.01, min(0.99, float(res["doom_score"]) / 100.0))
+        doom_score_raw = res.get("doom_score", 50.0)
+        doom_score = float(str(doom_score_raw))
+        prob = max(0.01, min(0.99, doom_score / 100.0))
         return {
             "probability": prob,
-            "doom_score": float(res["doom_score"]),
+            "doom_score": doom_score,
             "risk_level": res.get("risk_level", "medium"),
             "confidence": res.get("confidence", 0.5),
         }
@@ -349,7 +353,7 @@ class ModelManager:
     def predict(self, texts: List[str]) -> List[Dict[str, Any]]:
         """Run batch prediction."""
         start_time = time.time()
-        results = []
+        results: List[Dict[str, Any]] = []
 
         if self.session and self.tokenizer:
             try:

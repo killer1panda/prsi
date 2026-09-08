@@ -6,10 +6,7 @@ Simple script to run twikit scraper with provided credentials.
 Usage:
     python run_twitter_scraper.py
 
-Credentials provided:
-- Username: (set via env TWITTER_USERNAME)
-- Email: (set via env TWITTER_EMAIL)
-- Password: (set via env TWITTER_PASSWORD)
+Credentials are provided via environment variables.
 """
 
 import asyncio
@@ -20,9 +17,9 @@ from datetime import datetime
 from twikit import Client
 
 # Credentials
-EMAIL = os.getenv("TWITTER_EMAIL", "")
-USERNAME = os.getenv("TWITTER_USERNAME", "")
-PASSWORD = os.getenv("TWITTER_PASSWORD", "")
+EMAIL = os.environ.get("TWITTER_EMAIL", "")
+USERNAME = os.environ.get("TWITTER_USERNAME", "")
+PASSWORD = os.environ.get("TWITTER_PASSWORD", "")
 
 # Session file to save/login from
 SESSION_FILE = "twitter_session.json"

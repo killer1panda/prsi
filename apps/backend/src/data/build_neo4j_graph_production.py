@@ -38,7 +38,7 @@ class GraphBuildConfig:
 
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
-    neo4j_password: str = "password"
+    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "neo4j")
     database: str = "neo4j"
 
     # Edge types to construct
@@ -500,18 +500,25 @@ class Neo4jGraphBuilder:
                         continue
 
                     time_diff = abs(t2 - t1)
-                    if time_diff <= window_seconds:
-                        # Weight decays with time difference
-                        weight = 1.0 - (time_diff / window_seconds)
-                        self.add_edge(
-                            u1,
-                            u2,
-                            "INTERACTED_IN",
-                            weight=round(weight, 4),
-                            thread_id=thread_id,
-                            time_diff_hours=round(time_diff / 3600, 2),
-                        )
-                        temporal_count += 1
+
+                    # ⚡ Bolt Optimization: Early return
+                    # Since users are sorted by time, if the current time_diff exceeds
+                    # window_seconds, all subsequent users in the inner loop will also
+                    # exceed the window, so we can break early and skip O(n^2) behavior.
+                    if time_diff > window_seconds:
+                        break
+
+                    # Weight decays with time difference
+                    weight = 1.0 - (time_diff / window_seconds)
+                    self.add_edge(
+                        u1,
+                        u2,
+                        "INTERACTED_IN",
+                        weight=round(weight, 4),
+                        thread_id=thread_id,
+                        time_diff_hours=round(time_diff / 3600, 2),
+                    )
+                    temporal_count += 1
 
         logger.info(f"Queued {temporal_count} temporal edges")
 

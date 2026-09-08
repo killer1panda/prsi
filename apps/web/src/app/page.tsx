@@ -72,9 +72,12 @@ const LiveScoreDisplay = () => {
   }, []);
 
   return (
-    <div className="text-7xl font-black text-rose-500 tracking-tighter flex items-baseline">
-      {liveScore.toFixed(1)}
-      <span className="text-2xl text-rose-900 ml-2">/ 100</span>
+    <div
+      className="text-7xl font-black text-rose-500 tracking-tighter flex items-baseline"
+      aria-label={`Live Score: ${liveScore.toFixed(1)} out of 100`}
+    >
+      <span aria-hidden="true">{liveScore.toFixed(1)}</span>
+      <span aria-hidden="true" className="text-2xl text-rose-500/50 ml-2">/ 100</span>
     </div>
   );
 };

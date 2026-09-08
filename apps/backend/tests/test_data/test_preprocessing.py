@@ -62,3 +62,36 @@ class TestDataPreprocessor:
         stats = preprocessor.get_stats()
         assert "processed" in stats
         assert stats["processed"] == len(sample_posts)
+
+    def test_clean_text_preserves_emojis_by_default(self):
+        """Test that emojis are preserved by default because they carry crucial emotion."""
+        preprocessor = DataPreprocessor()
+        text = "Breaking emergency 🚨 outraged users protesting 😡🔥"
+        cleaned = preprocessor.clean_text(text)
+        assert "🚨" in cleaned
+        assert "😡" in cleaned
+        assert "🔥" in cleaned
+
+    def test_clean_text_demojize_emojis(self):
+        """Test converting emojis to descriptive text tags."""
+        preprocessor = DataPreprocessor()
+        text = "Totally normal 🤡💀"
+        demojized = preprocessor.clean_text(text, demojize_emojis=True)
+        assert "clown" in demojized or "skull" in demojized
+
+    def test_extract_emoji_features_outrage_and_panic(self):
+        """Test emoji emotional feature extraction for outrage and panic."""
+        preprocessor = DataPreprocessor()
+        outrage_text = "Disaster in management 😡🤬🚨"
+        features = preprocessor.extract_emoji_features(outrage_text)
+        assert features["emoji_count"] == 3
+        assert features["outrage_score"] > 0.6
+        assert features["net_valence"] < 0.0
+
+    def test_extract_emoji_features_irony_and_sarcasm(self):
+        """Test emotional swinging and sarcasm detection from cynical emojis."""
+        preprocessor = DataPreprocessor()
+        sarcastic_text = "Great leadership team doing an amazing job 🤡💀"
+        features = preprocessor.extract_emoji_features(sarcastic_text)
+        assert features["irony_flag"] is True
+        assert features["cynicism_score"] > 0.5

@@ -23,17 +23,25 @@ class DataPreprocessor:
     # Dynamic compilation avoids static regex parsers misinterpreting 32-bit Unicode
     # code points as UTF-16 surrogate pairs, resolving CodeQL py/overly-large-range.
     _EMOJI_RANGES = (
-        (0x1F600, 0x1F64F),  # emoticons
-        (0x1F300, 0x1F5FF),  # symbols & pictographs
-        (0x1F680, 0x1F6FF),  # transport & map symbols
+        (0x1F600, 0x1F64F),  # emoticons (😀, 😡, etc.)
+        (0x1F300, 0x1F5FF),  # symbols & pictographs (🔥, 💀, 💔, etc.)
+        (0x1F680, 0x1F6FF),  # transport & map symbols (🚀, 🚨, etc.)
         (0x1F1E0, 0x1F1FF),  # flags
-        (0x2702, 0x27B0),    # dingbats
-        (0x24C2, 0x24FF),    # enclosed alphanumerics
+        (0x2600, 0x26FF),    # misc symbols (⚠️, ☠️, ⚡, etc.)
+        (0x2700, 0x27BF),    # dingbats (✨, ✂️, etc.)
+        (0x1F900, 0x1F9FF),  # supplemental symbols & pictographs (🤬, 🤡, 🤮, 🥺, etc.)
+        (0x1FA70, 0x1FAFF),  # symbols & pictographs extended-a
     )
     EMOJI_PATTERN = re.compile(
         "[" + "".join(f"{chr(start)}-{chr(end)}" for start, end in _EMOJI_RANGES) + "]+",
         flags=re.UNICODE,
     )
+
+    # Emotional emoji taxonomy: critical for detecting social doom, outrage, and sarcasm
+    OUTRAGE_EMOJIS = set("😡🤬😤👿🔥💥💢🚨⚠️🖕🤮🤢")
+    PANIC_EMOJIS = set("😱😨😰😭💔🆘📉🥶☠️")
+    CYNICISM_EMOJIS = set("🤡💀🙄🤣😂🙃🥱💩")
+    POSITIVE_EMOJIS = set("🎉🚀📈💪🙏✨😍🥰💚👏")
 
     def __init__(self):
         """Initialize preprocessor."""
@@ -43,6 +51,90 @@ class DataPreprocessor:
             "filtered": 0,
         }
 
+    def demojize_text(self, text: str) -> str:
+        """Convert Unicode emojis to semantic descriptive tokens for text models.
+
+        Preserves emotional context for tokenizers without native emoji vocabularies.
+        Example: 'Good job 🤡💀' -> 'Good job :clown_face: :skull:'
+        """
+        if not text:
+            return ""
+        try:
+            import emoji
+            return emoji.demojize(text, delimiters=(" :", ": "))
+        except Exception:
+            return text
+
+    def extract_emoji_features(self, text: str) -> Dict[str, Any]:
+        """Extract emotional polarity and sentiment swing features from emojis.
+
+        Emojis perform a major role in swinging emotions on social media platforms,
+        often inverting lexical polarity (e.g., sarcasm via 🤡/💀, outrage via 😡/🚨).
+
+        Args:
+            text: Input text containing emojis.
+
+        Returns:
+            Dict containing emoji counts, category frequencies, net valence, and irony flags.
+        """
+        if not text:
+            return {
+                "emoji_count": 0,
+                "emojis": [],
+                "outrage_score": 0.0,
+                "panic_score": 0.0,
+                "cynicism_score": 0.0,
+                "positive_score": 0.0,
+                "net_valence": 0.0,
+                "irony_flag": False,
+            }
+
+        found_emojis = [c for c in text if any(start <= ord(c) <= end for start, end in self._EMOJI_RANGES)]
+        count = len(found_emojis)
+
+        if count == 0:
+            return {
+                "emoji_count": 0,
+                "emojis": [],
+                "outrage_score": 0.0,
+                "panic_score": 0.0,
+                "cynicism_score": 0.0,
+                "positive_score": 0.0,
+                "net_valence": 0.0,
+                "irony_flag": False,
+            }
+
+        outrage_count = sum(1 for c in found_emojis if c in self.OUTRAGE_EMOJIS)
+        panic_count = sum(1 for c in found_emojis if c in self.PANIC_EMOJIS)
+        cynicism_count = sum(1 for c in found_emojis if c in self.CYNICISM_EMOJIS)
+        positive_count = sum(1 for c in found_emojis if c in self.POSITIVE_EMOJIS)
+
+        outrage_score = min(1.0, outrage_count / max(1, count))
+        panic_score = min(1.0, panic_count / max(1, count))
+        cynicism_score = min(1.0, cynicism_count / max(1, count))
+        positive_score = min(1.0, positive_count / max(1, count))
+
+        negative_total = outrage_count + panic_count + (cynicism_count * 0.7)
+        net_valence = (positive_count - negative_total) / max(1, count)
+        net_valence = max(-1.0, min(1.0, net_valence))
+
+        # Detect irony/sarcasm when positive words collide with cynical emojis
+        lower_text = text.lower()
+        positive_words = {"great", "awesome", "amazing", "good", "love", "fantastic", "perfect", "genius", "fine", "normal"}
+        has_positive_words = any(w in lower_text.split() for w in positive_words)
+        irony_flag = bool(has_positive_words and (cynicism_count > 0 or "🤡" in found_emojis or "💀" in found_emojis))
+
+        return {
+            "emoji_count": count,
+            "emojis": list(set(found_emojis)),
+            "outrage_score": round(outrage_score, 3),
+            "panic_score": round(panic_score, 3),
+            "cynicism_score": round(cynicism_score, 3),
+            "positive_score": round(positive_score, 3),
+            "net_valence": round(net_valence, 3),
+            "irony_flag": irony_flag,
+        }
+
     def clean_text(
         self,
         text: str,
@@ -50,16 +142,23 @@ class DataPreprocessor:
         remove_mentions: bool = False,
         remove_hashtags: bool = False,
         remove_emojis: bool = False,
+        demojize_emojis: bool = False,
         lowercase: bool = True,
     ) -> str:
-        """Clean text content.
+        """Clean text content while preserving critical emotional signals.
+
+        Note:
+            remove_emojis defaults to False. Emojis perform a major role in
+            swinging emotions (outrage, panic, cynicism, praise) and are preserved
+            by default to maintain emotional context.
 
         Args:
             text: Input text
             remove_urls: Remove URLs
             remove_mentions: Remove @mentions
             remove_hashtags: Remove #hashtags
-            remove_emojis: Remove emojis
+            remove_emojis: Remove emojis (strictly opt-in; emojis preserved by default)
+            demojize_emojis: Convert emojis into semantic emotion tokens (e.g. ':clown_face:')
             lowercase: Convert to lowercase
 
         Returns:
@@ -80,8 +179,10 @@ class DataPreprocessor:
         if remove_hashtags:
             text = self.HASHTAG_PATTERN.sub("", text)
 
-        # Remove emojis
-        if remove_emojis:
+        # Demojize emojis if requested to preserve emotional semantics as word tokens
+        if demojize_emojis:
+            text = self.demojize_text(text)
+        elif remove_emojis:
             text = self.EMOJI_PATTERN.sub("", text)
 
         # Lowercase
@@ -273,10 +374,12 @@ class DataPreprocessor:
         processed = []
 
         for post in tqdm(posts, desc="Preprocessing"):
-            # Clean text
+            # Clean text and extract emotion-swinging emoji features
             if text_field in post:
-                post["cleaned_text"] = self.clean_text(post[text_field], **clean_options)
-                post["anonymized_text"] = self.anonymize_text(post[text_field])
+                raw_text = post[text_field]
+                post["cleaned_text"] = self.clean_text(raw_text, **clean_options)
+                post["anonymized_text"] = self.anonymize_text(raw_text)
+                post["emoji_metrics"] = self.extract_emoji_features(raw_text)
 
             # Add processing metadata
             post["preprocessed_at"] = datetime.now(timezone.utc).isoformat()

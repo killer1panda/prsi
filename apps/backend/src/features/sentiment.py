@@ -93,12 +93,14 @@ class SentimentAnalyzer:
             _ = self.mistral_model
         return self._mistral_tokenizer
 
-    def analyze(self, text: str) -> Dict[str, float]:
-        """Convenience method returning sentiment scores (VADER fast path)."""
-        vader_res = self.analyze_vader(text)
-        if vader_res:
-            return vader_res
-        return {"compound": 0.0, "pos": 0.0, "neg": 0.0, "neu": 1.0}
+    def analyze(self, text: str, incorporate_emoji_swing: bool = True) -> Dict[str, float]:
+        """Convenience method returning sentiment scores with emoji emotional swing."""
+        combined = self.analyze_combined(
+            text, include_transformers=False, incorporate_emoji_swing=incorporate_emoji_swing
+        )
+        vader_res = dict(combined["vader"])
+        vader_res["compound"] = combined["sentiment_compound"]
+        return vader_res
 
     def analyze_vader(self, text: str) -> Optional[Dict[str, float]]:
         """Analyze sentiment using VADER.
@@ -177,11 +179,13 @@ class SentimentAnalyzer:
             logger.error(f"Mistral analysis failed: {e}")
             return None
 
-    def analyze_combined(self, text: str, include_transformers: bool = False) -> Dict[str, Any]:
-        """Analyze sentiment using VADER with optional transformer enhancement.
+    def analyze_combined(
+        self, text: str, include_transformers: bool = False, incorporate_emoji_swing: bool = True
+    ) -> Dict[str, Any]:
+        """Analyze sentiment using VADER with optional transformer enhancement and emoji emotional swing.
 
         Returns:
-            Dict containing vader, sentiment_compound, overall_sentiment, etc.
+            Dict containing vader, sentiment_compound, emoji_metrics, overall_sentiment, etc.
         """
         vader_res = self.analyze_vader(text) or {
             "compound": 0.0,
@@ -191,7 +195,46 @@ class SentimentAnalyzer:
         }
         compound = vader_res.get("compound", 0.0)
 
-        result = {"vader": vader_res, "sentiment_compound": compound, "text_length": len(text)}
+        # Extract emotional signals from emojis
+        from src.data.preprocessing import DataPreprocessor
+
+        preprocessor = DataPreprocessor()
+        emoji_metrics = preprocessor.extract_emoji_features(text)
+
+        adjusted_compound = compound
+        if incorporate_emoji_swing and emoji_metrics["emoji_count"] > 0:
+            # Emojis perform a major role in swinging emotions on social media.
+            # Sarcasm / irony inversion: positive words with cynicism emojis (e.g. 🤡, 💀)
+            if emoji_metrics["irony_flag"]:
+                adjusted_compound = -abs(compound) if compound > 0 else compound - 0.35
+            elif emoji_metrics["outrage_score"] > 0.25:
+                # Intensify negative outrage based on emoji aggression
+                adjusted_compound = compound - (emoji_metrics["outrage_score"] * 0.45)
+            elif emoji_metrics["panic_score"] > 0.25:
+                # Intensify distress / doom panic
+                adjusted_compound = compound - (emoji_metrics["panic_score"] * 0.35)
+            elif emoji_metrics["positive_score"] > 0.25:
+                # Boost positive conviction
+                adjusted_compound = compound + (emoji_metrics["positive_score"] * 0.35)
+
+            adjusted_compound = max(-1.0, min(1.0, adjusted_compound))
+
+        compound = adjusted_compound
+
+        result = {
+            "vader": vader_res,
+            "sentiment_compound": round(compound, 4),
+            "base_compound": vader_res.get("compound", 0.0),
+            "sentiment_negative": vader_res.get("neg", 0.0)
+            + (
+                0.2
+                if emoji_metrics["irony_flag"] or emoji_metrics["outrage_score"] > 0.5
+                else 0.0
+            ),
+            "sentiment_positive": vader_res.get("pos", 0.0),
+            "emoji_metrics": emoji_metrics,
+            "text_length": len(text),
+        }
 
         if include_transformers:
             result["transformer"] = self.analyze_transformer(text)
@@ -222,7 +265,7 @@ def get_sentiment_analyzer() -> SentimentAnalyzer:
     return _analyzer
 
 
-def analyze_text_sentiment(text: str) -> Dict[str, Any]:
-    """Convenience function to analyze text sentiment."""
+def analyze_text_sentiment(text: str, incorporate_emoji_swing: bool = True) -> Dict[str, Any]:
+    """Convenience function to analyze text sentiment with emoji emotional swing."""
     analyzer = get_sentiment_analyzer()
-    return analyzer.analyze_combined(text)
+    return analyzer.analyze_combined(text, incorporate_emoji_swing=incorporate_emoji_swing)

@@ -1,8 +1,9 @@
 """
 Kafka Inference Worker for Doom Index
 
-Consumes messages from the social_ingestion topic, processes them (mock inference),
-and produces results to the inference_results topic. Failed messages are sent to a DLQ.
+Consumes messages from the social_ingestion topic, runs real sentiment + toxicity
+inference on each message, and produces scored results to the inference_results topic.
+Failed messages are sent to a Dead Letter Queue (DLQ).
 """
 
 import json
@@ -117,19 +118,43 @@ class DoomInferenceWorker:
             self.consumer.commit(asynchronous=False)
 
     def _predict_doom(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Mock inference function."""
-        # Extract text or content from input
+        """Real inference: sentiment + toxicity + emoji emotional swing scoring."""
         content = data.get("text", "")
         source_id = data.get("user_id", str(uuid.uuid4()))
+        source = data.get("source", "unknown")
 
-        # Mock logic
-        doom_score = 0.85 if "doom" in content.lower() else 0.15
+        doom_score = 15.0  # default low
+        emoji_metrics: Dict[str, Any] = {}
 
-        if doom_score >= 0.8:
+        try:
+            # Lazy local imports to avoid circular dependency at module load time
+            from src.features.sentiment import analyze_text_sentiment
+            from src.features.toxicity import analyze_text_toxicity
+
+            sent = analyze_text_sentiment(content) or {}
+            tox = analyze_text_toxicity(content) or {}
+
+            neg = sent.get("sentiment_negative", 0.0)
+            compound = sent.get("sentiment_compound", 0.0)
+            tox_score = tox.get("toxicity_score", 0.0)
+            emoji_metrics = sent.get("emoji_metrics", {})
+
+            raw_score = (neg * 40.0) + (tox_score * 40.0) + (max(0.0, -compound) * 20.0)
+            doom_score = min(99.0, max(1.0, raw_score * 1.2))
+        except Exception as e:
+            logger.warning(f"Real inference failed ({e}); using heuristic fallback")
+            # Last-resort heuristic: keyword density
+            outrage_words = {"fraud", "corrupt", "resign", "boycott", "expose", "liar",
+                             "cancel", "fascist", "disgusting", "scam", "predator"}
+            words = set(content.lower().split())
+            hit_ratio = len(words & outrage_words) / max(len(words), 1)
+            doom_score = min(95.0, max(5.0, hit_ratio * 600 + 10.0))
+
+        if doom_score >= 80:
             risk_level = "RISK_LEVEL_EXTREME"
-        elif doom_score >= 0.6:
+        elif doom_score >= 60:
             risk_level = "RISK_LEVEL_HIGH"
-        elif doom_score >= 0.4:
+        elif doom_score >= 40:
             risk_level = "RISK_LEVEL_MEDIUM"
         else:
             risk_level = "RISK_LEVEL_LOW"
@@ -137,8 +162,11 @@ class DoomInferenceWorker:
         return {
             "prediction_id": str(uuid.uuid4()),
             "source_id": source_id,
-            "doom_score": doom_score,
+            "source": source,
+            "text_snippet": content[:140],
+            "doom_score": round(doom_score, 2),
             "risk_level": risk_level,
+            "emoji_metrics": emoji_metrics,
             "timestamp": int(time.time() * 1000),
         }
 

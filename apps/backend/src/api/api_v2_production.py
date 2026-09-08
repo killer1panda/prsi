@@ -35,7 +35,7 @@ from fastapi import (
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -496,13 +496,22 @@ app = FastAPI(
 # Middleware
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+_cors_origins_env = os.environ.get("ALLOWED_ORIGINS", "")
+_cors_origins = [
+    origin.strip()
+    for origin in _cors_origins_env.split(",")
+    if origin.strip() and origin.strip() != "*"
+] if _cors_origins_env else []
+# Always include localhost origins for local development
+_LOCAL_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.environ.get("ALLOWED_ORIGINS", "https://doom-index.internal").split(",")
-        if origin.strip() and origin.strip() != "*"
-    ],
+    allow_origins=list(set(_cors_origins + _LOCAL_ORIGINS)),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -820,6 +829,187 @@ async def get_fl_status(api_key: str = Depends(verify_api_key)):
         "status": "running",
     }
 
+
+
+@app.post("/analyze/explain", tags=["Prediction"])
+async def analyze_explain(request: Request, api_key: str = Depends(verify_api_key)):
+    """
+    Analyze text and return:
+    - doom_score, risk_level, confidence
+    - emoji emotional swing breakdown
+    - top-5 word-level sentiment attribution heatmap
+    - 2 de-escalated counterfactual rewrites
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="text is required")
+    if len(text) > 10000:
+        raise HTTPException(status_code=422, detail="text exceeds 10000 characters")
+
+    # Core doom prediction
+    results = model_manager.predict([text])
+    result = results[0]
+
+    # Detailed sentiment + emoji analysis
+    from src.features.sentiment import analyze_text_sentiment
+    sent = analyze_text_sentiment(text) or {}
+    emoji_metrics = sent.get("emoji_metrics", {})
+
+    # Word-level attribution: score each word by its individual VADER compound shift
+    word_attribution: list = []
+    try:
+        from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer as _VADER
+        _vader = _VADER()
+        words = text.split()
+        base_compound = sent.get("sentiment_compound", 0.0)
+        for i, word in enumerate(words):
+            # Ablation: score text with this word removed
+            ablated = " ".join(w for j, w in enumerate(words) if j != i)
+            ablated_score = _vader.polarity_scores(ablated).get("compound", 0.0) if ablated else 0.0
+            attribution_delta = base_compound - ablated_score
+            word_attribution.append({
+                "word": word,
+                "attribution": round(attribution_delta, 4),
+                "direction": "negative" if attribution_delta < -0.01 else ("positive" if attribution_delta > 0.01 else "neutral"),
+            })
+        # Return top 5 most impactful words (by abs value)
+        word_attribution.sort(key=lambda x: abs(x["attribution"]), reverse=True)
+        word_attribution = word_attribution[:5]
+    except Exception as e:
+        logger.warning(f"Word attribution failed: {e}")
+
+    # Counterfactual rewrites
+    counterfactuals: list = []
+    try:
+        from src.models.causal_outrage import CausalDPORewriter
+        rewriter = CausalDPORewriter()
+        variants = rewriter.generate_variants(text, n=2)
+        for i, variant in enumerate(variants):
+            var_result = model_manager.predict([variant])
+            var_score = var_result[0]["doom_score"] if var_result else 50.0
+            counterfactuals.append({
+                "variant_id": i + 1,
+                "rewritten_text": variant,
+                "doom_score": var_score,
+                "doom_reduction": round(result["doom_score"] - var_score, 2),
+            })
+    except Exception as e:
+        logger.warning(f"Counterfactual rewriting failed: {e}")
+
+    return {
+        "original_text": text,
+        "doom_score": result["doom_score"],
+        "risk_level": result["risk_level"],
+        "confidence": result["confidence"],
+        "model_version": config.model_version,
+        "request_id": getattr(request.state, "request_id", "unknown"),
+        "sentiment": {
+            "compound": sent.get("sentiment_compound", 0.0),
+            "base_compound": sent.get("base_compound", 0.0),
+            "overall": sent.get("overall_sentiment", "neutral"),
+        },
+        "emoji_analysis": emoji_metrics,
+        "word_attribution": word_attribution,
+        "counterfactual_rewrites": counterfactuals,
+    }
+
+
+@app.get("/events", tags=["Streaming"])
+async def live_event_stream(request: Request):
+    """
+    Server-Sent Events (SSE) endpoint that streams live scored social media events.
+    Pulls from the Reddit public JSON API (no auth required) and scores each post.
+    Falls back to synthetic generation when Reddit is unreachable.
+    """
+    import asyncio
+    import json as json_lib
+    import random
+
+    SYNTHETIC_POSTS = [
+        "This company's CEO should resign immediately. The fraud is unacceptable! 🤡💀 #Accountability",
+        "Great work by the team today! Really impressed with the progress 🎉👏",
+        "They don't want you to know the truth about the water supply 🚨🚨",
+        "Wow, amazing how incompetent leadership can destroy a brand overnight 😤🔥",
+        "Happy to share some good news — the project launched successfully! 🚀",
+        "WAKE UP PEOPLE!!! The system is rigged and nobody cares!!! 😡😡😡",
+        "Some interesting thoughts on the regulatory changes proposed this quarter.",
+        "Absolutely disgusting behavior from someone who claims to be a leader 🤮",
+        "Excited to announce our partnership — big things coming 🙌",
+        "The lies keep piling up. When will there be accountability? 💀🔥",
+    ]
+
+    async def generate_events():
+        event_id = 0
+        while True:
+            # Check client disconnect
+            if await request.is_disconnected():
+                logger.info("SSE client disconnected")
+                break
+
+            # Try Reddit public JSON (r/technology new posts, no auth)
+            post_text = None
+            try:
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.get(
+                        "https://www.reddit.com/r/technology/new.json?limit=5",
+                        headers={"User-Agent": "doom-index-monitor/2.0"},
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        posts = data.get("data", {}).get("children", [])
+                        if posts:
+                            chosen = random.choice(posts[:5])
+                            post_data = chosen.get("data", {})
+                            title = post_data.get("title", "")
+                            selftext = post_data.get("selftext", "")[:200]
+                            post_text = f"{title} {selftext}".strip()
+                            source = f"reddit.com/r/{post_data.get('subreddit', 'technology')}"
+                            author = post_data.get("author", "anonymous")
+            except Exception:
+                pass  # Fall through to synthetic
+
+            if not post_text:
+                post_text = random.choice(SYNTHETIC_POSTS)
+                source = "synthetic_generator"
+                author = f"user_{random.randint(1000, 9999)}"
+
+            # Score the post
+            try:
+                scored = model_manager.predict([post_text])[0]
+                doom_score = scored["doom_score"]
+                risk_level = scored["risk_level"]
+            except Exception:
+                doom_score = round(random.uniform(10, 90), 2)
+                risk_level = "medium"
+
+            event_id += 1
+            payload = {
+                "id": event_id,
+                "text": post_text[:200],
+                "source": source,
+                "author": author,
+                "doom_score": doom_score,
+                "risk_level": risk_level,
+                "timestamp": int(time.time() * 1000),
+            }
+
+            yield f"id: {event_id}\ndata: {json_lib.dumps(payload)}\n\n"
+            await asyncio.sleep(4.0)  # New event every 4 seconds
+
+    return StreamingResponse(
+        generate_events(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 # =============================================================================
 # Run

@@ -10,7 +10,14 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from peft import LoraConfig, TaskType, get_peft_model
+try:
+    from peft import LoraConfig, TaskType, get_peft_model
+    PEFT_AVAILABLE = True
+except ImportError:
+    PEFT_AVAILABLE = False
+    LoraConfig = None  # type: ignore[assignment,misc]
+    TaskType = None  # type: ignore[assignment]
+    get_peft_model = None  # type: ignore[assignment]
 from src.models.hypergraph_gnn import HypergraphHGNN
 from src.models.temporal_gnn import CTDGAHawkesEncoder
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig

@@ -275,7 +275,7 @@ class TestLoadSimulation:
         p99_latency = np.percentile(latencies, 99)
         qps = load_test_config["num_requests"] / total_time
 
-        logger.info(f"Load Test Results:")
+        logger.info("Load Test Results:")
         logger.info(f"  Total requests: {load_test_config['num_requests']}")
         logger.info(f"  Success rate: {success_count / load_test_config['num_requests']:.1%}")
         logger.info(f"  Avg latency: {avg_latency:.1f}ms")
@@ -337,7 +337,7 @@ class TestLoadSimulation:
         success_rate = results["success"] / total if total > 0 else 0
         avg_latency = np.mean(results["latencies"]) if results["latencies"] else 0
 
-        logger.info(f"Concurrent Load Test Results:")
+        logger.info("Concurrent Load Test Results:")
         logger.info(f"  Total requests: {total}")
         logger.info(f"  Success rate: {success_rate:.1%}")
         logger.info(f"  Avg latency: {avg_latency:.1f}ms")
@@ -440,7 +440,7 @@ class TestPerformanceBenchmarks:
         avg_latency = np.mean(latencies)
         p99_latency = np.percentile(latencies, 99)
 
-        logger.info(f"Inference Latency Benchmark:")
+        logger.info("Inference Latency Benchmark:")
         logger.info(f"  Average: {avg_latency:.2f}ms")
         logger.info(f"  P99: {p99_latency:.2f}ms")
 
@@ -467,7 +467,7 @@ class TestPerformanceBenchmarks:
 
         memory_increase = peak_mem - baseline_mem
 
-        logger.info(f"Memory Usage:")
+        logger.info("Memory Usage:")
         logger.info(f"  Baseline: {baseline_mem:.1f}MB")
         logger.info(f"  Peak: {peak_mem:.1f}MB")
         logger.info(f"  Increase: {memory_increase:.1f}MB")

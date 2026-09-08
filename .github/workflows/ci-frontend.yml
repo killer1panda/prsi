@@ -1,10 +1,7 @@
 name: 🌐 Enterprise CI - Frontend & Mobile
 
 on:
-  push:
-    paths: [ "apps/web/**", "apps/mobile/**", ".github/workflows/ci-frontend.yml" ]
-  pull_request:
-    paths: [ "apps/web/**", "apps/mobile/**" ]
+  workflow_dispatch:
 
 permissions:
   contents: read

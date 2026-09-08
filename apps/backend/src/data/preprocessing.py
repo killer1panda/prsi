@@ -6,7 +6,7 @@ import httpx
 
 import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from loguru import logger
@@ -20,15 +20,18 @@ class DataPreprocessor:
     URL_PATTERN = re.compile(r"http\S+|www\.\S+")
     MENTION_PATTERN = re.compile(r"@\w+")
     HASHTAG_PATTERN = re.compile(r"#\w+")
+    # Dynamic compilation avoids static regex parsers misinterpreting 32-bit Unicode
+    # code points as UTF-16 surrogate pairs, resolving CodeQL py/overly-large-range.
+    _EMOJI_RANGES = (
+        (0x1F600, 0x1F64F),  # emoticons
+        (0x1F300, 0x1F5FF),  # symbols & pictographs
+        (0x1F680, 0x1F6FF),  # transport & map symbols
+        (0x1F1E0, 0x1F1FF),  # flags
+        (0x2702, 0x27B0),    # dingbats
+        (0x24C2, 0x24FF),    # enclosed alphanumerics
+    )
     EMOJI_PATTERN = re.compile(
-        "["
-        "\U0001f600-\U0001f64f"  # emoticons
-        "\U0001f300-\U0001f5ff"  # symbols & pictographs
-        "\U0001f680-\U0001f6ff"  # transport & map symbols
-        "\U0001f1e0-\U0001f1ff"  # flags
-        "\U00002702-\U000027b0"
-        "\U000024c2-\U000024ff"
-        "]+",
+        "[" + "".join(f"{chr(start)}-{chr(end)}" for start, end in _EMOJI_RANGES) + "]+",
         flags=re.UNICODE,
     )
 
@@ -276,7 +279,7 @@ class DataPreprocessor:
                 post["anonymized_text"] = self.anonymize_text(post[text_field])
 
             # Add processing metadata
-            post["preprocessed_at"] = datetime.utcnow().isoformat()
+            post["preprocessed_at"] = datetime.now(timezone.utc).isoformat()
 
             processed.append(post)
             self.stats["processed"] += 1

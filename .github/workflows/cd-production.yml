@@ -1,8 +1,6 @@
 name: 🚀 Enterprise CD - Blue/Green Production Rollout
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       environment:

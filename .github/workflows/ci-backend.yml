@@ -1,12 +1,7 @@
 name: 🧠 Enterprise CI - Backend & ML
 
 on:
-  push:
-    branches: [ "main", "develop" ]
-    paths: [ "apps/backend/**", ".github/workflows/ci-backend.yml", ".flake8" ]
-  pull_request:
-    branches: [ "main" ]
-    paths: [ "apps/backend/**" ]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

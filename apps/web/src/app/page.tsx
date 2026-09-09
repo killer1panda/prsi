@@ -169,7 +169,12 @@ const LiveFeedPanel = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 max-h-[280px] overflow-y-auto">
+      <CardContent
+        className="p-0 max-h-[280px] overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-500"
+        tabIndex={0}
+        role="region"
+        aria-label="Live Social Threat Feed"
+      >
         {events.length === 0 ? (
           <div className="p-6 text-center text-zinc-600 text-xs">
             {sseStatus === "connecting" ? "Connecting to live feed..." : "No events yet. API offline."}

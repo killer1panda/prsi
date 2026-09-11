@@ -6,10 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Activity,
   Network,
-  Image as ImageIcon,
-  MessageSquare,
   ShieldAlert,
-  Terminal,
   Zap,
   BrainCircuit,
   DatabaseZap,
@@ -100,6 +97,77 @@ interface LiveEvent {
   timestamp: number;
 }
 
+// ⚡ Bolt: Wrapped in React.memo to prevent re-renders when parent component updates via polling interval.
+const TemporalTrendPanel = React.memo(function TemporalTrendPanel() {
+  return (
+    <Card className="bg-zinc-900/50 border-rose-900/20 shadow-2xl">
+      <CardHeader>
+        <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+          <Activity className="w-4 h-4 text-rose-500" />
+          24H Temporal Trend
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="h-[200px] p-0 pl-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={temporalData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <XAxis dataKey="time" stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} />
+            <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#3f3f46' }} />
+            <Line type="monotone" dataKey="score" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e', strokeWidth: 0 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+});
+
+// ⚡ Bolt: Wrapped in React.memo to prevent re-renders when parent component updates via polling interval.
+const ChartsRow = React.memo(function ChartsRow({ radarData }: { radarData: { subject: string; A: number; fullMark: number }[] }) {
+  return (
+    <div className="grid grid-cols-3 gap-6">
+      <Card className="col-span-2 bg-zinc-900/50 border-rose-900/20 shadow-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+            <Network className="w-4 h-4 text-rose-500" />
+            GNN Entity Topology
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+              <XAxis type="number" dataKey="x" hide />
+              <YAxis type="number" dataKey="y" hide />
+              <ZAxis type="number" dataKey="z" range={[50, 400]} />
+              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#09090b', borderColor: '#3f3f46' }} />
+              <Scatter data={graphNodes.filter(n => n.threat === 'high')} fill="#f43f5e" />
+              <Scatter data={graphNodes.filter(n => n.threat === 'low')} fill="#3f3f46" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card className="col-span-1 bg-zinc-900/50 border-rose-900/20 shadow-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-rose-500" />
+            Risk Vectors
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+              <PolarGrid stroke="#27272a" />
+              <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 9 }} />
+              <Radar name="Threat" dataKey="A" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.3} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+});
+
 const LiveScoreDisplay = ({ score }: { score: number }) => {
   return (
     <div className={`text-7xl font-black tracking-tighter flex items-baseline ${getRiskColor(score)}`}>
@@ -109,13 +177,14 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
   );
 };
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt: Wrapped in React.memo to prevent re-renders when parent component updates via polling interval.
+const LiveFeedPanel = React.memo(function LiveFeedPanel() {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  // ⚡ Bolt: Initialize sseStatus with "connecting" instead of "disconnected" + immediate useEffect sync state update to prevent cascading re-renders.
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +264,10 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt: Wrapped in React.memo to prevent re-renders when parent component updates via polling interval.
+const ThreatAnalyzer = React.memo(function ThreatAnalyzer({ onResult }: { onResult: (r: AnalysisResult) => void }) {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +407,7 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);
@@ -398,46 +468,7 @@ export default function ThreatIntelligenceDashboard() {
         <div className="col-span-8 flex flex-col gap-6">
 
           {/* Charts Row */}
-          <div className="grid grid-cols-3 gap-6">
-            <Card className="col-span-2 bg-zinc-900/50 border-rose-900/20 shadow-2xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <Network className="w-4 h-4 text-rose-500" />
-                  GNN Entity Topology
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <XAxis type="number" dataKey="x" hide />
-                    <YAxis type="number" dataKey="y" hide />
-                    <ZAxis type="number" dataKey="z" range={[50, 400]} />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#09090b', borderColor: '#3f3f46' }} />
-                    <Scatter data={graphNodes.filter(n => n.threat === 'high')} fill="#f43f5e" />
-                    <Scatter data={graphNodes.filter(n => n.threat === 'low')} fill="#3f3f46" />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="col-span-1 bg-zinc-900/50 border-rose-900/20 shadow-2xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-rose-500" />
-                  Risk Vectors
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                    <PolarGrid stroke="#27272a" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 9 }} />
-                    <Radar name="Threat" dataKey="A" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.3} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          <ChartsRow radarData={radarData} />
 
           {/* Live Threat Analyzer */}
           <ThreatAnalyzer onResult={handleAnalysisResult} />
@@ -469,25 +500,7 @@ export default function ThreatIntelligenceDashboard() {
           </Card>
 
           {/* 24H Trend */}
-          <Card className="bg-zinc-900/50 border-rose-900/20 shadow-2xl">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-rose-500" />
-                24H Temporal Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[200px] p-0 pl-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={temporalData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="time" stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#52525b" fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#3f3f46' }} />
-                  <Line type="monotone" dataKey="score" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e', strokeWidth: 0 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <TemporalTrendPanel />
 
           {/* System Status */}
           <Card className="bg-zinc-900/50 border-rose-900/20 shadow-2xl">

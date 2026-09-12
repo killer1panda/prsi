@@ -1011,9 +1011,157 @@ async def live_event_stream(request: Request):
         },
     )
 
+
+# =============================================================================
+# Red / Blue / Purple Team Security Endpoints
+# =============================================================================
+
+@app.post("/security/red-team", tags=["Security"])
+async def red_team_attack(request: Request, api_key: str = Depends(verify_api_key)):
+    """
+    Launch red team adversarial attacks against a target text.
+
+    Returns ranked list of mutations by doom_uplift, with MITRE technique IDs.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="text is required")
+
+    max_variants = min(int(body.get("max_variants", 15)), 30)
+    min_sim = float(body.get("min_semantic_similarity", 0.35))
+
+    try:
+        from src.attacks.red_team import RedTeamOrchestrator
+        from src.attacks.purple_team import ATTACK_TECHNIQUE_MAP
+
+        def predictor_fn(t: str) -> float:
+            try:
+                result = model_manager.predict([t])
+                return float(result[0].get("doom_score", 0.0))
+            except Exception:
+                return 0.0
+
+        red = RedTeamOrchestrator(predictor_fn=predictor_fn)
+        results = red.full_assault(
+            text,
+            max_variants=max_variants,
+            include_textattack=body.get("include_textattack", False),
+            min_semantic_similarity=min_sim,
+        )
+
+        attacks = []
+        for r in results:
+            technique = next(
+                (v for k, v in ATTACK_TECHNIQUE_MAP.items() if r.attack_type.startswith(k)),
+                {"id": "T-NLP-000", "tactic": "Unknown", "subtactic": "Unknown"},
+            )
+            attacks.append({
+                **r.to_dict(),
+                "technique": technique,
+            })
+
+        return {
+            "request_id": getattr(request.state, "request_id", "unknown"),
+            "original_text": text,
+            "total_variants": len(attacks),
+            "successful_attacks": sum(1 for a in attacks if a["attack_success"]),
+            "attacks": attacks,
+        }
+    except Exception as e:
+        logger.error(f"Red team error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Red team failed: {str(e)[:200]}")
+
+
+@app.post("/security/blue-team", tags=["Security"])
+async def blue_team_defend(request: Request, api_key: str = Depends(verify_api_key)):
+    """
+    Run blue team defense analysis on input text.
+
+    Returns threat verdict, detections, anomaly scores, and sanitized text.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="text is required")
+
+    source_id = body.get("source_id", "api_client")
+
+    try:
+        from src.attacks.blue_team import BlueTeamOrchestrator
+        blue = BlueTeamOrchestrator()
+        verdict = blue.defend(text, source_id=source_id)
+        return {
+            "request_id": getattr(request.state, "request_id", "unknown"),
+            **verdict.to_dict(),
+        }
+    except Exception as e:
+        logger.error(f"Blue team error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Blue team failed: {str(e)[:200]}")
+
+
+@app.post("/security/purple-team", tags=["Security"])
+async def purple_team_engagement(request: Request, api_key: str = Depends(verify_api_key)):
+    """
+    Full purple team engagement: red team attacks + blue team defense.
+
+    Returns:
+    - Attack effectiveness matrix (by type)
+    - Defense coverage per detection layer
+    - MITRE ATT&CK-mapped bypass techniques
+    - Actionable hardening recommendations
+    - Adversarial training examples (export-ready)
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="text is required")
+
+    max_attacks = min(int(body.get("max_attacks", 15)), 25)
+
+    try:
+        from src.attacks.purple_team import PurpleTeamOrchestrator
+
+        def predictor_fn(t: str) -> float:
+            try:
+                result = model_manager.predict([t])
+                return float(result[0].get("doom_score", 0.0))
+            except Exception:
+                return 0.0
+
+        purple = PurpleTeamOrchestrator(predictor_fn=predictor_fn)
+        report = purple.full_engagement(
+            text,
+            source_id=body.get("source_id", "api_client"),
+            max_attacks=max_attacks,
+            include_textattack=body.get("include_textattack", False),
+        )
+
+        resp = report.to_dict()
+        resp["request_id"] = getattr(request.state, "request_id", "unknown")
+        resp["report_summary"] = report.summary()
+        return resp
+    except Exception as e:
+        logger.error(f"Purple team error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Purple team failed: {str(e)[:200]}")
+
+
 # =============================================================================
 # Run
 # =============================================================================
+
 if __name__ == "__main__":
     import uvicorn
 

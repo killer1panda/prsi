@@ -87,10 +87,15 @@ opacus>=1.4.0
 flower>=1.6.0
 
 # --- Adversarial / Security ---
+peft>=0.20.0
+sentence-transformers>=6.0.0
+econml>=0.17.0
+doubleml>=0.11.0
 textattack>=0.3.10
 cleverhans>=4.0.0
 cryptography>=41.0.0
 bcrypt>=4.1.0
+
 
 # --- ONNX (already present) ---
 # onnx, onnxruntime-gpu already listed above

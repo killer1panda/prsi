@@ -14,3 +14,27 @@ logs/
 .DS_Storenode_modules/
 **/node_modules/
 node_modules/
+
+# PPT/diagram scratch files (kept in ppt_gen folder, not repo root)
+build_*.py
+populate_*.py
+rebuild_*.py
+generate_*.py
+patch_*.py
+fix_*.py
+update_*.py
+inspect_*.py
+render_*.py
+replace_*.py
+test_table_*.py
+export_to_*.applescript
+extracted_media/
+extracted_ppt_media/
+scratch/
+*.mmd
+*.applescript
+fig*.png
+enterprise_*.png
+pert.png
+system_design.png
+workflow.png

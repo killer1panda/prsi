@@ -1,0 +1,88 @@
+# DoomGAN HPC Training Configuration
+# ============================================================================
+# Copy this file to the cluster and adjust paths before launching.
+# Override any value via CLI: --model-tier 27b --epochs 15
+#
+# Tiers and estimated training time on H100:
+#   7b  (1× H100, 1 node)   ~6h  for 10 epochs, 1000 examples
+#   8b  (1× H100, 1 node)   ~8h  for 10 epochs, 1000 examples
+#   27b (4× H100, 1 node)   ~18h for 10 epochs, 2000 examples
+#   70b (4× H100, 4 nodes)  ~60h for 10 epochs, 2000 examples
+# ============================================================================
+
+# ── Model ────────────────────────────────────────────────────────────────────
+model_tier: "27b"           # 7b | 8b | 27b | 70b
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+seed_size: 2000             # Rule-based corpus size (2000 for 27b, 5000 for 70b)
+corpus_path: null           # Set to JSONL path to reuse pre-built corpus
+train_split: 0.92
+
+# ── Checkpointing ─────────────────────────────────────────────────────────────
+# Set DOOM_GAN_CHECKPOINT env var to override (recommended over editing here)
+checkpoint_dir: "/scratch/doom_gan_checkpoints"
+resume: true                # Auto-resume from latest checkpoint on restart
+
+# ── Training Schedule ─────────────────────────────────────────────────────────
+epochs: 10
+batch_size: 4               # Per-GPU. Effective = 4 × num_gpus
+d_steps_per_g_step: 5       # WGAN standard: 5 D-steps per G-step
+eval_every_steps: 200       # Purple team eval frequency
+save_every_steps: 500       # Checkpoint save frequency
+max_steps: null             # null = run all epochs
+
+# ── Optimizer ─────────────────────────────────────────────────────────────────
+lr_d: 2.0e-5                # DeBERTa critic learning rate
+lr_g: 5.0e-6                # Generator LoRA learning rate (lower for large models)
+weight_decay: 0.01
+warmup_steps: 200
+max_grad_norm: 1.0
+
+# ── Loss Coefficients ─────────────────────────────────────────────────────────
+lambda_gp: 10.0             # WGAN-GP gradient penalty (Gulrajani 2017)
+lambda_reward: 2.0          # Multi-reward signal weight
+lambda_kl: 0.1              # KL divergence penalty (anti-catastrophic-forgetting)
+ppo_clip_eps: 0.2           # PPO clip threshold (standard)
+ppo_epochs: 4               # PPO epochs per batch
+
+# ── Gumbel-Softmax Temperature Annealing ──────────────────────────────────────
+gumbel_tau_start: 1.0       # Start temperature (high = soft, near-continuous)
+gumbel_tau_end: 0.05        # End temperature (low = near-discrete)
+
+# ── Precision ─────────────────────────────────────────────────────────────────
+bf16: true                  # bf16 on H100 (better than fp16 for stability)
+gradient_checkpointing: true
+compile_model: false        # torch.compile — set true for H100 speed boost
+
+# ── Purple Team Evaluation ────────────────────────────────────────────────────
+purple_eval_enabled: true
+purple_eval_budget: 20      # Number of attacks per eval text
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+wandb_project: "doom-gan"
+wandb_run_name: null        # Auto-generated from model_tier + job ID
+log_level: "INFO"
+
+# ── Multi-Reward Weights (must sum to 1.0) ────────────────────────────────────
+# Defined here for documentation — set in MultiRewardComposer DEFAULT_WEIGHTS
+# doom:     0.35  — primary adversarial objective
+# fluency:  0.20  — natural language quality (GPT-2-large ppl)
+# blue:     0.20  — blue team evasion
+# semantic: 0.15  — semantic similarity to original (coherence)
+# novelty:  0.10  — distance from known attack corpus
+
+# ── QLoRA Settings (managed in doom_generator.py) ─────────────────────────────
+# load_in_4bit: true
+# bnb_4bit_quant_type: "nf4"          # Normal Float 4 — best quality at 4-bit
+# bnb_4bit_compute_dtype: "bfloat16"  # bf16 compute on H100
+# bnb_4bit_use_double_quant: true     # Nested quantization for extra savings
+# lora_r: 64
+# lora_alpha: 128                      # α/r = 2.0 — standard scaling
+# lora_targets: q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj
+
+# ── Notes for 70B Training ─────────────────────────────────────────────────────
+# - Requires 4× nodes × 4× H100 (16 GPUs total, ~560GB VRAM)
+# - Enable FSDP in hpc_orchestrator.py for full sharding
+# - Reduce batch_size to 2, increase accumulation steps
+# - Consider DeepSpeed ZeRO-3 for optimizer state offloading
+# - Add --rdzv-endpoint flag with master node IP to doom_gan.sh

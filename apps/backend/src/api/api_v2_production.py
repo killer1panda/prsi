@@ -1159,6 +1159,175 @@ async def purple_team_engagement(request: Request, api_key: str = Depends(verify
 
 
 # =============================================================================
+# GAN Endpoints  — /security/gan/*
+# =============================================================================
+
+_gan_training_status: Dict[str, Any] = {"state": "idle", "started_at": None, "summary": None}
+_gan_generator = None  # lazy singleton
+
+
+def _get_gan_generator():
+    global _gan_generator
+    if _gan_generator is None:
+        try:
+            from src.attacks.doom_generator import DoomGenerator
+            _gan_generator = DoomGenerator()
+        except Exception as e:
+            logger.warning(f"DoomGenerator init failed: {e}")
+    return _gan_generator
+
+
+@app.post("/security/gan/generate", tags=["security"])
+async def gan_generate(request: Request):
+    """
+    Generate one or more adversarial variants of a text using the DoomGAN generator.
+
+    Body:
+      text         (str, required)   — input text to perturb
+      target_doom  (float, 85.0)     — desired doom score (0-100)
+      n_samples    (int, 1)          — number of variants to generate
+
+    Returns:
+      generated    list of {text, target_doom, reward_scores}
+    """
+    body = await request.json()
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="'text' is required")
+
+    target_doom = float(body.get("target_doom", 85.0))
+    n_samples = max(1, min(int(body.get("n_samples", 1)), 8))
+
+    gen = _get_gan_generator()
+    if gen is None:
+        raise HTTPException(status_code=503, detail="DoomGenerator unavailable")
+
+    try:
+        from src.attacks.doom_discriminator import MultiRewardComposer
+        reward_composer = MultiRewardComposer()
+
+        results = []
+        for _ in range(n_samples):
+            generated_text = gen.generate(text, target_doom=target_doom)
+            rewards = reward_composer.compute(text, generated_text)
+            results.append({
+                "text": generated_text,
+                "target_doom": target_doom,
+                "reward_scores": rewards,
+            })
+
+        return {
+            "original_text": text,
+            "target_doom": target_doom,
+            "generated": results,
+            "generator_mode": "t5_lora" if gen._model is not None else "rule_based_fallback",
+            "request_id": getattr(request.state, "request_id", "unknown"),
+        }
+    except Exception as e:
+        logger.error(f"GAN generate error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)[:200]}")
+
+
+@app.post("/security/gan/train", tags=["security"])
+async def gan_train(request: Request, background_tasks: "BackgroundTasks"):
+    """
+    Launch DoomGAN training as a background job.
+
+    Body:
+      epochs       (int, 5)          — training epochs
+      seed_size    (int, 200)        — seed corpus size (keep low on CPU: 200-500)
+      batch_size   (int, 4)          — batch size per step
+      device       (str, "auto")     — auto / cpu / mps / cuda
+
+    Returns:
+      job_id, status message. Poll GET /security/gan/status for progress.
+    """
+    global _gan_training_status
+    if _gan_training_status.get("state") == "running":
+        raise HTTPException(status_code=409, detail="Training already running. Poll /security/gan/status.")
+
+    body = await request.json()
+    config_overrides = {
+        "epochs":     int(body.get("epochs", 5)),
+        "seed_size":  int(body.get("seed_size", 200)),
+        "batch_size": int(body.get("batch_size", 4)),
+        "device":     body.get("device", "auto"),
+        "purple_team_eval": bool(body.get("purple_team_eval", False)),
+        "eval_every": int(body.get("eval_every", 100)),
+        "verbose":    True,
+    }
+
+    import time
+    job_id = f"gan_train_{int(time.time())}"
+    _gan_training_status.update({"state": "running", "started_at": time.time(), "job_id": job_id, "summary": None})
+
+    async def _run_training():
+        global _gan_training_status
+        try:
+            from src.attacks.doom_gan_trainer import DoomGANTrainer, TrainingConfig
+            cfg = TrainingConfig(**config_overrides)
+            trainer = DoomGANTrainer(config=cfg)
+            summary = trainer.train()
+            _gan_training_status.update({"state": "done", "summary": summary})
+            logger.info(f"GAN training job {job_id} complete: {summary}")
+        except Exception as e:
+            logger.error(f"GAN training failed: {e}", exc_info=True)
+            _gan_training_status.update({"state": "failed", "error": str(e)})
+
+    background_tasks.add_task(_run_training)
+
+    return {
+        "job_id": job_id,
+        "state": "running",
+        "message": "Training started in background. Poll GET /security/gan/status for progress.",
+        "config": config_overrides,
+        "request_id": getattr(request.state, "request_id", "unknown"),
+    }
+
+
+@app.get("/security/gan/status", tags=["security"])
+async def gan_status(request: Request):
+    """
+    Returns current DoomGAN training status + checkpoint info.
+
+    Response:
+      state          — idle / running / done / failed
+      summary        — training summary dict (when done)
+      checkpoint     — checkpoint directory + files (when available)
+      generator_mode — t5_lora / rule_based_fallback / not_loaded
+    """
+    import os
+    from pathlib import Path
+    from src.attacks.doom_generator import DEFAULT_CHECKPOINT_DIR
+
+    checkpoint_info = {"path": str(DEFAULT_CHECKPOINT_DIR), "files": []}
+    if DEFAULT_CHECKPOINT_DIR.exists():
+        try:
+            checkpoint_info["files"] = [
+                {"name": f.name, "size_kb": round(f.stat().st_size / 1024, 1)}
+                for f in DEFAULT_CHECKPOINT_DIR.rglob("*")
+                if f.is_file()
+            ][:20]
+        except Exception:
+            pass
+
+    gen = _get_gan_generator()
+    if gen is None:
+        gen_mode = "not_loaded"
+    elif gen._model is not None:
+        gen_mode = "t5_lora" if gen._lora_loaded else "t5_base"
+    else:
+        gen_mode = "rule_based_fallback"
+
+    return {
+        **_gan_training_status,
+        "checkpoint": checkpoint_info,
+        "generator_mode": gen_mode,
+        "request_id": getattr(request.state, "request_id", "unknown"),
+    }
+
+
+# =============================================================================
 # Run
 # =============================================================================
 

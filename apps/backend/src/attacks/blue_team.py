@@ -56,6 +56,10 @@ class BlueTeamVerdict:
         return dataclasses.asdict(self)
 
 
+# Alias for backward compatibility
+DefenseVerdict = BlueTeamVerdict
+
+
 # ─── B1: Unicode Anomaly Detector ─────────────────────────────────────────────
 
 class UnicodeAnomalyDetector:

@@ -16,6 +16,8 @@ torchaudio>=2.1.0
 transformers>=4.38.0
 datasets>=2.16.0
 accelerate>=0.26.0
+bitsandbytes>=0.43.0          # QLoRA 4-bit quantization (HPC only)
+flash-attn>=2.5.0             # FlashAttention-2 for H100 (HPC only, install separately)
 tokenizers>=0.15.0
 safetensors>=0.4.0
 

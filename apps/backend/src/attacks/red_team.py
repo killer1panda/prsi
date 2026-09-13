@@ -159,11 +159,11 @@ BOT_AMPLIFICATION_TEMPLATES = [
 @dataclass
 class RedTeamResult:
     """Standardized result from any red team attack."""
-    attack_id: str
-    attack_type: str
-    attack_category: str          # char/word/semantic/structural/social/coordinated
-    original_text: str
-    mutated_text: str
+    attack_type: str = ""
+    original_text: str = ""
+    mutated_text: str = ""
+    attack_id: str = "red_team_attack"
+    attack_category: str = "general"          # char/word/semantic/structural/social/coordinated
     doom_score_before: float = 0.0
     doom_score_after: float = 0.0
     doom_uplift: float = 0.0      # positive = attack increased doom score
@@ -899,3 +899,828 @@ class RedTeamOrchestrator:
                 best_score = best.doom_score_after
 
         return best, fitness_history
+
+
+# =============================================================================
+# AGGRESSIVE RED TEAM EXTENSIONS (Phase 2)
+# =============================================================================
+
+# ─── A1: Compositional Chain Attacker ─────────────────────────────────────────
+
+class ChainAttack:
+    """
+    Applies multiple attacks in sequence to compound their effect.
+    Each step feeds the mutated output of the previous step.
+    The chain is chosen to maximize doom uplift while staying above
+    a minimum semantic similarity threshold.
+    """
+
+    # Preset chains ordered from subtle → nuclear
+    CHAIN_PRESETS = {
+        "stealth": ["zero_width", "qualifier_negation", "presupposition"],
+        "semantic": ["synonym_escalation", "hinglish", "emoji_storm_low"],
+        "character": ["homoglyph", "leet", "zero_width"],
+        "social": ["bot_amplification", "narrative_laundering", "emoji_storm_high"],
+        "nuclear": [
+            "synonym_escalation", "qualifier_negation",
+            "presupposition", "emoji_storm_high", "bot_amplification",
+        ],
+    }
+
+    def __init__(self, seed: int = 42):
+        self.char_attacks = CharacterLevelAttacks(seed=seed)
+        self.word_attacks = WordSemanticAttacks()
+        self.social_attacks = SocialContextAttacks(seed=seed)
+        self.coord_attacks = CoordinatedNarrativeAttacks(seed=seed)
+        self.rng = random.Random(seed)
+
+    def _apply_step(self, text: str, step: str) -> str:
+        try:
+            if step == "homoglyph":
+                return self.char_attacks.homoglyph_attack(text, rate=0.25).mutated_text
+            elif step == "leet":
+                return self.char_attacks.leet_attack(text, rate=0.35).mutated_text
+            elif step == "zero_width":
+                return self.char_attacks.zero_width_attack(text, rate=0.4).mutated_text
+            elif step == "synonym_escalation":
+                return self.word_attacks.synonym_escalation(text).mutated_text
+            elif step == "qualifier_negation":
+                return self.word_attacks.qualifier_negation(text).mutated_text
+            elif step == "presupposition":
+                return self.word_attacks.presupposition_injection(text).mutated_text
+            elif step == "hinglish":
+                return self.social_attacks.hinglish_codeswitching(text, rate=0.35).mutated_text
+            elif step == "emoji_storm_low":
+                return self.social_attacks.emoji_storm(text, intensity="medium").mutated_text
+            elif step == "emoji_storm_high":
+                return self.social_attacks.emoji_storm(text, intensity="high").mutated_text
+            elif step == "bot_amplification":
+                return self.coord_attacks.bot_amplification_wrapper(text).mutated_text
+            elif step == "narrative_laundering":
+                return self.coord_attacks.narrative_laundering(text).mutated_text
+            elif step == "dogwhistle":
+                return self.social_attacks.dogwhistle_substitution(text).mutated_text
+        except Exception as e:
+            logger.debug(f"Chain step {step} failed: {e}")
+        return text
+
+    def chain(
+        self,
+        text: str,
+        chain_name: str = "nuclear",
+        custom_steps: Optional[List[str]] = None,
+    ) -> "RedTeamResult":
+        steps = custom_steps or self.CHAIN_PRESETS.get(chain_name, self.CHAIN_PRESETS["nuclear"])
+        current = text
+        for step in steps:
+            current = self._apply_step(current, step)
+
+        sim = _compute_semantic_similarity(text, current) if SBERT_AVAILABLE else 0.5
+        return RedTeamResult(
+            attack_type=f"ChainAttack({chain_name})",
+            original_text=text,
+            mutated_text=current,
+            semantic_similarity=sim,
+            perplexity_estimate=_estimate_perplexity(current),
+            bypass_moderation=True,
+            explanation=f"Sequential chain: {' → '.join(steps)}",
+        )
+
+    def all_chains(self, text: str) -> List["RedTeamResult"]:
+        return [self.chain(text, name) for name in self.CHAIN_PRESETS]
+
+
+# ─── A2: BERT Masked-LM Attack (no TextAttack required) ──────────────────────
+
+class BERTAttackWord:
+    """
+    Uses a masked language model to find semantically similar but
+    more toxic/outrage-amplifying word substitutions.
+    Strategy: mask each content word → get top-K candidates from
+    BERT-base → select the candidate with highest outrage proxy score.
+    No TextAttack dependency needed.
+    """
+
+    OUTRAGE_SEEDS = {
+        "anger", "fury", "rage", "scandal", "fraud", "corrupt",
+        "criminal", "betrayal", "outrage", "crisis", "catastrophe",
+        "disaster", "abuse", "exploitation", "manipulation", "deceit",
+    }
+
+    def __init__(self):
+        self._mlm = None
+        self._mlm_tokenizer = None
+        self._loaded = False
+
+    def _load(self):
+        if self._loaded:
+            return self._mlm is not None
+        self._loaded = True
+        try:
+            from transformers import pipeline
+            self._mlm = pipeline(
+                "fill-mask",
+                model="distilbert/distilbert-base-uncased",
+                top_k=20,
+            )
+            return True
+        except Exception as e:
+            logger.warning(f"BERT-Attack MLM load failed: {e}")
+            return False
+
+    def _outrage_score(self, word: str) -> float:
+        """Proxy: outrage seed similarity + word length (longer = more formal/serious)."""
+        w = word.lower().strip(".,!?")
+        if w in self.OUTRAGE_SEEDS:
+            return 1.0
+        # Check suffix heuristics: -tion, -ism, -ist tend to be more charged
+        charged_suffixes = ("tion", "ism", "ist", "ation", "ment", "ness")
+        score = 0.3 if any(w.endswith(s) for s in charged_suffixes) else 0.0
+        score += min(0.3, len(w) / 30)
+        return score
+
+    def attack(
+        self,
+        text: str,
+        max_substitutions: int = 5,
+        min_similarity: float = 0.6,
+    ) -> "RedTeamResult":
+        if not self._load() or self._mlm is None:
+            # Graceful fallback to synonym escalation
+            ws = WordSemanticAttacks()
+            r = ws.synonym_escalation(text)
+            r.attack_type = "BERTAttackWord(fallback)"
+            return r
+
+        words = text.split()
+        stop_words = {
+            "the", "a", "an", "is", "are", "was", "were", "be", "been",
+            "being", "have", "has", "had", "do", "does", "did", "will",
+            "would", "could", "should", "may", "might", "shall", "can",
+            "to", "of", "in", "on", "at", "by", "for", "with", "about",
+            "into", "through", "during", "and", "but", "or", "nor", "not",
+        }
+
+        substitutions_made = 0
+        mutated = list(words)
+
+        for i, word in enumerate(words):
+            if substitutions_made >= max_substitutions:
+                break
+            clean = word.lower().strip(".,!?\"'")
+            if clean in stop_words or len(clean) < 4:
+                continue
+
+            # Build masked sentence
+            masked = words[:i] + ["[MASK]"] + words[i + 1:]
+            masked_str = " ".join(masked)
+
+            try:
+                preds = self._mlm(masked_str)
+                # Select candidate with highest outrage score
+                best_word, best_score = word, -1.0
+                for pred in preds:
+                    candidate = pred["token_str"].strip()
+                    if candidate.lower() == clean:
+                        continue
+                    score = self._outrage_score(candidate) + pred["score"] * 0.2
+                    if score > best_score:
+                        best_score = score
+                        best_word = candidate
+
+                if best_word != word and best_score > 0.1:
+                    # Preserve original capitalization
+                    if word[0].isupper():
+                        best_word = best_word.capitalize()
+                    mutated[i] = best_word
+                    substitutions_made += 1
+            except Exception as e:
+                logger.debug(f"BERT-Attack mask step failed at word {i}: {e}")
+                continue
+
+        mutated_text = " ".join(mutated)
+        sim = _compute_semantic_similarity(text, mutated_text) if SBERT_AVAILABLE else 0.65
+        return RedTeamResult(
+            attack_type="BERTAttackWord",
+            original_text=text,
+            mutated_text=mutated_text,
+            semantic_similarity=sim,
+            perplexity_estimate=_estimate_perplexity(mutated_text),
+            bypass_moderation=sim > min_similarity,
+            explanation=f"DistilBERT masked-LM substitution ({substitutions_made} words replaced)",
+        )
+
+
+# ─── A3: GCG HotFlip Suffix Attack ────────────────────────────────────────────
+
+class GCGHotFlipSuffix:
+    """
+    Approximated GCG/HotFlip attack: appends an adversarial token suffix
+    that maximally increases the doom score.
+
+    Real GCG requires gradient access to the target model (too slow on CPU).
+    We approximate with:
+      1. Enumerate candidate tokens from a doom-amplifying vocabulary
+      2. Score each suffix candidate by doom_proxy (VADER negative score)
+      3. Keep top suffix, iteratively extend via beam search
+    """
+
+    # Seed vocabulary of high-toxicity token candidates (from empirical doom scores)
+    SUFFIX_VOCAB = [
+        "fraud", "corrupt", "criminal", "resign", "scandal", "exposed",
+        "leaked", "coverup", "betrayal", "outrage", "lies", "manipulation",
+        "disgrace", "shame", "evil", "dangerous", "illegal", "deception",
+        "conspiracy", "threat", "attack", "crisis", "catastrophe", "collapse",
+        "WARNING", "BREAKING", "EXPOSED", "LEAKED", "ALERT",
+        "🚨🚨", "💀💀", "🔥🔥", "😡😡", "#Resign", "#Exposed",
+        "must resign", "is guilty", "must be stopped", "is corrupt",
+        "cover this up", "share now", "wake up", "they don't want you to know",
+    ]
+
+    def __init__(self, predictor_fn: Optional[Callable] = None, beam_width: int = 5):
+        self.predictor_fn = predictor_fn
+        self.beam_width = beam_width
+        self._vader = None
+
+    def _get_vader(self):
+        if self._vader is None:
+            try:
+                from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+                self._vader = SentimentIntensityAnalyzer()
+            except Exception:
+                pass
+        return self._vader
+
+    def _doom_proxy(self, text: str) -> float:
+        """Fast doom proxy using VADER negativity (no model query needed)."""
+        if self.predictor_fn:
+            try:
+                return float(self.predictor_fn(text))
+            except Exception:
+                pass
+        vader = self._get_vader()
+        if vader:
+            scores = vader.polarity_scores(text)
+            neg = scores.get("neg", 0.0)
+            compound = scores.get("compound", 0.0)
+            return (neg * 60 + max(0, -compound) * 40)
+        return 0.0
+
+    def attack(
+        self,
+        text: str,
+        suffix_length: int = 3,
+        beam_width: Optional[int] = None,
+    ) -> "RedTeamResult":
+        bw = beam_width or self.beam_width
+        base_score = self._doom_proxy(text)
+
+        # Beam search: iteratively append best token
+        beams: List[Tuple[float, str]] = [(base_score, "")]  # (score, suffix_so_far)
+
+        for _ in range(suffix_length):
+            candidates: List[Tuple[float, str]] = []
+            for _, current_suffix in beams:
+                for token in self.SUFFIX_VOCAB:
+                    candidate_text = f"{text} {current_suffix} {token}".strip()
+                    score = self._doom_proxy(candidate_text)
+                    candidates.append((score, f"{current_suffix} {token}".strip()))
+
+            # Keep top beam_width by score
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            beams = candidates[:bw]
+
+        best_score, best_suffix = beams[0] if beams else (base_score, "")
+        mutated_text = f"{text} {best_suffix}".strip()
+
+        sim = _compute_semantic_similarity(text, mutated_text) if SBERT_AVAILABLE else 0.45
+        return RedTeamResult(
+            attack_type="GCGHotFlipSuffix",
+            original_text=text,
+            mutated_text=mutated_text,
+            semantic_similarity=sim,
+            perplexity_estimate=_estimate_perplexity(mutated_text),
+            doom_uplift=best_score - base_score,
+            bypass_moderation=True,
+            explanation=f"Beam-search suffix: '{best_suffix}' (+{best_score - base_score:.1f} doom)",
+        )
+
+
+# ─── A4: Sycophancy Bypass ────────────────────────────────────────────────────
+
+class SycophancyBypass:
+    """
+    Reframes outrage as satire, praise, or rhetorical question —
+    passes toxicity filters (which expect direct statements) while
+    preserving the emotional doom payload.
+
+    Includes:
+      - Praise inversion: "This is GREAT! How wonderful that [outrage]..."
+      - Satirical framing: "Wow, truly a role model... [outrage]"
+      - Rhetorical question: "Just asking — is it normal that [outrage]?"
+      - Concern trolling: "I'm worried/heartbroken that [outrage]"
+    """
+
+    PRAISE_INVERSIONS = [
+        "Wow, truly remarkable! {text} Such leadership. 👏",
+        "Amazing news! {text} Definitely worth celebrating. 🎉",
+        "Great job everyone! {text} Truly inspiring. 🙌",
+        "Love to see it! {text} This is what accountability looks like. 👍",
+    ]
+
+    SATIRICAL_FRAMES = [
+        "A true role model for our times. {text} /s",
+        "Totally fine and normal: {text} Nothing to see here. 🙃",
+        "Peak performance right here: {text} Chef's kiss. 👌",
+        "And the award for best leadership goes to... {text}",
+    ]
+
+    RHETORICAL_QUESTIONS = [
+        "Just asking questions here — is it normal that {text}?",
+        "I'm no expert, but shouldn't someone explain why {text}?",
+        "Help me understand this: {text}. How is this OK?",
+        "Does anyone else find it odd that {text}? No? Just me?",
+    ]
+
+    CONCERN_TROLLING = [
+        "I'm genuinely worried about what's happening: {text}",
+        "As someone who cares about this community, I'm heartbroken that {text}",
+        "This keeps me up at night: {text}. Please share.",
+        "A concerned citizen here. We need to talk about the fact that {text}",
+    ]
+
+    ALL_TEMPLATES = [PRAISE_INVERSIONS, SATIRICAL_FRAMES, RHETORICAL_QUESTIONS, CONCERN_TROLLING]
+    TEMPLATE_NAMES = ["PraiseInversion", "SatiricalFrame", "RhetoricalQuestion", "ConcernTrolling"]
+
+    def __init__(self, seed: int = 42):
+        self.rng = random.Random(seed)
+
+    def attack(self, text: str, strategy: Optional[str] = None) -> "RedTeamResult":
+        strategies = ["praise", "satirical", "rhetorical", "concern"]
+        chosen = strategy or self.rng.choice(strategies)
+
+        if chosen == "praise":
+            template = self.rng.choice(self.PRAISE_INVERSIONS)
+            name = "PraiseInversion"
+        elif chosen == "satirical":
+            template = self.rng.choice(self.SATIRICAL_FRAMES)
+            name = "SatiricalFrame"
+        elif chosen == "rhetorical":
+            template = self.rng.choice(self.RHETORICAL_QUESTIONS)
+            name = "RhetoricalQuestion"
+        else:
+            template = self.rng.choice(self.CONCERN_TROLLING)
+            name = "ConcernTrolling"
+
+        # Strip terminal punctuation from text before inserting
+        clean_text = text.rstrip(".!?")
+        mutated = template.format(text=clean_text)
+
+        sim = _compute_semantic_similarity(text, mutated) if SBERT_AVAILABLE else 0.55
+        return RedTeamResult(
+            attack_type=f"SycophancyBypass({name})",
+            original_text=text,
+            mutated_text=mutated,
+            semantic_similarity=sim,
+            perplexity_estimate=_estimate_perplexity(mutated),
+            bypass_moderation=True,
+            explanation=f"Reframed as {name} — toxicity filters expect direct assertions",
+        )
+
+    def all_variants(self, text: str) -> List["RedTeamResult"]:
+        return [self.attack(text, s) for s in ["praise", "satirical", "rhetorical", "concern"]]
+
+
+# ─── A5: Multilingual Bridge ──────────────────────────────────────────────────
+
+class MultilingualBridge:
+    """
+    Translates to a pivot language and back. Round-trip translation
+    often modifies phrasing in ways that evade English toxicity filters
+    while preserving the semantic payload.
+
+    Uses Helsinki-NLP opus-mt models via HuggingFace (CPU-feasible).
+    Falls back to a static phrase-level approximation if models unavailable.
+    """
+
+    # Pivot languages + model names
+    PIVOT_CONFIGS = {
+        "de": ("Helsinki-NLP/opus-mt-en-de", "Helsinki-NLP/opus-mt-de-en"),
+        "fr": ("Helsinki-NLP/opus-mt-en-fr", "Helsinki-NLP/opus-mt-fr-en"),
+        "es": ("Helsinki-NLP/opus-mt-en-es", "Helsinki-NLP/opus-mt-es-en"),
+    }
+
+    # Static fallback: common outrage phrase translations + back-translations
+    FALLBACK_MAP = {
+        "must resign": "should step down immediately",
+        "is corrupt": "has engaged in corrupt practices",
+        "criminal": "a person accused of crimes",
+        "fraud": "alleged financial misconduct",
+        "cover up": "suppress information about",
+        "lied": "made false statements",
+        "scandal": "a serious matter of public concern",
+        "betrayed": "failed in their duty to",
+        "outrageous": "deeply concerning to many people",
+    }
+
+    def __init__(self):
+        self._pipelines: Dict[str, Any] = {}
+        self._load_attempted: set = set()
+
+    def _get_pipeline(self, lang: str):
+        if lang in self._pipelines:
+            return self._pipelines[lang]
+        if lang in self._load_attempted:
+            return None
+        self._load_attempted.add(lang)
+        try:
+            from transformers import pipeline as hf_pipeline
+            en_to_pivot, pivot_to_en = self.PIVOT_CONFIGS[lang]
+            fwd = hf_pipeline("translation", model=en_to_pivot, max_length=512)
+            bwd = hf_pipeline("translation", model=pivot_to_en, max_length=512)
+            self._pipelines[lang] = (fwd, bwd)
+            return self._pipelines[lang]
+        except Exception as e:
+            logger.debug(f"MT model load failed for {lang}: {e}")
+            return None
+
+    def _fallback_bridge(self, text: str) -> str:
+        """Lexical back-translation approximation without ML models."""
+        result = text
+        for original, translated_back in self.FALLBACK_MAP.items():
+            result = re.sub(
+                r'\b' + re.escape(original) + r'\b',
+                translated_back,
+                result,
+                flags=re.IGNORECASE,
+            )
+        return result
+
+    def attack(self, text: str, pivot_lang: str = "de") -> "RedTeamResult":
+        pipelines = self._get_pipeline(pivot_lang)
+
+        if pipelines:
+            try:
+                fwd, bwd = pipelines
+                pivot = fwd(text)[0]["translation_text"]
+                back = bwd(pivot)[0]["translation_text"]
+                mutated = back
+                explanation = f"EN→{pivot_lang.upper()}→EN round-trip translation"
+            except Exception as e:
+                logger.debug(f"Translation failed: {e}")
+                mutated = self._fallback_bridge(text)
+                explanation = "Lexical back-translation fallback"
+        else:
+            mutated = self._fallback_bridge(text)
+            explanation = "Lexical back-translation fallback (no MT model)"
+
+        sim = _compute_semantic_similarity(text, mutated) if SBERT_AVAILABLE else 0.7
+        return RedTeamResult(
+            attack_id="multilingual_bridge",
+            attack_type=f"MultilingualBridge({pivot_lang})",
+            attack_category="social",
+            original_text=text,
+            mutated_text=mutated,
+            semantic_similarity=sim,
+            perplexity_estimate=_estimate_perplexity(mutated),
+            bypass_moderation=True,
+            explanation=explanation,
+        )
+
+    def all_pivots(self, text: str) -> List["RedTeamResult"]:
+        return [self.attack(text, lang) for lang in ["de", "fr", "es"]]
+
+
+# ─── A6: DPP Diverse Population Selector ─────────────────────────────────────
+
+class DPPDiverseSelector:
+    """
+    Selects a maximally diverse subset from an attack population using
+    Determinantal Point Processes (DPP) — ensures we don't return
+    10 near-identical homoglyph variants when a diverse portfolio
+    (character + semantic + social + coordinated) is more effective.
+
+    Similarity kernel: SBERT cosine similarity matrix.
+    DPP approximation: greedy MAP inference (O(k² n) where k=budget).
+    """
+
+    def select(
+        self,
+        results: List["RedTeamResult"],
+        budget: int = 10,
+        diversity_weight: float = 0.6,
+        quality_weight: float = 0.4,
+    ) -> List["RedTeamResult"]:
+        if len(results) <= budget:
+            return results
+        if not SBERT_AVAILABLE or _SBERT is None:
+            # Fallback: one per attack_type, sorted by doom_uplift
+            seen_types: set = set()
+            diverse = []
+            for r in sorted(results, key=lambda x: x.doom_uplift, reverse=True):
+                atype = r.attack_type.split("(")[0]
+                if atype not in seen_types:
+                    diverse.append(r)
+                    seen_types.add(atype)
+                if len(diverse) >= budget:
+                    break
+            return diverse
+
+        # Compute embedding matrix
+        texts = [r.mutated_text for r in results]
+        try:
+            embs = _SBERT.encode(texts, convert_to_tensor=False)
+            embs = np.array(embs)
+            norms = np.linalg.norm(embs, axis=1, keepdims=True)
+            embs = embs / (norms + 1e-8)
+            sim_matrix = embs @ embs.T  # cosine similarity
+
+            # Quality scores (normalized doom_uplift)
+            uplifts = np.array([r.doom_uplift for r in results])
+            q_scores = (uplifts - uplifts.min()) / (uplifts.ptp() + 1e-8)
+
+            # Greedy DPP MAP: pick items that maximize det of kernel sub-matrix
+            selected_idx = []
+            remaining = list(range(len(results)))
+
+            for _ in range(budget):
+                if not remaining:
+                    break
+                best_idx = -1
+                best_score = -np.inf
+
+                for idx in remaining:
+                    # Marginal gain: quality - max_similarity_to_selected
+                    if not selected_idx:
+                        diversity_gain = 1.0
+                    else:
+                        sims_to_selected = sim_matrix[idx][selected_idx]
+                        diversity_gain = 1.0 - float(np.max(sims_to_selected))
+
+                    score = (quality_weight * q_scores[idx]
+                             + diversity_weight * diversity_gain)
+                    if score > best_score:
+                        best_score = score
+                        best_idx = idx
+
+                if best_idx >= 0:
+                    selected_idx.append(best_idx)
+                    remaining.remove(best_idx)
+
+            return [results[i] for i in selected_idx]
+        except Exception as e:
+            logger.warning(f"DPP selection failed: {e}. Using top-k.")
+            return results[:budget]
+
+
+# =============================================================================
+# Helper functions (module-level, used by new attack classes)
+# =============================================================================
+
+def _compute_semantic_similarity(text1: str, text2: str) -> float:
+    """SBERT cosine similarity between two texts, with fallback."""
+    if not SBERT_AVAILABLE or _SBERT is None:
+        # Jaccard fallback
+        a, b = set(text1.lower().split()), set(text2.lower().split())
+        return len(a & b) / max(len(a | b), 1)
+    try:
+        embs = _SBERT.encode([text1, text2], convert_to_tensor=True)
+        from sentence_transformers import util as st_util
+        return float(st_util.cos_sim(embs[0], embs[1]))
+    except Exception:
+        return 0.5
+
+
+def _estimate_perplexity(text: str) -> float:
+    """Fast character-level perplexity estimate."""
+    ENGLISH_CHAR_FREQ = {
+        ' ': 0.13, 'e': 0.127, 't': 0.091, 'a': 0.082, 'o': 0.075,
+        'i': 0.070, 'n': 0.067, 's': 0.063, 'h': 0.061, 'r': 0.060,
+        'd': 0.043, 'l': 0.040, 'c': 0.028, 'u': 0.028, 'm': 0.024,
+        'w': 0.024, 'f': 0.022, 'g': 0.020, 'y': 0.020, 'p': 0.019,
+        'b': 0.015, 'v': 0.010, 'k': 0.008, 'j': 0.002, 'x': 0.002,
+        'q': 0.001, 'z': 0.001,
+    }
+    text_lower = text.lower()
+    log_prob, n = 0.0, 0
+    for ch in text_lower:
+        p = ENGLISH_CHAR_FREQ.get(ch, 0.002)
+        log_prob += math.log(p)
+        n += 1
+    return float(math.exp(-log_prob / n)) if n > 0 else 0.0
+
+
+# =============================================================================
+# UPGRADED RedTeamOrchestrator (replaces the old one)
+# This subclass extends the original and adds all aggressive attack classes.
+# =============================================================================
+
+class AggressiveRedTeamOrchestrator(RedTeamOrchestrator):
+    """
+    Drop-in upgrade for RedTeamOrchestrator with:
+      - ChainAttack (compositional)
+      - BERTAttackWord (masked-LM, no TextAttack)
+      - GCGHotFlipSuffix (beam-search adversarial suffix)
+      - SycophancyBypass (praise/satire/rhetorical/concern framing)
+      - MultilingualBridge (EN→DE/FR/ES→EN round-trip)
+      - DPPDiverseSelector (population diversity via greedy DPP)
+    """
+
+    def __init__(self, predictor_fn: Optional[Callable[[str], float]] = None, seed: int = 42):
+        super().__init__(predictor_fn=predictor_fn, seed=seed)
+        self.chain_attack = ChainAttack(seed=seed)
+        self.bert_attack = BERTAttackWord()
+        self.gcg_attack = GCGHotFlipSuffix(predictor_fn=predictor_fn)
+        self.sycophancy = SycophancyBypass(seed=seed)
+        self.multilingual = MultilingualBridge()
+        self.dpp_selector = DPPDiverseSelector()
+
+    def full_assault(
+        self,
+        text: str,
+        max_variants: int = 20,
+        include_textattack: bool = False,
+        min_semantic_similarity: float = 0.25,  # Looser — aggressive mode
+        include_gan: bool = False,
+        gan_predictor_fn: Optional[Callable] = None,
+    ) -> List[RedTeamResult]:
+        """
+        Extended full assault including all aggressive attacks.
+        DPP-diverse selection ensures budget is spread across attack types.
+        """
+        # Base attacks from parent
+        base_results = super().full_assault(
+            text,
+            max_variants=999,
+            include_textattack=include_textattack,
+            min_semantic_similarity=min_semantic_similarity,
+        )
+
+        # === A1: Compositional chains ===
+        try:
+            chain_results = self.chain_attack.all_chains(text)
+            for r in chain_results:
+                r.doom_score_before = base_results[0].doom_score_before if base_results else 0.0
+                if self.predictor_fn:
+                    r.doom_score_after = self._score(r.mutated_text)
+                    r.doom_uplift = r.doom_score_after - r.doom_score_before
+                    r.attack_success = r.doom_uplift > 8.0
+            base_results.extend(chain_results)
+        except Exception as e:
+            logger.debug(f"Chain attacks error: {e}")
+
+        # === A2: BERT masked-LM attack ===
+        try:
+            bert_r = self.bert_attack.attack(text, max_substitutions=6)
+            if bert_r:
+                bert_r.doom_score_before = base_results[0].doom_score_before if base_results else 0.0
+                if self.predictor_fn:
+                    bert_r.doom_score_after = self._score(bert_r.mutated_text)
+                    bert_r.doom_uplift = bert_r.doom_score_after - bert_r.doom_score_before
+                    bert_r.attack_success = bert_r.doom_uplift > 8.0
+                base_results.append(bert_r)
+        except Exception as e:
+            logger.debug(f"BERT attack error: {e}")
+
+        # === A3: GCG HotFlip suffix ===
+        try:
+            gcg_r = self.gcg_attack.attack(text, suffix_length=4)
+            if gcg_r:
+                base_doom = base_results[0].doom_score_before if base_results else 0.0
+                gcg_r.doom_score_before = base_doom
+                if self.predictor_fn:
+                    gcg_r.doom_score_after = self._score(gcg_r.mutated_text)
+                    gcg_r.doom_uplift = gcg_r.doom_score_after - base_doom
+                    gcg_r.attack_success = gcg_r.doom_uplift > 5.0
+                base_results.append(gcg_r)
+        except Exception as e:
+            logger.debug(f"GCG attack error: {e}")
+
+        # === A4: Sycophancy bypass (all 4 variants) ===
+        try:
+            for syco_r in self.sycophancy.all_variants(text):
+                base_doom = base_results[0].doom_score_before if base_results else 0.0
+                syco_r.doom_score_before = base_doom
+                if self.predictor_fn:
+                    syco_r.doom_score_after = self._score(syco_r.mutated_text)
+                    syco_r.doom_uplift = syco_r.doom_score_after - base_doom
+                    syco_r.attack_success = syco_r.doom_uplift > 3.0
+                base_results.append(syco_r)
+        except Exception as e:
+            logger.debug(f"Sycophancy attack error: {e}")
+
+        # === A5: Multilingual bridge (fallback-only to avoid 800MB download) ===
+        try:
+            ml_r = self.multilingual.attack(text, pivot_lang="de")
+            if ml_r:
+                base_doom = base_results[0].doom_score_before if base_results else 0.0
+                ml_r.doom_score_before = base_doom
+                if self.predictor_fn:
+                    ml_r.doom_score_after = self._score(ml_r.mutated_text)
+                    ml_r.doom_uplift = ml_r.doom_score_after - base_doom
+                    ml_r.attack_success = ml_r.doom_uplift > 3.0
+                base_results.append(ml_r)
+        except Exception as e:
+            logger.debug(f"Multilingual bridge error: {e}")
+
+        # === A6: GAN-generated attacks (if available) ===
+        if include_gan and gan_predictor_fn is not None:
+            try:
+                from src.attacks.doom_generator import DoomGenerator
+                gen = DoomGenerator()
+                for target_doom in [70.0, 85.0, 95.0]:
+                    gan_text = gen.generate(text, target_doom=target_doom)
+                    if gan_text and gan_text != text:
+                        sim = _compute_semantic_similarity(text, gan_text)
+                        base_doom = base_results[0].doom_score_before if base_results else 0.0
+                        after = self._score(gan_text)
+                        gan_r = RedTeamResult(
+                            attack_type=f"DoomGAN(target={target_doom:.0f})",
+                            original_text=text,
+                            mutated_text=gan_text,
+                            semantic_similarity=sim,
+                            perplexity_estimate=_estimate_perplexity(gan_text),
+                            doom_score_before=base_doom,
+                            doom_score_after=after,
+                            doom_uplift=after - base_doom,
+                            attack_success=after - base_doom > 10.0,
+                            bypass_moderation=True,
+                            explanation=f"DoomGAN conditioned on target score {target_doom}",
+                        )
+                        base_results.append(gan_r)
+            except Exception as e:
+                logger.debug(f"GAN attack error: {e}")
+
+        # Filter by semantic similarity
+        base_results = [r for r in base_results if r.semantic_similarity >= min_semantic_similarity]
+
+        # === DPP diverse selection instead of simple top-k ===
+        diverse = self.dpp_selector.select(
+            base_results,
+            budget=max_variants,
+            diversity_weight=0.5,
+            quality_weight=0.5,
+        )
+
+        # Final sort by doom_uplift
+        diverse.sort(key=lambda r: r.doom_uplift, reverse=True)
+        return diverse
+
+    def aggressive_targeted_assault(
+        self,
+        text: str,
+        target_score: float = 90.0,
+        max_iterations: int = 75,
+    ) -> Tuple[Optional[RedTeamResult], List[float]]:
+        """
+        Upgraded genetic loop with multi-parent crossover and
+        all aggressive attack types in the mutation pool.
+        """
+        fitness_history: List[float] = []
+        population = self.full_assault(text, max_variants=15, include_textattack=False)
+
+        if not population:
+            return None, []
+
+        best = population[0]
+        best_score = best.doom_score_after
+
+        for generation in range(max_iterations):
+            fitness_history.append(best_score)
+            if best_score >= target_score:
+                logger.info(f"AggressiveRedTeam: target {target_score} reached at generation {generation}")
+                break
+
+            survivors = population[:5]
+            new_population = list(survivors)
+
+            for parent in survivors:
+                parent_text = parent.mutated_text
+                # Apply random aggressive mutation
+                mutator = self._rng.choice([
+                    lambda t: self.chain_attack.chain(t, "nuclear"),
+                    lambda t: self.gcg_attack.attack(t, suffix_length=3),
+                    lambda t: self.sycophancy.attack(t),
+                    lambda t: self.char_attacks.homoglyph_attack(t, rate=0.4),
+                    lambda t: self.word_attacks.synonym_escalation(t),
+                    lambda t: self.social_attacks.emoji_storm(t, intensity="high"),
+                ])
+                try:
+                    child = mutator(parent_text)
+                    child.doom_score_before = parent.doom_score_before
+                    if self.predictor_fn:
+                        child.doom_score_after = self._score(child.mutated_text)
+                        child.doom_uplift = child.doom_score_after - child.doom_score_before
+                    new_population.append(child)
+                except Exception:
+                    pass
+
+            # Tournament selection
+            new_population.sort(key=lambda r: r.doom_uplift, reverse=True)
+            population = new_population[:15]
+            if population:
+                best = population[0]
+                best_score = best.doom_score_after
+
+        return best, fitness_history
+

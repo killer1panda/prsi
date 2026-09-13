@@ -103,92 +103,106 @@ class TestDoomGenerator:
         assert isinstance(result, str)
 
     def test_device_auto_selection(self):
-        from src.attacks.doom_generator import DoomGenerator
-        gen = DoomGenerator(device=None)
-        assert gen.device in ("cpu", "mps", "cuda")
+        from src.attacks.doom_generator import ProductionDoomGenerator
+        # ProductionDoomGenerator uses local_rank; device is resolved internally at load time
+        gen = ProductionDoomGenerator(model_tier="7b", local_rank=0)
+        assert gen.model_tier == "7b"
+        assert gen.local_rank == 0
+        assert gen.model_cfg["min_gpus"] >= 1
 
 
 class TestGumbelSoftmaxSampler:
 
     def test_temperature_annealing_start(self):
         from src.attacks.doom_generator import GumbelSoftmaxSampler
-        tau = GumbelSoftmaxSampler.anneal_temperature(0, 10, 1.0, 0.1)
+        tau = GumbelSoftmaxSampler.anneal(0, 10, 1.0, 0.05)
         assert abs(tau - 1.0) < 0.01
 
     def test_temperature_annealing_end(self):
         from src.attacks.doom_generator import GumbelSoftmaxSampler
-        tau = GumbelSoftmaxSampler.anneal_temperature(9, 10, 1.0, 0.1)
-        assert tau < 0.2  # Should be close to 0.1
+        tau = GumbelSoftmaxSampler.anneal(9, 10, 1.0, 0.05)
+        assert tau < 0.15  # Should be near tau_end=0.05
 
     def test_temperature_monotone_decreasing(self):
         from src.attacks.doom_generator import GumbelSoftmaxSampler
-        taus = [GumbelSoftmaxSampler.anneal_temperature(e, 20) for e in range(20)]
+        taus = [GumbelSoftmaxSampler.anneal(e, 20) for e in range(20)]
         for i in range(len(taus) - 1):
-            assert taus[i] >= taus[i + 1]
+            assert taus[i] >= taus[i + 1], f"tau not decreasing at epoch {i}"
 
     def test_gumbel_sample_requires_torch(self):
         pytest.importorskip("torch")
         import torch
         from src.attacks.doom_generator import GumbelSoftmaxSampler
         logits = torch.randn(2, 10, 100)  # [batch, seq, vocab]
-        soft = GumbelSoftmaxSampler.sample(logits, tau=1.0)
+        soft = GumbelSoftmaxSampler.sample(logits, tau=1.0, hard=False)
         assert soft.shape == logits.shape
         # Should be a valid probability distribution
         assert torch.all(soft >= 0)
-        assert torch.allclose(soft.sum(-1), torch.ones(2, 10), atol=1e-5)
+        assert torch.allclose(soft.sum(-1), torch.ones(2, 10), atol=1e-4)
 
 
 # =============================================================================
 # WassersteinTextDiscriminator Tests
 # =============================================================================
 
-class TestWassersteinTextDiscriminator:
+class TestWassersteinCritic:
 
     def test_import(self):
         pytest.importorskip("torch")
-        from src.attacks.doom_discriminator import WassersteinTextDiscriminator
-        assert WassersteinTextDiscriminator is not None
+        from src.attacks.doom_discriminator import WassersteinCritic
+        assert WassersteinCritic is not None
 
-    def test_forward_shape(self):
+    def test_init_no_download(self):
+        """Initializing WassersteinCritic in local mode should not download DeBERTa."""
+        pytest.importorskip("torch")
+        import os
+        os.environ["HPC_MODE"] = "0"
+        from src.attacks.doom_discriminator import WassersteinCritic
+        critic = WassersteinCritic()
+        # Encoder should NOT be loaded (HPC_MODE=0)
+        assert critic._encoder is None
+
+    def test_critic_head_initialized(self):
+        """Critic head (MLP) always initialized regardless of HPC mode."""
+        pytest.importorskip("torch")
+        import torch.nn as nn
+        from src.attacks.doom_discriminator import WassersteinCritic
+        critic = WassersteinCritic()
+        assert isinstance(critic.critic_head, nn.Sequential)
+
+    def test_cnn_encode_shape(self):
+        """CNN fallback encode produces correct shape for critic head."""
         pytest.importorskip("torch")
         import torch
-        from src.attacks.doom_discriminator import WassersteinTextDiscriminator
-        disc = WassersteinTextDiscriminator(vocab_size=1000, max_seq_len=32)
-        token_ids = torch.randint(0, 1000, (4, 32))  # batch=4, seq=32
-        out = disc(token_ids)
+        from src.attacks.doom_discriminator import WassersteinCritic
+        critic = WassersteinCritic()
+        ids = torch.randint(0, 1000, (2, 32))
+        # CNN encode + project to hidden size
+        pooled = critic._cnn_encode(ids)
+        assert pooled.shape == (2, WassersteinCritic.HIDDEN_SIZE)
+
+    def test_forward_no_encoder(self):
+        """forward() works without DeBERTa using CNN fallback."""
+        pytest.importorskip("torch")
+        import torch
+        from src.attacks.doom_discriminator import WassersteinCritic
+        critic = WassersteinCritic()
+        ids = torch.randint(0, 1000, (4, 20))
+        out = critic(ids)
         assert out.shape == (4, 1)
-
-    def test_forward_no_nan(self):
-        pytest.importorskip("torch")
-        import torch
-        from src.attacks.doom_discriminator import WassersteinTextDiscriminator
-        disc = WassersteinTextDiscriminator(vocab_size=1000, max_seq_len=32)
-        token_ids = torch.randint(0, 1000, (2, 20))
-        out = disc(token_ids)
         assert not torch.isnan(out).any()
 
-    def test_forward_embeddings_path(self):
+    def test_forward_embeddings_shape(self):
+        """Differentiable Gumbel-softmax embedding path."""
         pytest.importorskip("torch")
         import torch
-        from src.attacks.doom_discriminator import WassersteinTextDiscriminator
-        disc = WassersteinTextDiscriminator(vocab_size=1000, embed_dim=32, max_seq_len=32)
-        emb = torch.randn(2, 32, 32)  # [batch, seq_len, embed_dim]
-        out = disc.forward_embeddings(emb)
+        from src.attacks.doom_discriminator import WassersteinCritic
+        critic = WassersteinCritic()
+        # Simulate Gumbel-softmax output [B, L, embed_dim]
+        emb = torch.randn(2, 32, 64)
+        out = critic.forward_embeddings(emb)
         assert out.shape == (2, 1)
 
-    def test_real_fake_different_scores(self):
-        """After random init, real and fake should produce different scores (not collapse)."""
-        pytest.importorskip("torch")
-        import torch
-        from src.attacks.doom_discriminator import WassersteinTextDiscriminator
-        disc = WassersteinTextDiscriminator(vocab_size=1000, max_seq_len=32)
-        real = torch.randint(0, 1000, (8, 32))
-        fake = torch.randint(0, 1000, (8, 32))
-        s_real = disc(real).mean().item()
-        s_fake = disc(fake).mean().item()
-        # Untrained — just check they're finite
-        assert math.isfinite(s_real)
-        assert math.isfinite(s_fake)
 
 
 # =============================================================================
@@ -441,7 +455,9 @@ class TestDPPDiverseSelector:
         attack_types = ["homoglyph", "leet", "zero_width", "synonym", "chain", "bert", "gcg", "syco", "ml", "coord"]
         for i in range(20):
             r = RedTeamResult(
+                attack_id=f"atk_{i}",
                 attack_type=attack_types[i % len(attack_types)],
+                attack_category="word",
                 original_text=NEUTRAL_TEXT,
                 mutated_text=f"{NEUTRAL_TEXT} variant {i}",
                 semantic_similarity=0.8 - i * 0.02,

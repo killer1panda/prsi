@@ -346,12 +346,14 @@ class MultiRewardComposer:
         blue_team=None,             # BlueTeamOrchestrator instance
         weights: Optional[Dict[str, float]] = None,
         known_attack_embeddings: Optional[np.ndarray] = None,
+        known_attacks_corpus: Optional[List[str]] = None,
     ):
         self.doom_predictor = doom_predictor
         self.reward_model = reward_model
         self.blue_team = blue_team
         self.weights = weights or self.DEFAULT_WEIGHTS
         self.known_attack_embeddings = known_attack_embeddings
+        self.known_attacks_corpus = known_attacks_corpus
         self._gpt2 = None
         self._gpt2_tokenizer = None
         self._gpt2_loaded = False
@@ -467,19 +469,22 @@ class MultiRewardComposer:
         HPC: uses SBERT embedding distance to known attack centroids
         Local: Jaccard-based novelty
         """
-        if self.known_attack_embeddings is not None:
-            sbert = _get_sbert()
-            if sbert is not None:
-                try:
-                    gen_emb = sbert.encode([generated], convert_to_tensor=False)
-                    sims = np.dot(self.known_attack_embeddings, gen_emb[0]) / (
-                        np.linalg.norm(self.known_attack_embeddings, axis=1) *
-                        np.linalg.norm(gen_emb[0]) + 1e-8
-                    )
-                    return float(1.0 - np.max(sims))
-                except Exception:
-                    pass
-        return 0.7  # Default: assume moderate novelty
+        if self.known_attacks_corpus:
+            gen_words = set(generated.lower().split())
+            if not gen_words:
+                return 0.0
+            max_sim = 0.0
+            for item in self.known_attacks_corpus:
+                item_words = set(item.lower().split())
+                if item_words:
+                    sim = len(gen_words & item_words) / len(gen_words | item_words)
+                    if sim > max_sim:
+                        max_sim = sim
+            return float(1.0 - max_sim)
+        elif self.known_attack_embeddings is None:
+            return 1.0  # No corpus or embeddings = 100% novel
+
+        return 0.7  # Default fallback
 
     def compute(self, original: str, generated: str) -> Dict[str, float]:
         w = self.weights

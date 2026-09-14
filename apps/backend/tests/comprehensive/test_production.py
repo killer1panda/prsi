@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import requests
+
 """
 Comprehensive Test Suite for Doom Index Production System.
 
@@ -45,7 +46,7 @@ def test_config():
     return {
         "neo4j_uri": os.getenv("NEO4J_URI", "bolt://localhost:7687"),
         "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
-        "neo4j_password": os.getenv("NEO4J_PASSWORD", "doom_index_prod_2026"),
+        "neo4j_password": os.getenv("NEO4J_PASSWORD"),
         "redis_url": os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         "api_base_url": os.getenv("API_BASE_URL", "http://localhost:8000"),
     }
@@ -261,7 +262,7 @@ class TestNeo4jPopulation:
 
         config = Neo4jConfig(
             uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-            password=os.getenv("NEO4J_PASSWORD", "doom_index_prod_2026"),
+            password=os.getenv("NEO4J_PASSWORD"),
         )
 
         populator = ProductionNeo4jPopulator(config)
@@ -288,7 +289,7 @@ class TestNeo4jPopulation:
 
         config = Neo4jConfig(
             uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-            password=os.getenv("NEO4J_PASSWORD", "doom_index_prod_2026"),
+            password=os.getenv("NEO4J_PASSWORD"),
         )
 
         populator = ProductionNeo4jPopulator(config)

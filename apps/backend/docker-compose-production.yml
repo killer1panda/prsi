@@ -82,7 +82,7 @@ services:
     container_name: doom-dashboard
     environment:
       - DOOM_API_URL=http://nginx:80/api
-      - DOOM_API_KEY=${API_KEY:-dev-key}
+      - DOOM_API_KEY=${API_KEY:-}
     ports:
       - "8501:8501"
     depends_on:

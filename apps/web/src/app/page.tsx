@@ -109,13 +109,15 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
   );
 };
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt: Wrapped with React.memo() to prevent unnecessary re-renders
+// caused by the 2-second global score polling interval in ThreatIntelligenceDashboard
+const LiveFeedPanel = React.memo(() => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  // ⚡ Bolt: Initialize starting state directly to avoid synchronous setSseStatus on mount
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +197,12 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
+LiveFeedPanel.displayName = "LiveFeedPanel";
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt: Wrapped with React.memo() to prevent unnecessary re-renders
+// caused by the 2-second global score polling interval in ThreatIntelligenceDashboard
+const ThreatAnalyzer = React.memo(({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +342,8 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
+ThreatAnalyzer.displayName = "ThreatAnalyzer";
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);

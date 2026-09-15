@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "./App.css";
 
 const API_BASE = "http://localhost:8000";
-const TOKEN = "dummy_token";
+const TOKEN = "";
 
 function Dashboard() {
   const [data, setData] = useState<any>(null);

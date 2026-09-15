@@ -1,7 +1,7 @@
 const BASE_URL = 'http://localhost:8000';
 const HEADERS = {
   'Content-Type': 'application/json',
-  'Authorization': 'Bearer dummy_token',
+  'Authorization': 'Bearer ',
 };
 
 export const fetchRiskData = async () => {

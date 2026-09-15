@@ -38,7 +38,7 @@ import {
 } from "recharts";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "doom_dev_key";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
 
 const temporalData = [
   { time: "00:00", score: 45 },
@@ -111,11 +111,11 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
 
 const LiveFeedPanel = () => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
+
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -134,7 +134,7 @@ const LiveFeedPanel = () => {
       // Retry after 8 seconds
       setTimeout(() => {
         if (esRef.current === es) {
-          setSseStatus("connecting");
+
           const newEs = new EventSource(`${API_BASE}/events`);
           esRef.current = newEs;
           newEs.onopen = () => setSseStatus("connected");

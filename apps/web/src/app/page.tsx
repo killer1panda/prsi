@@ -38,7 +38,10 @@ import {
 } from "recharts";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "doom_dev_key";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
+if (!API_KEY) {
+  console.warn("NEXT_PUBLIC_API_KEY is missing. API calls will fail.");
+}
 
 const temporalData = [
   { time: "00:00", score: 45 },

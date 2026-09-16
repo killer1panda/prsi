@@ -1,0 +1,3 @@
+## 2024-09-16 - Accessibility for Custom Scrollable Areas
+**Learning:** Custom scrollable containers (e.g., `overflow-y-auto` elements displaying live feeds or long lists) are inaccessible to keyboard users and screen readers by default. They need `tabIndex={0}` to be focusable, `role="region"` to be announced as a distinct block of content, and an `aria-label` to give them a name. Furthermore, visual focus indicators (like `focus-visible:ring-1`) are crucial for keyboard users to know where they are.
+**Action:** When implementing custom scrollable areas, always apply `tabIndex={0}`, `role="region"`, `aria-label`, and `focus-visible` utility classes to ensure full accessibility.

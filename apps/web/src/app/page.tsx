@@ -109,13 +109,15 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
   );
 };
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt Performance Optimization:
+// Wrapped in React.memo() to prevent ~30 unnecessary re-renders per minute
+// caused by the parent's (ThreatIntelligenceDashboard) 2-second polling interval.
+const LiveFeedPanel = React.memo(() => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +197,15 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+LiveFeedPanel.displayName = "LiveFeedPanel";
+
+// ⚡ Bolt Performance Optimization:
+// Wrapped in React.memo() to avoid cascading re-renders from the parent's
+// 2-second polling jitter. `onResult` is already passed as a useCallback function.
+// Expected impact: Eliminates 100% of idle re-renders for this expensive component.
+const ThreatAnalyzer = React.memo(({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +345,9 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
+
+ThreatAnalyzer.displayName = "ThreatAnalyzer";
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);

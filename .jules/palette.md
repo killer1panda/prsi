@@ -1,0 +1,3 @@
+## 2024-09-19 - Accessible Scrollable Regions and Inputs
+**Learning:** Custom scrollable containers (using `overflow-y-auto` or similar) in this React/Next.js setup often omit critical keyboard navigation and screen reader attributes. In custom dark-mode themes (like `bg-zinc-950`), forms sometimes rely entirely on placeholders instead of visible labels or `aria-label`s, which penalizes screen-reader users and drops accessibility scores.
+**Action:** Always verify scrollable regions have `tabIndex={0}`, `role="region"`, `aria-label`, and a clear `focus-visible` outline. Ensure inputs (like `<textarea>`) lacking visible `<label>`s utilize a descriptive `aria-label`.

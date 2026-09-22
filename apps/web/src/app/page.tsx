@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Activity,
   Network,
-  Image as ImageIcon,
-  MessageSquare,
+
+
   ShieldAlert,
-  Terminal,
+
   Zap,
   BrainCircuit,
   DatabaseZap,

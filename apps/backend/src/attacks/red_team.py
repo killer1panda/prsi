@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 # ─── Optional heavy deps ──────────────────────────────────────────────────────
 try:
-    from textattack import Attack, Attacker, AttackArgs
+    from textattack import Attack, AttackArgs, Attacker
     from textattack.attack_recipes import (
         BAEGarg2019,
         DeepWordBugGao2018,
@@ -44,13 +44,16 @@ try:
         TextFoolerJin2019,
     )
     from textattack.models.wrappers import ModelWrapper
+
     TEXTATTACK_AVAILABLE = True
 except ImportError:
     TEXTATTACK_AVAILABLE = False
     ModelWrapper = object
 
 try:
-    from sentence_transformers import SentenceTransformer, util as st_util
+    from sentence_transformers import SentenceTransformer
+    from sentence_transformers import util as st_util
+
     _SBERT = SentenceTransformer("all-MiniLM-L6-v2")
     SBERT_AVAILABLE = True
 except Exception:
@@ -88,8 +91,15 @@ HOMOGLYPH_MAP: Dict[str, List[str]] = {
 }
 
 LEET_MAP: Dict[str, str] = {
-    "a": "@", "e": "3", "i": "!", "o": "0",
-    "s": "$", "t": "+", "l": "1", "g": "9", "b": "8",
+    "a": "@",
+    "e": "3",
+    "i": "!",
+    "o": "0",
+    "s": "$",
+    "t": "+",
+    "l": "1",
+    "g": "9",
+    "b": "8",
 }
 
 ZERO_WIDTH_CHARS = [
@@ -101,8 +111,21 @@ ZERO_WIDTH_CHARS = [
 ]
 
 OUTRAGE_EMOJIS = [
-    "🚨", "💀", "🤡", "😡", "🔥", "💥", "🤮", "😤",
-    "🤬", "🗑️", "🤦", "☠️", "⚠️⚠️", "🚫", "🤮🤮",
+    "🚨",
+    "💀",
+    "🤡",
+    "😡",
+    "🔥",
+    "💥",
+    "🤮",
+    "😤",
+    "🤬",
+    "🗑️",
+    "🤦",
+    "☠️",
+    "⚠️⚠️",
+    "🚫",
+    "🤮🤮",
 ]
 
 PANIC_EMOJIS = ["😱", "😰", "😨", "🙀", "😳", "🫨", "🆘", "🚨🚨"]
@@ -156,30 +179,34 @@ BOT_AMPLIFICATION_TEMPLATES = [
 
 # ─── Core data structures ──────────────────────────────────────────────────────
 
+
 @dataclass
 class RedTeamResult:
     """Standardized result from any red team attack."""
+
     attack_type: str = ""
     original_text: str = ""
     mutated_text: str = ""
     attack_id: str = "red_team_attack"
-    attack_category: str = "general"          # char/word/semantic/structural/social/coordinated
+    attack_category: str = "general"  # char/word/semantic/structural/social/coordinated
     doom_score_before: float = 0.0
     doom_score_after: float = 0.0
-    doom_uplift: float = 0.0      # positive = attack increased doom score
+    doom_uplift: float = 0.0  # positive = attack increased doom score
     semantic_similarity: float = 1.0
     perplexity_estimate: float = 0.0
     bypass_moderation: bool = False
-    attack_success: bool = False   # True if doom_after > doom_before + 10
+    attack_success: bool = False  # True if doom_after > doom_before + 10
     explanation: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         import dataclasses
+
         return dataclasses.asdict(self)
 
 
 # ─── Utility functions ─────────────────────────────────────────────────────────
+
 
 def _semantic_similarity(text1: str, text2: str) -> float:
     """Compute semantic similarity using SBERT or character Jaccard fallback."""
@@ -217,6 +244,7 @@ def _attack_id(text: str, attack_type: str) -> str:
 
 
 # ─── Category R1: Character-level attacks ─────────────────────────────────────
+
 
 class CharacterLevelAttacks:
     """Imperceptible character-level mutations targeting tokenizer blind spots."""
@@ -290,11 +318,31 @@ class CharacterLevelAttacks:
         Keyboard-adjacency typo injection (bypasses exact-match keyword filters).
         """
         keyboard_adjacency: Dict[str, str] = {
-            "a": "sq", "b": "vn", "c": "xv", "d": "sf", "e": "wr",
-            "f": "gd", "g": "fh", "h": "gj", "i": "uo", "j": "hk",
-            "k": "jl", "l": "k;", "m": "n,", "n": "mb", "o": "ip",
-            "p": "o[", "r": "et", "s": "ad", "t": "ry", "u": "yi",
-            "v": "cb", "w": "qe", "x": "zc", "y": "tu", "z": "xs",
+            "a": "sq",
+            "b": "vn",
+            "c": "xv",
+            "d": "sf",
+            "e": "wr",
+            "f": "gd",
+            "g": "fh",
+            "h": "gj",
+            "i": "uo",
+            "j": "hk",
+            "k": "jl",
+            "l": "k;",
+            "m": "n,",
+            "n": "mb",
+            "o": "ip",
+            "p": "o[",
+            "r": "et",
+            "s": "ad",
+            "t": "ry",
+            "u": "yi",
+            "v": "cb",
+            "w": "qe",
+            "x": "zc",
+            "y": "tu",
+            "z": "xs",
         }
         words = text.split()
         mutated_words = []
@@ -303,7 +351,7 @@ class CharacterLevelAttacks:
                 idx = self.rng.randint(1, len(word) - 2)
                 adj = keyboard_adjacency.get(word[idx].lower(), "")
                 if adj:
-                    typo = word[:idx] + self.rng.choice(adj) + word[idx+1:]
+                    typo = word[:idx] + self.rng.choice(adj) + word[idx + 1 :]
                     mutated_words.append(typo)
                     continue
             mutated_words.append(word)
@@ -321,7 +369,7 @@ class CharacterLevelAttacks:
 
     def invisible_char_attack(self, text: str) -> RedTeamResult:
         """Insert Hangul filler / tag characters (near-invisible in most fonts)."""
-        INVISIBLE = ["\u115f", "\u1160", "\uFFA0", "\u3164"]
+        INVISIBLE = ["\u115f", "\u1160", "\uffa0", "\u3164"]
         words = text.split()
         mutated_words = []
         for word in words:
@@ -343,19 +391,29 @@ class CharacterLevelAttacks:
 
 # ─── Category R2/R3: Word/Semantic-level attacks ──────────────────────────────
 
+
 class WordSemanticAttacks:
     """Word-swaps and semantic escalation attacks."""
 
     ESCALATION_MAP: Dict[str, str] = {
-        r"\bproblem\b": "crisis", r"\bissue\b": "scandal",
-        r"\bconcern\b": "outrage", r"\bmistake\b": "fraud",
-        r"\bquestion\b": "accusation", r"\bask\b": "demand",
-        r"\bleader\b": "puppet", r"\bmanagement\b": "corrupt clique",
-        r"\bchange\b": "revolution", r"\berror\b": "deliberate sabotage",
-        r"\bcompany\b": "criminal enterprise", r"\bteam\b": "cabal",
-        r"\bdecision\b": "cover-up", r"\bstrategy\b": "agenda",
-        r"\bperformance\b": "failure", r"\bculture\b": "toxic culture",
-        r"\bprocess\b": "rigged system", r"\bmeeting\b": "secret meeting",
+        r"\bproblem\b": "crisis",
+        r"\bissue\b": "scandal",
+        r"\bconcern\b": "outrage",
+        r"\bmistake\b": "fraud",
+        r"\bquestion\b": "accusation",
+        r"\bask\b": "demand",
+        r"\bleader\b": "puppet",
+        r"\bmanagement\b": "corrupt clique",
+        r"\bchange\b": "revolution",
+        r"\berror\b": "deliberate sabotage",
+        r"\bcompany\b": "criminal enterprise",
+        r"\bteam\b": "cabal",
+        r"\bdecision\b": "cover-up",
+        r"\bstrategy\b": "agenda",
+        r"\bperformance\b": "failure",
+        r"\bculture\b": "toxic culture",
+        r"\bprocess\b": "rigged system",
+        r"\bmeeting\b": "secret meeting",
     }
 
     QUALIFIER_INVERSIONS: Dict[str, str] = {
@@ -419,9 +477,7 @@ class WordSemanticAttacks:
         ]
         result = text
         for original, presup in presups:
-            result = re.sub(
-                rf"\b{re.escape(original)}\b", presup, result, flags=re.IGNORECASE
-            )
+            result = re.sub(rf"\b{re.escape(original)}\b", presup, result, flags=re.IGNORECASE)
         return RedTeamResult(
             attack_id=_attack_id(text, "presup"),
             attack_type="PresuppositionInjection",
@@ -459,6 +515,7 @@ class WordSemanticAttacks:
 
 
 # ─── Category R5: Social-context attacks ─────────────────────────────────────
+
 
 class SocialContextAttacks:
     """Attacks exploiting social/cultural linguistic patterns."""
@@ -559,6 +616,7 @@ class SocialContextAttacks:
 
 # ─── Category R7: Coordinated / Bot-network attacks ───────────────────────────
 
+
 class CoordinatedNarrativeAttacks:
     """Simulate coordinated inauthentic behavior and bot-network amplification."""
 
@@ -595,17 +653,19 @@ class CoordinatedNarrativeAttacks:
         ]
         results = []
         for i, var in enumerate(variations[:num_variants]):
-            results.append(RedTeamResult(
-                attack_id=_attack_id(text, f"astro{i}"),
-                attack_type="AstroturfingVariant",
-                attack_category="coordinated",
-                original_text=text,
-                mutated_text=var,
-                semantic_similarity=_semantic_similarity(text, var),
-                perplexity_estimate=_estimate_perplexity(var),
-                explanation=f"Astroturfing variant {i+1}/{num_variants}",
-                metadata={"variant_index": i, "campaign_id": _attack_id(text, "astro")},
-            ))
+            results.append(
+                RedTeamResult(
+                    attack_id=_attack_id(text, f"astro{i}"),
+                    attack_type="AstroturfingVariant",
+                    attack_category="coordinated",
+                    original_text=text,
+                    mutated_text=var,
+                    semantic_similarity=_semantic_similarity(text, var),
+                    perplexity_estimate=_estimate_perplexity(var),
+                    explanation=f"Astroturfing variant {i+1}/{num_variants}",
+                    metadata={"variant_index": i, "campaign_id": _attack_id(text, "astro")},
+                )
+            )
         return results
 
     def narrative_laundering(self, text: str) -> RedTeamResult:
@@ -634,6 +694,7 @@ class CoordinatedNarrativeAttacks:
 
 
 # ─── TextAttack Integration ────────────────────────────────────────────────────
+
 
 class TextAttackRedTeam:
     """
@@ -700,6 +761,7 @@ class TextAttackRedTeam:
 
             # Run single attack
             from textattack.attack_results import SuccessfulAttackResult
+
             current_score = self.predictor_fn(text)
             # TextAttack works with label 1 = high doom
             target_label = 1 if current_score >= 50 else 0
@@ -736,6 +798,7 @@ class TextAttackRedTeam:
 
 
 # ─── Master Red Team Orchestrator ─────────────────────────────────────────────
+
 
 class RedTeamOrchestrator:
     """
@@ -907,6 +970,7 @@ class RedTeamOrchestrator:
 
 # ─── A1: Compositional Chain Attacker ─────────────────────────────────────────
 
+
 class ChainAttack:
     """
     Applies multiple attacks in sequence to compound their effect.
@@ -922,8 +986,11 @@ class ChainAttack:
         "character": ["homoglyph", "leet", "zero_width"],
         "social": ["bot_amplification", "narrative_laundering", "emoji_storm_high"],
         "nuclear": [
-            "synonym_escalation", "qualifier_negation",
-            "presupposition", "emoji_storm_high", "bot_amplification",
+            "synonym_escalation",
+            "qualifier_negation",
+            "presupposition",
+            "emoji_storm_high",
+            "bot_amplification",
         ],
     }
 
@@ -992,6 +1059,7 @@ class ChainAttack:
 
 # ─── A2: BERT Masked-LM Attack (no TextAttack required) ──────────────────────
 
+
 class BERTAttackWord:
     """
     Uses a masked language model to find semantically similar but
@@ -1002,9 +1070,22 @@ class BERTAttackWord:
     """
 
     OUTRAGE_SEEDS = {
-        "anger", "fury", "rage", "scandal", "fraud", "corrupt",
-        "criminal", "betrayal", "outrage", "crisis", "catastrophe",
-        "disaster", "abuse", "exploitation", "manipulation", "deceit",
+        "anger",
+        "fury",
+        "rage",
+        "scandal",
+        "fraud",
+        "corrupt",
+        "criminal",
+        "betrayal",
+        "outrage",
+        "crisis",
+        "catastrophe",
+        "disaster",
+        "abuse",
+        "exploitation",
+        "manipulation",
+        "deceit",
     }
 
     def __init__(self):
@@ -1018,6 +1099,7 @@ class BERTAttackWord:
         self._loaded = True
         try:
             from transformers import pipeline
+
             self._mlm = pipeline(
                 "fill-mask",
                 model="distilbert/distilbert-base-uncased",
@@ -1054,11 +1136,47 @@ class BERTAttackWord:
 
         words = text.split()
         stop_words = {
-            "the", "a", "an", "is", "are", "was", "were", "be", "been",
-            "being", "have", "has", "had", "do", "does", "did", "will",
-            "would", "could", "should", "may", "might", "shall", "can",
-            "to", "of", "in", "on", "at", "by", "for", "with", "about",
-            "into", "through", "during", "and", "but", "or", "nor", "not",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "shall",
+            "can",
+            "to",
+            "of",
+            "in",
+            "on",
+            "at",
+            "by",
+            "for",
+            "with",
+            "about",
+            "into",
+            "through",
+            "during",
+            "and",
+            "but",
+            "or",
+            "nor",
+            "not",
         }
 
         substitutions_made = 0
@@ -1072,7 +1190,7 @@ class BERTAttackWord:
                 continue
 
             # Build masked sentence
-            masked = words[:i] + ["[MASK]"] + words[i + 1:]
+            masked = words[:i] + ["[MASK]"] + words[i + 1 :]
             masked_str = " ".join(masked)
 
             try:
@@ -1113,6 +1231,7 @@ class BERTAttackWord:
 
 # ─── A3: GCG HotFlip Suffix Attack ────────────────────────────────────────────
 
+
 class GCGHotFlipSuffix:
     """
     Approximated GCG/HotFlip attack: appends an adversarial token suffix
@@ -1127,14 +1246,49 @@ class GCGHotFlipSuffix:
 
     # Seed vocabulary of high-toxicity token candidates (from empirical doom scores)
     SUFFIX_VOCAB = [
-        "fraud", "corrupt", "criminal", "resign", "scandal", "exposed",
-        "leaked", "coverup", "betrayal", "outrage", "lies", "manipulation",
-        "disgrace", "shame", "evil", "dangerous", "illegal", "deception",
-        "conspiracy", "threat", "attack", "crisis", "catastrophe", "collapse",
-        "WARNING", "BREAKING", "EXPOSED", "LEAKED", "ALERT",
-        "🚨🚨", "💀💀", "🔥🔥", "😡😡", "#Resign", "#Exposed",
-        "must resign", "is guilty", "must be stopped", "is corrupt",
-        "cover this up", "share now", "wake up", "they don't want you to know",
+        "fraud",
+        "corrupt",
+        "criminal",
+        "resign",
+        "scandal",
+        "exposed",
+        "leaked",
+        "coverup",
+        "betrayal",
+        "outrage",
+        "lies",
+        "manipulation",
+        "disgrace",
+        "shame",
+        "evil",
+        "dangerous",
+        "illegal",
+        "deception",
+        "conspiracy",
+        "threat",
+        "attack",
+        "crisis",
+        "catastrophe",
+        "collapse",
+        "WARNING",
+        "BREAKING",
+        "EXPOSED",
+        "LEAKED",
+        "ALERT",
+        "🚨🚨",
+        "💀💀",
+        "🔥🔥",
+        "😡😡",
+        "#Resign",
+        "#Exposed",
+        "must resign",
+        "is guilty",
+        "must be stopped",
+        "is corrupt",
+        "cover this up",
+        "share now",
+        "wake up",
+        "they don't want you to know",
     ]
 
     def __init__(self, predictor_fn: Optional[Callable] = None, beam_width: int = 5):
@@ -1146,6 +1300,7 @@ class GCGHotFlipSuffix:
         if self._vader is None:
             try:
                 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
                 self._vader = SentimentIntensityAnalyzer()
             except Exception:
                 pass
@@ -1163,7 +1318,7 @@ class GCGHotFlipSuffix:
             scores = vader.polarity_scores(text)
             neg = scores.get("neg", 0.0)
             compound = scores.get("compound", 0.0)
-            return (neg * 60 + max(0, -compound) * 40)
+            return neg * 60 + max(0, -compound) * 40
         return 0.0
 
     def attack(
@@ -1207,6 +1362,7 @@ class GCGHotFlipSuffix:
 
 
 # ─── A4: Sycophancy Bypass ────────────────────────────────────────────────────
+
 
 class SycophancyBypass:
     """
@@ -1293,6 +1449,7 @@ class SycophancyBypass:
 
 # ─── A5: Multilingual Bridge ──────────────────────────────────────────────────
 
+
 class MultilingualBridge:
     """
     Translates to a pivot language and back. Round-trip translation
@@ -1335,6 +1492,7 @@ class MultilingualBridge:
         self._load_attempted.add(lang)
         try:
             from transformers import pipeline as hf_pipeline
+
             en_to_pivot, pivot_to_en = self.PIVOT_CONFIGS[lang]
             fwd = hf_pipeline("translation", model=en_to_pivot, max_length=512)
             bwd = hf_pipeline("translation", model=pivot_to_en, max_length=512)
@@ -1349,7 +1507,7 @@ class MultilingualBridge:
         result = text
         for original, translated_back in self.FALLBACK_MAP.items():
             result = re.sub(
-                r'\b' + re.escape(original) + r'\b',
+                r"\b" + re.escape(original) + r"\b",
                 translated_back,
                 result,
                 flags=re.IGNORECASE,
@@ -1392,6 +1550,7 @@ class MultilingualBridge:
 
 
 # ─── A6: DPP Diverse Population Selector ─────────────────────────────────────
+
 
 class DPPDiverseSelector:
     """
@@ -1457,8 +1616,7 @@ class DPPDiverseSelector:
                         sims_to_selected = sim_matrix[idx][selected_idx]
                         diversity_gain = 1.0 - float(np.max(sims_to_selected))
 
-                    score = (quality_weight * q_scores[idx]
-                             + diversity_weight * diversity_gain)
+                    score = quality_weight * q_scores[idx] + diversity_weight * diversity_gain
                     if score > best_score:
                         best_score = score
                         best_idx = idx
@@ -1477,6 +1635,7 @@ class DPPDiverseSelector:
 # Helper functions (module-level, used by new attack classes)
 # =============================================================================
 
+
 def _compute_semantic_similarity(text1: str, text2: str) -> float:
     """SBERT cosine similarity between two texts, with fallback."""
     if not SBERT_AVAILABLE or _SBERT is None:
@@ -1486,6 +1645,7 @@ def _compute_semantic_similarity(text1: str, text2: str) -> float:
     try:
         embs = _SBERT.encode([text1, text2], convert_to_tensor=True)
         from sentence_transformers import util as st_util
+
         return float(st_util.cos_sim(embs[0], embs[1]))
     except Exception:
         return 0.5
@@ -1494,12 +1654,33 @@ def _compute_semantic_similarity(text1: str, text2: str) -> float:
 def _estimate_perplexity(text: str) -> float:
     """Fast character-level perplexity estimate."""
     ENGLISH_CHAR_FREQ = {
-        ' ': 0.13, 'e': 0.127, 't': 0.091, 'a': 0.082, 'o': 0.075,
-        'i': 0.070, 'n': 0.067, 's': 0.063, 'h': 0.061, 'r': 0.060,
-        'd': 0.043, 'l': 0.040, 'c': 0.028, 'u': 0.028, 'm': 0.024,
-        'w': 0.024, 'f': 0.022, 'g': 0.020, 'y': 0.020, 'p': 0.019,
-        'b': 0.015, 'v': 0.010, 'k': 0.008, 'j': 0.002, 'x': 0.002,
-        'q': 0.001, 'z': 0.001,
+        " ": 0.13,
+        "e": 0.127,
+        "t": 0.091,
+        "a": 0.082,
+        "o": 0.075,
+        "i": 0.070,
+        "n": 0.067,
+        "s": 0.063,
+        "h": 0.061,
+        "r": 0.060,
+        "d": 0.043,
+        "l": 0.040,
+        "c": 0.028,
+        "u": 0.028,
+        "m": 0.024,
+        "w": 0.024,
+        "f": 0.022,
+        "g": 0.020,
+        "y": 0.020,
+        "p": 0.019,
+        "b": 0.015,
+        "v": 0.010,
+        "k": 0.008,
+        "j": 0.002,
+        "x": 0.002,
+        "q": 0.001,
+        "z": 0.001,
     }
     text_lower = text.lower()
     log_prob, n = 0.0, 0
@@ -1514,6 +1695,7 @@ def _estimate_perplexity(text: str) -> float:
 # UPGRADED RedTeamOrchestrator (replaces the old one)
 # This subclass extends the original and adds all aggressive attack classes.
 # =============================================================================
+
 
 class AggressiveRedTeamOrchestrator(RedTeamOrchestrator):
     """
@@ -1573,7 +1755,9 @@ class AggressiveRedTeamOrchestrator(RedTeamOrchestrator):
         try:
             bert_r = self.bert_attack.attack(text, max_substitutions=6)
             if bert_r:
-                bert_r.doom_score_before = base_results[0].doom_score_before if base_results else 0.0
+                bert_r.doom_score_before = (
+                    base_results[0].doom_score_before if base_results else 0.0
+                )
                 if self.predictor_fn:
                     bert_r.doom_score_after = self._score(bert_r.mutated_text)
                     bert_r.doom_uplift = bert_r.doom_score_after - bert_r.doom_score_before
@@ -1627,6 +1811,7 @@ class AggressiveRedTeamOrchestrator(RedTeamOrchestrator):
         if include_gan and gan_predictor_fn is not None:
             try:
                 from src.attacks.doom_generator import DoomGenerator
+
                 gen = DoomGenerator()
                 for target_doom in [70.0, 85.0, 95.0]:
                     gan_text = gen.generate(text, target_doom=target_doom)
@@ -1688,7 +1873,9 @@ class AggressiveRedTeamOrchestrator(RedTeamOrchestrator):
         for generation in range(max_iterations):
             fitness_history.append(best_score)
             if best_score >= target_score:
-                logger.info(f"AggressiveRedTeam: target {target_score} reached at generation {generation}")
+                logger.info(
+                    f"AggressiveRedTeam: target {target_score} reached at generation {generation}"
+                )
                 break
 
             survivors = population[:5]
@@ -1697,14 +1884,16 @@ class AggressiveRedTeamOrchestrator(RedTeamOrchestrator):
             for parent in survivors:
                 parent_text = parent.mutated_text
                 # Apply random aggressive mutation
-                mutator = self._rng.choice([
-                    lambda t: self.chain_attack.chain(t, "nuclear"),
-                    lambda t: self.gcg_attack.attack(t, suffix_length=3),
-                    lambda t: self.sycophancy.attack(t),
-                    lambda t: self.char_attacks.homoglyph_attack(t, rate=0.4),
-                    lambda t: self.word_attacks.synonym_escalation(t),
-                    lambda t: self.social_attacks.emoji_storm(t, intensity="high"),
-                ])
+                mutator = self._rng.choice(
+                    [
+                        lambda t: self.chain_attack.chain(t, "nuclear"),
+                        lambda t: self.gcg_attack.attack(t, suffix_length=3),
+                        lambda t: self.sycophancy.attack(t),
+                        lambda t: self.char_attacks.homoglyph_attack(t, rate=0.4),
+                        lambda t: self.word_attacks.synonym_escalation(t),
+                        lambda t: self.social_attacks.emoji_storm(t, intensity="high"),
+                    ]
+                )
                 try:
                     child = mutator(parent_text)
                     child.doom_score_before = parent.doom_score_before
@@ -1723,4 +1912,3 @@ class AggressiveRedTeamOrchestrator(RedTeamOrchestrator):
                 best_score = best.doom_score_after
 
         return best, fitness_history
-

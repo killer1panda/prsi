@@ -43,13 +43,16 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
     nn = object  # type: ignore
 
 try:
-    from sentence_transformers import SentenceTransformer, util as st_util
+    from sentence_transformers import SentenceTransformer
+    from sentence_transformers import util as st_util
+
     _SBERT: Optional[object] = None  # Lazy — don't load at import time
     SBERT_AVAILABLE = True
 except ImportError:
@@ -69,7 +72,9 @@ def _get_sbert():
         return None
     try:
         # Use already-cached model only — no download if not present
-        cache = os.environ.get("SENTENCE_TRANSFORMERS_HOME", os.path.expanduser("~/.cache/torch/sentence_transformers"))
+        cache = os.environ.get(
+            "SENTENCE_TRANSFORMERS_HOME", os.path.expanduser("~/.cache/torch/sentence_transformers")
+        )
         model_path = os.path.join(cache, "sentence-transformers_all-MiniLM-L6-v2")
         if os.path.exists(model_path):
             _SBERT = SentenceTransformer(model_path)
@@ -87,6 +92,7 @@ def _get_sbert():
 # =============================================================================
 # D1: Wasserstein Critic (DeBERTa-v3-large backbone)
 # =============================================================================
+
 
 class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
     """
@@ -109,7 +115,7 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
 
     def __init__(
         self,
-        freeze_encoder_layers: int = 20,   # freeze bottom N layers initially
+        freeze_encoder_layers: int = 20,  # freeze bottom N layers initially
         dropout: float = 0.1,
     ):
         if not TORCH_AVAILABLE:
@@ -154,6 +160,7 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
             return False
         try:
             from transformers import AutoModel
+
             logger.info(f"Loading DeBERTa-v3-large critic encoder...")
             self._encoder = AutoModel.from_pretrained(
                 self.DEBERTA_MODEL,
@@ -201,12 +208,13 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
     def _cnn_encode(self, input_ids: "torch.Tensor") -> "torch.Tensor":
         """CNN fallback encoding → mean-pool to [B, 128] → project to [B, 1024]."""
         import torch
+
         emb = self._cnn_fallback[0](input_ids)  # [B, L, 128]
-        pooled = emb.mean(dim=1)                # [B, 128]
+        pooled = emb.mean(dim=1)  # [B, 128]
         # Project to critic head input size via learned linear
         if not hasattr(self, "_proj"):
             self._proj = nn.Linear(128, self.HIDDEN_SIZE).to(input_ids.device)
-        return self._proj(pooled)               # [B, 1024]
+        return self._proj(pooled)  # [B, 1024]
 
     def forward(
         self,
@@ -221,6 +229,7 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
             scores: [B, 1] Wasserstein critic score (unbounded)
         """
         import torch
+
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
 
@@ -241,6 +250,7 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
         if pooled.shape[-1] != self.HIDDEN_SIZE:
             if not hasattr(self, "_emb_proj"):
                 import torch.nn as nn
+
                 self._emb_proj = nn.Linear(pooled.shape[-1], self.HIDDEN_SIZE).to(pooled.device)
             pooled = self._emb_proj(pooled)
         return self.critic_head(pooled)
@@ -267,6 +277,7 @@ def gradient_penalty(
         lambda_gp:  penalty weight (10.0 per Gulrajani et al. 2017)
     """
     import torch
+
     B = real_ids.size(0)
     device = real_ids.device
 
@@ -287,7 +298,7 @@ def gradient_penalty(
 
         # Interpolate
         eps = torch.rand(B, 1, 1, device=device)
-        interp = (eps * real_emb + (1 - eps) * fake_emb)
+        interp = eps * real_emb + (1 - eps) * fake_emb
         interp.requires_grad_(True)
 
         d_interp = critic.forward_embeddings(interp)
@@ -310,6 +321,7 @@ def gradient_penalty(
 # D2: Multi-Reward Composer (production version with learned weights)
 # =============================================================================
 
+
 class MultiRewardComposer:
     """
     Composes 5 reward signals with initially fixed, optionally learned weights.
@@ -323,27 +335,48 @@ class MultiRewardComposer:
     """
 
     DEFAULT_WEIGHTS = {
-        "doom":     0.35,
-        "fluency":  0.20,
-        "blue":     0.20,
+        "doom": 0.35,
+        "fluency": 0.20,
+        "blue": 0.20,
         "semantic": 0.15,
-        "novelty":  0.10,
+        "novelty": 0.10,
     }
 
     CHAR_FREQ: Dict[str, float] = {
-        ' ': 0.13, 'e': 0.127, 't': 0.091, 'a': 0.082, 'o': 0.075,
-        'i': 0.070, 'n': 0.067, 's': 0.063, 'h': 0.061, 'r': 0.060,
-        'd': 0.043, 'l': 0.040, 'c': 0.028, 'u': 0.028, 'm': 0.024,
-        'w': 0.024, 'f': 0.022, 'g': 0.020, 'y': 0.020, 'p': 0.019,
-        'b': 0.015, 'v': 0.010, 'k': 0.008, 'j': 0.002, 'x': 0.002,
-        'q': 0.001, 'z': 0.001,
+        " ": 0.13,
+        "e": 0.127,
+        "t": 0.091,
+        "a": 0.082,
+        "o": 0.075,
+        "i": 0.070,
+        "n": 0.067,
+        "s": 0.063,
+        "h": 0.061,
+        "r": 0.060,
+        "d": 0.043,
+        "l": 0.040,
+        "c": 0.028,
+        "u": 0.028,
+        "m": 0.024,
+        "w": 0.024,
+        "f": 0.022,
+        "g": 0.020,
+        "y": 0.020,
+        "p": 0.019,
+        "b": 0.015,
+        "v": 0.010,
+        "k": 0.008,
+        "j": 0.002,
+        "x": 0.002,
+        "q": 0.001,
+        "z": 0.001,
     }
 
     def __init__(
         self,
         doom_predictor: Optional[Callable[[str], float]] = None,
-        reward_model=None,          # DoomRewardModel instance (HPC)
-        blue_team=None,             # BlueTeamOrchestrator instance
+        reward_model=None,  # DoomRewardModel instance (HPC)
+        blue_team=None,  # BlueTeamOrchestrator instance
         weights: Optional[Dict[str, float]] = None,
         known_attack_embeddings: Optional[np.ndarray] = None,
         known_attacks_corpus: Optional[List[str]] = None,
@@ -367,6 +400,7 @@ class MultiRewardComposer:
             return False
         try:
             from transformers import GPT2LMHeadModel, GPT2TokenizerFast
+
             self._gpt2_tokenizer = GPT2TokenizerFast.from_pretrained(
                 "gpt2-large", cache_dir=HF_CACHE_DIR
             )
@@ -400,6 +434,7 @@ class MultiRewardComposer:
         # VADER proxy fallback
         try:
             from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
             s = SentimentIntensityAnalyzer().polarity_scores(text)
             raw = (s["neg"] * 60 + max(0, -s["compound"]) * 40) / 100.0
             return min(1.0, raw * 1.25)
@@ -415,6 +450,7 @@ class MultiRewardComposer:
         if self._load_gpt2() and self._gpt2 is not None:
             try:
                 import torch
+
                 enc = self._gpt2_tokenizer(
                     text, return_tensors="pt", max_length=128, truncation=True
                 )
@@ -488,19 +524,25 @@ class MultiRewardComposer:
 
     def compute(self, original: str, generated: str) -> Dict[str, float]:
         w = self.weights
-        doom    = self.r_doom(generated)
+        doom = self.r_doom(generated)
         fluency = self.r_fluency(generated)
-        blue    = self.r_blue(generated)
-        sem     = self.r_semantic(original, generated)
+        blue = self.r_blue(generated)
+        sem = self.r_semantic(original, generated)
         novelty = self.r_novelty(generated)
         total = (
-            w["doom"] * doom + w["fluency"] * fluency +
-            w["blue"] * blue + w["semantic"] * sem + w["novelty"] * novelty
+            w["doom"] * doom
+            + w["fluency"] * fluency
+            + w["blue"] * blue
+            + w["semantic"] * sem
+            + w["novelty"] * novelty
         )
         return {
-            "r_doom": round(doom, 4), "r_fluency": round(fluency, 4),
-            "r_blue": round(blue, 4), "r_semantic": round(sem, 4),
-            "r_novelty": round(novelty, 4), "total": round(total, 4),
+            "r_doom": round(doom, 4),
+            "r_fluency": round(fluency, 4),
+            "r_blue": round(blue, 4),
+            "r_semantic": round(sem, 4),
+            "r_novelty": round(novelty, 4),
+            "total": round(total, 4),
         }
 
     def compute_batch(self, originals: List[str], generated: List[str]) -> List[Dict[str, float]]:

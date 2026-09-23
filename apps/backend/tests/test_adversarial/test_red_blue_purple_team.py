@@ -2,30 +2,30 @@
 Tests for Red Team, Blue Team, and Purple Team adversarial security suite.
 """
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../"))
 
-from src.attacks.red_team import (
-    CharacterLevelAttacks,
-    WordSemanticAttacks,
-    SocialContextAttacks,
-    CoordinatedNarrativeAttacks,
-    RedTeamOrchestrator,
-)
 from src.attacks.blue_team import (
-    UnicodeAnomalyDetector,
-    PerplexityGuard,
-    EmojiSwingNormalizer,
-    CodeSwitchDetector,
-    CoordinatedPatternDetector,
     AdversarialSanitizer,
     BlueTeamOrchestrator,
+    CodeSwitchDetector,
+    CoordinatedPatternDetector,
+    EmojiSwingNormalizer,
+    PerplexityGuard,
+    UnicodeAnomalyDetector,
 )
-from src.attacks.purple_team import PurpleTeamOrchestrator, ATTACK_TECHNIQUE_MAP
-
+from src.attacks.purple_team import ATTACK_TECHNIQUE_MAP, PurpleTeamOrchestrator
+from src.attacks.red_team import (
+    CharacterLevelAttacks,
+    CoordinatedNarrativeAttacks,
+    RedTeamOrchestrator,
+    SocialContextAttacks,
+    WordSemanticAttacks,
+)
 
 SAMPLE_OUTRAGE = "This CEO must resign due to massive fraud! The company is corrupt! 🔥💀"
 SAMPLE_CLEAN = "Scientists published new research on renewable energy solutions."
@@ -34,6 +34,7 @@ SAMPLE_CLEAN = "Scientists published new research on renewable energy solutions.
 # ============================================================
 # RED TEAM TESTS
 # ============================================================
+
 
 class TestCharacterLevelAttacks:
 
@@ -46,7 +47,6 @@ class TestCharacterLevelAttacks:
         non_ascii = sum(1 for c in result.mutated_text if ord(c) > 127)
         assert non_ascii > 0, "Homoglyph attack should introduce non-ASCII chars"
         assert result.attack_type == "HomoglyphSubstitution"
-
 
     def test_zero_width_changes_length(self):
         text = "This is a test sentence for detection"
@@ -74,7 +74,10 @@ class TestWordSemanticAttacks:
 
     def test_synonym_escalation_upgrades_neutral_words(self):
         result = self.attacks.synonym_escalation("There is a problem with management")
-        assert "crisis" in result.mutated_text.lower() or result.mutated_text != "There is a problem with management"
+        assert (
+            "crisis" in result.mutated_text.lower()
+            or result.mutated_text != "There is a problem with management"
+        )
 
     def test_qualifier_negation_hardens_assertions(self):
         result = self.attacks.qualifier_negation("This might possibly be an issue")
@@ -82,7 +85,10 @@ class TestWordSemanticAttacks:
 
     def test_presupposition_injects_guilt(self):
         result = self.attacks.presupposition_injection("The company announced results")
-        assert "announced" not in result.mutated_text.lower() or "forced" in result.mutated_text.lower()
+        assert (
+            "announced" not in result.mutated_text.lower()
+            or "forced" in result.mutated_text.lower()
+        )
 
     def test_negation_reversal_inverts_denials(self):
         # Use "not a X" form which matches the "not a (\w+)" pattern
@@ -91,8 +97,10 @@ class TestWordSemanticAttacks:
         assert result.attack_type == "NegationReversal"
         # If "not a" was present, it should be replaced
         if "not a fraud" in "The official claims this is not a fraud":
-            assert "not a fraud" not in result.mutated_text or "fraud (despite denials)" in result.mutated_text
-
+            assert (
+                "not a fraud" not in result.mutated_text
+                or "fraud (despite denials)" in result.mutated_text
+            )
 
 
 class TestSocialContextAttacks:
@@ -102,7 +110,9 @@ class TestSocialContextAttacks:
 
     def test_hinglish_inserts_hindi_words(self):
         result = self.attacks.hinglish_codeswitching("The government is very corrupt", rate=1.0)
-        assert any(hw in result.mutated_text for hw in ["sarkar", "bilkul", "bahut", "bhrashtachar"])
+        assert any(
+            hw in result.mutated_text for hw in ["sarkar", "bilkul", "bahut", "bhrashtachar"]
+        )
 
     def test_emoji_storm_adds_outrage_emojis(self):
         result = self.attacks.emoji_storm("This is wrong", intensity="high")
@@ -115,7 +125,9 @@ class TestSocialContextAttacks:
         assert result.bypass_moderation is True
 
     def test_dogwhistle_substitutes_terms(self):
-        result = self.attacks.dogwhistle_substitution("The government officials and mainstream media")
+        result = self.attacks.dogwhistle_substitution(
+            "The government officials and mainstream media"
+        )
         assert "regime" in result.mutated_text.lower() or "narrative" in result.mutated_text.lower()
 
 
@@ -130,7 +142,9 @@ class TestCoordinatedNarrativeAttacks:
         assert len(result.mutated_text) > len("The CEO is corrupt")
 
     def test_astroturfing_returns_multiple_variants(self):
-        results = self.attacks.astroturfing_thread("This scandal must be investigated", num_variants=3)
+        results = self.attacks.astroturfing_thread(
+            "This scandal must be investigated", num_variants=3
+        )
         assert len(results) == 3
         # All variants should differ
         texts = {r.mutated_text for r in results}
@@ -156,7 +170,9 @@ class TestRedTeamOrchestrator:
 
     def test_full_assault_filters_by_similarity(self):
         red = RedTeamOrchestrator(predictor_fn=None)
-        strict = red.full_assault(SAMPLE_OUTRAGE, max_variants=20, min_semantic_similarity=0.8, include_textattack=False)
+        strict = red.full_assault(
+            SAMPLE_OUTRAGE, max_variants=20, min_semantic_similarity=0.8, include_textattack=False
+        )
         # All results should meet the threshold
         for r in strict:
             assert r.semantic_similarity >= 0.8 - 0.01  # small float tolerance
@@ -165,6 +181,7 @@ class TestRedTeamOrchestrator:
 # ============================================================
 # BLUE TEAM TESTS
 # ============================================================
+
 
 class TestUnicodeAnomalyDetector:
 
@@ -203,10 +220,9 @@ class TestPerplexityGuard:
         # Clean English can score up to ~0.65 on character perplexity threat
         # (our blue team threshold is 0.40, so flag triggers around there)
         # Key property: adversarial text scores HIGHER than clean
-        assert result["perplexity_threat_score"] < 0.80, (
-            f"Clean text perplexity threat too high: {result['perplexity_threat_score']}"
-        )
-
+        assert (
+            result["perplexity_threat_score"] < 0.80
+        ), f"Clean text perplexity threat too high: {result['perplexity_threat_score']}"
 
     def test_adversarial_text_higher_perplexity(self):
         # Lots of non-ASCII chars = unusual char distribution
@@ -302,7 +318,9 @@ class TestBlueTeamOrchestrator:
 
     def test_adversarial_text_flagged(self):
         # Cyrillic homoglyphs + emoji storm + bot template
-        adversarial = "Thi\u0455 fr\u0430ud CEO mu\u0455t r\u0435\u0455ign 🚨🚨💀🔥 BREAKING Thread 1/?"
+        adversarial = (
+            "Thi\u0455 fr\u0430ud CEO mu\u0455t r\u0435\u0455ign 🚨🚨💀🔥 BREAKING Thread 1/?"
+        )
         verdict = self.blue.defend(adversarial)
         assert verdict.threat_level in ("suspicious", "adversarial", "critical")
         assert verdict.action != "allow"
@@ -316,7 +334,6 @@ class TestBlueTeamOrchestrator:
             f"threat={verdict.threat_level}, detections={verdict.detections}"
         )
 
-
     def test_verdict_has_all_fields(self):
         verdict = self.blue.defend("Hello world!")
         assert verdict.text == "Hello world!"
@@ -329,6 +346,7 @@ class TestBlueTeamOrchestrator:
 # PURPLE TEAM TESTS
 # ============================================================
 
+
 class TestPurpleTeamOrchestrator:
 
     def setup_method(self):
@@ -338,17 +356,22 @@ class TestPurpleTeamOrchestrator:
             words = set(text.lower().split())
             score = len(words & outrage) / max(len(words), 1) * 100
             return min(95.0, max(5.0, score * 8))
+
         self.purple = PurpleTeamOrchestrator(predictor_fn=simple_predictor)
 
     def test_engagement_returns_report(self):
-        report = self.purple.full_engagement(SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False)
+        report = self.purple.full_engagement(
+            SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False
+        )
         assert report.total_attacks > 0
         assert isinstance(report.training_examples, list)
         assert isinstance(report.recommended_actions, list)
         assert len(report.recommended_actions) > 0
 
     def test_effectiveness_matrix_populated(self):
-        report = self.purple.full_engagement(SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False)
+        report = self.purple.full_engagement(
+            SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False
+        )
         assert len(report.effectiveness_matrix) > 0
         for atype, metrics in report.effectiveness_matrix.items():
             assert "attack_success_rate" in metrics
@@ -356,13 +379,17 @@ class TestPurpleTeamOrchestrator:
             assert "avg_doom_uplift" in metrics
 
     def test_defense_coverage_computed(self):
-        report = self.purple.full_engagement(SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False)
+        report = self.purple.full_engagement(
+            SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False
+        )
         assert "unicode" in report.defense_coverage
         assert "emoji" in report.defense_coverage
         assert "coordinated" in report.defense_coverage
 
     def test_training_examples_labeled(self):
-        report = self.purple.full_engagement(SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False)
+        report = self.purple.full_engagement(
+            SAMPLE_OUTRAGE, max_attacks=8, include_textattack=False
+        )
         for ex in report.training_examples:
             assert "text" in ex
             assert "label" in ex
@@ -370,7 +397,9 @@ class TestPurpleTeamOrchestrator:
             assert "is_adversarial" in ex
 
     def test_summary_text_generated(self):
-        report = self.purple.full_engagement(SAMPLE_OUTRAGE, max_attacks=5, include_textattack=False)
+        report = self.purple.full_engagement(
+            SAMPLE_OUTRAGE, max_attacks=5, include_textattack=False
+        )
         summary = report.summary()
         assert "PURPLE TEAM ENGAGEMENT REPORT" in summary
         assert "Total Attacks Launched" in summary

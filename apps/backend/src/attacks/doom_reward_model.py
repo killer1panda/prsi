@@ -13,9 +13,9 @@ Training phases:
                       (similar to RLHF reward model update cycle).
 
 Architecture:
-  DeBERTa-v3-base → mean-pool (weighted by attention) → 
+  DeBERTa-v3-base → mean-pool (weighted by attention) →
   Linear(768, 256) → GELU → Dropout → Linear(256, 1) → Sigmoid × 100
-  
+
   Regression target: doom_score ∈ [0, 100]
   Loss: MSELoss + rank consistency loss (higher-doom text should score higher)
 
@@ -40,14 +40,15 @@ logger = logging.getLogger(__name__)
 
 HPC_MODE: bool = os.environ.get("HPC_MODE", "0").strip() == "1"
 HF_CACHE_DIR: Optional[str] = os.environ.get("HF_HOME")
-CHECKPOINT_DIR: Path = Path(
-    os.environ.get("DOOM_GAN_CHECKPOINT", "/tmp/doom_gan_checkpoints")
-) / "reward_model"
+CHECKPOINT_DIR: Path = (
+    Path(os.environ.get("DOOM_GAN_CHECKPOINT", "/tmp/doom_gan_checkpoints")) / "reward_model"
+)
 
 
 # =============================================================================
 # Reward Model
 # =============================================================================
+
 
 class DoomRewardModel:
     """
@@ -76,6 +77,7 @@ class DoomRewardModel:
             return self._device
         try:
             import torch
+
             if torch.cuda.is_available():
                 return "cuda"
             if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -134,10 +136,14 @@ class DoomRewardModel:
 
     def _predict_model_batch(self, texts: List[str]) -> List[float]:
         import torch
+
         device = next(self._model.parameters()).device
         enc = self._tokenizer(
-            texts, return_tensors="pt", padding=True,
-            truncation=True, max_length=256,
+            texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=256,
         )
         enc = {k: v.to(device) for k, v in enc.items()}
         with torch.no_grad():
@@ -148,6 +154,7 @@ class DoomRewardModel:
         """VADER-based doom proxy. No model download."""
         try:
             from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
             s = SentimentIntensityAnalyzer().polarity_scores(text)
             raw = (s["neg"] * 60 + max(0, -s["compound"]) * 40) * 1.25
             return min(99.0, max(1.0, raw))
@@ -156,7 +163,7 @@ class DoomRewardModel:
 
     def train(
         self,
-        corpus: List[Dict],         # [{text, doom_score}, ...]
+        corpus: List[Dict],  # [{text, doom_score}, ...]
         epochs: int = 5,
         batch_size: int = 16,
         lr: float = 2e-5,
@@ -189,7 +196,8 @@ class DoomRewardModel:
 
         optimizer = AdamW(
             [p for p in self._model.parameters() if p.requires_grad],
-            lr=lr, weight_decay=0.01,
+            lr=lr,
+            weight_decay=0.01,
         )
         total_steps = (len(train_texts) // batch_size) * epochs
         scheduler = get_linear_schedule_with_warmup(optimizer, warmup_steps, total_steps)
@@ -199,14 +207,20 @@ class DoomRewardModel:
             self._model.train()
             losses = []
             indices = list(range(len(train_texts)))
-            import random; random.shuffle(indices)
+            import random
+
+            random.shuffle(indices)
 
             for i in range(0, len(indices), batch_size):
-                batch_idx = indices[i:i + batch_size]
+                batch_idx = indices[i : i + batch_size]
                 bt = [train_texts[j] for j in batch_idx]
-                bs = torch.tensor([train_scores[j] for j in batch_idx], dtype=torch.float32, device=device)
+                bs = torch.tensor(
+                    [train_scores[j] for j in batch_idx], dtype=torch.float32, device=device
+                )
 
-                enc = self._tokenizer(bt, return_tensors="pt", padding=True, truncation=True, max_length=256)
+                enc = self._tokenizer(
+                    bt, return_tensors="pt", padding=True, truncation=True, max_length=256
+                )
                 enc = {k: v.to(device) for k, v in enc.items()}
 
                 pred = self._model(**enc).squeeze(-1)  # [B]
@@ -233,6 +247,7 @@ class DoomRewardModel:
         self._model.encoder.save_pretrained(str(self.checkpoint))
         self._tokenizer.save_pretrained(str(self.checkpoint))
         import torch
+
         torch.save(self._model.regressor.state_dict(), self.checkpoint / "regressor_head.pt")
         logger.info(f"Reward model checkpoint saved to {self.checkpoint}")
 
@@ -245,6 +260,7 @@ class DoomRewardModel:
     def _rank_loss(self, pred: "torch.Tensor", target: "torch.Tensor") -> "torch.Tensor":
         """Pairwise ranking loss within batch."""
         import torch
+
         n = pred.size(0)
         loss = torch.tensor(0.0, device=pred.device)
         count = 0
@@ -259,7 +275,11 @@ class DoomRewardModel:
 
     def _eval(self, texts: List[str], scores: List[float], batch_size: int) -> float:
         """MAE on eval set."""
-        preds = self._predict_model_batch(texts) if self._model else [self._predict_vader(t) for t in texts]
+        preds = (
+            self._predict_model_batch(texts)
+            if self._model
+            else [self._predict_vader(t) for t in texts]
+        )
         maes = [abs(p - s) for p, s in zip(preds, scores)]
         return float(np.mean(maes))
 
@@ -270,8 +290,8 @@ class _DeBERTaRegressorHead:
     def __new__(cls, encoder):
         # Dynamically create an nn.Module since we can't inherit without torch
         try:
-            import torch.nn as nn
             import torch
+            import torch.nn as nn
 
             class _Model(nn.Module):
                 def __init__(self, enc):
@@ -293,7 +313,7 @@ class _DeBERTaRegressorHead:
                 def forward(self, input_ids, attention_mask=None, **kwargs):
                     out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
                     # Attention-weighted mean pooling
-                    tok = out.last_hidden_state           # [B, L, H]
+                    tok = out.last_hidden_state  # [B, L, H]
                     if attention_mask is not None:
                         mask = attention_mask.unsqueeze(-1).float()
                         pooled = (tok * mask).sum(1) / mask.sum(1).clamp(min=1e-9)
@@ -307,6 +327,7 @@ class _DeBERTaRegressorHead:
 
 
 # ─── CLI ─────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(description="DoomRewardModel training / evaluation")
@@ -328,17 +349,15 @@ def main():
                 corpus = [json.loads(l) for l in f if l.strip()]
         else:
             # Generate from rule-based red team
-            from src.attacks.doom_gan_trainer import SeedCorpusBuilder
             from dataclasses import asdict
+
+            from src.attacks.doom_gan_trainer import SeedCorpusBuilder
+
             builder = SeedCorpusBuilder()
             examples = builder.build(max_examples=2000, verbose=True)
             corpus = [
-                {"text": e.adversarial_text, "doom_score": e.adversarial_doom}
-                for e in examples
-            ] + [
-                {"text": e.original_text, "doom_score": e.original_doom}
-                for e in examples
-            ]
+                {"text": e.adversarial_text, "doom_score": e.adversarial_doom} for e in examples
+            ] + [{"text": e.original_text, "doom_score": e.original_doom} for e in examples]
         result = rm.train(corpus, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
         print(json.dumps(result, indent=2))
 

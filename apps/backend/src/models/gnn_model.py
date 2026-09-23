@@ -10,8 +10,10 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 try:
     from peft import LoraConfig, TaskType, get_peft_model
+
     PEFT_AVAILABLE = True
 except ImportError:
     PEFT_AVAILABLE = False

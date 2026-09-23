@@ -161,6 +161,7 @@ class SeedCorpusBuilder:
                 pass
         try:
             from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
             s = SentimentIntensityAnalyzer().polarity_scores(text)
             raw = (s["neg"] * 60 + max(0, -s["compound"]) * 40) * 1.25
             return min(99.0, max(1.0, raw))
@@ -174,6 +175,7 @@ class SeedCorpusBuilder:
         verbose: bool = True,
     ) -> List[CorpusExample]:
         from src.attacks.red_team import AggressiveRedTeamOrchestrator
+
         headlines = headlines or SEED_HEADLINES
         ort = AggressiveRedTeamOrchestrator(predictor_fn=self.doom_predictor)
         corpus: List[CorpusExample] = []
@@ -182,7 +184,9 @@ class SeedCorpusBuilder:
             if len(corpus) >= max_examples:
                 break
             if verbose and i % 5 == 0:
-                logger.info(f"SeedCorpusBuilder [{i}/{len(headlines)}]: {len(corpus)} examples built")
+                logger.info(
+                    f"SeedCorpusBuilder [{i}/{len(headlines)}]: {len(corpus)} examples built"
+                )
             orig_doom = self._score(headline)
             try:
                 results = ort.full_assault(
@@ -195,20 +199,24 @@ class SeedCorpusBuilder:
                     if len(corpus) >= max_examples:
                         break
                     adv_doom = self._score(r.mutated_text)
-                    corpus.append(CorpusExample(
-                        original_text=headline,
-                        adversarial_text=r.mutated_text,
-                        original_doom=orig_doom,
-                        adversarial_doom=adv_doom,
-                        attack_type=r.attack_type,
-                        doom_uplift=adv_doom - orig_doom,
-                    ))
+                    corpus.append(
+                        CorpusExample(
+                            original_text=headline,
+                            adversarial_text=r.mutated_text,
+                            original_doom=orig_doom,
+                            adversarial_doom=adv_doom,
+                            attack_type=r.attack_type,
+                            doom_uplift=adv_doom - orig_doom,
+                        )
+                    )
             except Exception as e:
                 logger.debug(f"Attack failed on headline {i}: {e}")
 
         if verbose:
             high = sum(1 for c in corpus if c.adversarial_doom > 60)
-            logger.info(f"Corpus: {len(corpus)} total, {high} high-doom ({len(corpus)-high} low-doom)")
+            logger.info(
+                f"Corpus: {len(corpus)} total, {high} high-doom ({len(corpus)-high} low-doom)"
+            )
         return corpus
 
     def save(self, corpus: List[CorpusExample], path: Path):
@@ -228,52 +236,53 @@ class SeedCorpusBuilder:
 # Training Configuration
 # =============================================================================
 
+
 @dataclass
 class TrainingConfig:
     # ── Model selection
-    model_tier: str = "27b"              # 7b / 8b / 27b / 70b
+    model_tier: str = "27b"  # 7b / 8b / 27b / 70b
 
     # ── Data
     seed_size: int = 1000
-    corpus_path: Optional[str] = None   # JSONL corpus (load if exists)
+    corpus_path: Optional[str] = None  # JSONL corpus (load if exists)
     train_split: float = 0.90
 
     # ── Checkpointing
     checkpoint_dir: str = str(
         Path(os.environ.get("DOOM_GAN_CHECKPOINT", "/tmp/doom_gan_checkpoints"))
     )
-    resume: bool = True                  # auto-resume from latest checkpoint
+    resume: bool = True  # auto-resume from latest checkpoint
 
     # ── Training schedule
     epochs: int = 10
-    batch_size: int = 4                  # per GPU — effective = batch_size × world_size
-    d_steps_per_g_step: int = 5         # WGAN standard
+    batch_size: int = 4  # per GPU — effective = batch_size × world_size
+    d_steps_per_g_step: int = 5  # WGAN standard
     eval_every_steps: int = 200
     save_every_steps: int = 500
-    max_steps: Optional[int] = None     # Override epoch-based training
+    max_steps: Optional[int] = None  # Override epoch-based training
 
     # ── Optimizer
-    lr_d: float = 2e-5                  # DeBERTa critic lr
-    lr_g: float = 5e-6                  # Generator LoRA lr (lower for large models)
+    lr_d: float = 2e-5  # DeBERTa critic lr
+    lr_g: float = 5e-6  # Generator LoRA lr (lower for large models)
     weight_decay: float = 0.01
     warmup_steps: int = 200
     max_grad_norm: float = 1.0
 
     # ── Loss coefficients
-    lambda_gp: float = 10.0            # WGAN-GP penalty weight
-    lambda_reward: float = 2.0         # Reward bonus weight
-    lambda_kl: float = 0.1             # KL penalty (prevent forgetting)
-    ppo_clip_eps: float = 0.2          # PPO clip threshold
-    ppo_epochs: int = 4                # PPO update epochs per batch
+    lambda_gp: float = 10.0  # WGAN-GP penalty weight
+    lambda_reward: float = 2.0  # Reward bonus weight
+    lambda_kl: float = 0.1  # KL penalty (prevent forgetting)
+    ppo_clip_eps: float = 0.2  # PPO clip threshold
+    ppo_epochs: int = 4  # PPO update epochs per batch
 
     # ── Gumbel-Softmax
     gumbel_tau_start: float = 1.0
     gumbel_tau_end: float = 0.05
 
     # ── Precision
-    bf16: bool = True                   # bf16 on H100 — better stability than fp16
+    bf16: bool = True  # bf16 on H100 — better stability than fp16
     gradient_checkpointing: bool = True
-    compile_model: bool = False         # torch.compile — enable on H100 for speed
+    compile_model: bool = False  # torch.compile — enable on H100 for speed
 
     # ── Purple team evaluation
     purple_eval_enabled: bool = True
@@ -303,6 +312,7 @@ class TrainingConfig:
 # =============================================================================
 # DoomGAN Trainer
 # =============================================================================
+
 
 class DoomGANTrainer:
     """
@@ -357,9 +367,7 @@ class DoomGANTrainer:
     def _emergency_save(self):
         try:
             if hasattr(self, "generator"):
-                self.generator.save_lora(
-                    self._checkpoint_dir / f"emergency_step_{self._step}"
-                )
+                self.generator.save_lora(self._checkpoint_dir / f"emergency_step_{self._step}")
         except Exception as e:
             logger.error(f"Emergency save failed: {e}")
 
@@ -367,6 +375,7 @@ class DoomGANTrainer:
         if WORLD_SIZE > 1 and HPC_MODE:
             try:
                 import torch.distributed as dist
+
                 dist.init_process_group("nccl")
                 logger.info(f"DDP initialized: rank={GLOBAL_RANK}/{WORLD_SIZE}")
             except Exception as e:
@@ -377,6 +386,7 @@ class DoomGANTrainer:
             return
         try:
             import wandb
+
             wandb.init(
                 project=self.config.wandb_project,
                 name=self.config.wandb_run_name,
@@ -393,6 +403,7 @@ class DoomGANTrainer:
             return
         try:
             import wandb
+
             wandb.log(metrics, step=step)
         except Exception:
             pass
@@ -416,8 +427,11 @@ class DoomGANTrainer:
         return corpus[:split], corpus[split:]
 
     def _init_models(self):
+        from src.attacks.doom_discriminator import (
+            MultiRewardComposer,
+            WassersteinCritic,
+        )
         from src.attacks.doom_generator import ProductionDoomGenerator
-        from src.attacks.doom_discriminator import WassersteinCritic, MultiRewardComposer
         from src.attacks.doom_reward_model import DoomRewardModel
 
         cfg = self.config
@@ -459,12 +473,13 @@ class DoomGANTrainer:
                 # Wrap in DDP if multi-GPU
                 if WORLD_SIZE > 1:
                     from torch.nn.parallel import DistributedDataParallel as DDP
+
                     self.critic = DDP(self.critic, device_ids=[LOCAL_RANK])
 
                 self.opt_d = AdamW(
                     self.critic.parameters(),
                     lr=cfg.lr_d,
-                    betas=(0.0, 0.9),    # WGAN-GP recommended
+                    betas=(0.0, 0.9),  # WGAN-GP recommended
                     weight_decay=cfg.weight_decay,
                 )
 
@@ -472,8 +487,10 @@ class DoomGANTrainer:
                     trainable = [p for p in self.generator._model.parameters() if p.requires_grad]
                     if trainable:
                         self.opt_g = AdamW(
-                            trainable, lr=cfg.lr_g,
-                            betas=(0.0, 0.9), weight_decay=cfg.weight_decay,
+                            trainable,
+                            lr=cfg.lr_g,
+                            betas=(0.0, 0.9),
+                            weight_decay=cfg.weight_decay,
                         )
                 logger.info("Critic and optimizers initialized.")
             except Exception as e:
@@ -481,10 +498,14 @@ class DoomGANTrainer:
 
     def _tokenize(self, texts: List[str]) -> "torch.Tensor":
         import torch
+
         tok = self.generator._tokenizer
         enc = tok(
-            texts, return_tensors="pt", padding=True,
-            truncation=True, max_length=128,
+            texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=128,
         )
         return enc["input_ids"].to(LOCAL_RANK), enc["attention_mask"].to(LOCAL_RANK)
 
@@ -504,28 +525,31 @@ class DoomGANTrainer:
             d_fake = self.critic(fake_ids, fake_mask).mean()
             gp = gradient_penalty(
                 self.critic.module if hasattr(self.critic, "module") else self.critic,
-                real_ids, fake_ids, lambda_gp=self.config.lambda_gp,
+                real_ids,
+                fake_ids,
+                lambda_gp=self.config.lambda_gp,
             )
             loss_d = d_fake - d_real + gp
             loss_d.backward()
             torch.nn.utils.clip_grad_norm_(self.critic.parameters(), self.config.max_grad_norm)
             self.opt_d.step()
             return {
-                "loss_d": loss_d.item(), "d_real": d_real.item(),
-                "d_fake": d_fake.item(), "gp": gp.item(),
+                "loss_d": loss_d.item(),
+                "d_real": d_real.item(),
+                "d_fake": d_fake.item(),
+                "gp": gp.item(),
                 "wasserstein_dist": (d_real - d_fake).item(),
             }
         except Exception as e:
             logger.debug(f"D step error: {e}")
             return {}
 
-    def _g_ppo_step(
-        self, src_texts: List[str], target_doom: float = 85.0
-    ) -> Dict[str, float]:
+    def _g_ppo_step(self, src_texts: List[str], target_doom: float = 85.0) -> Dict[str, float]:
         """PPO generator step with KL penalty."""
         if not HPC_MODE or self.generator._model is None or self.opt_g is None:
             return {}
         import torch
+
         self.generator._model.train()
         if self.critic:
             self.critic.eval()
@@ -557,7 +581,8 @@ class DoomGANTrainer:
             )
             self.opt_g.step()
             return {
-                "loss_g": loss_g.item(), "reward": mean_reward,
+                "loss_g": loss_g.item(),
+                "reward": mean_reward,
                 "d_fake_g": d_fake.item() if self.critic else 0.0,
             }
         except Exception as e:
@@ -571,6 +596,7 @@ class DoomGANTrainer:
         results = {}
         try:
             from src.attacks.purple_team import PurpleTeamOrchestrator
+
             purple = PurpleTeamOrchestrator(predictor_fn=self.doom_predictor)
             for text in self.EVAL_TEXTS[:3]:
                 report = purple.full_engagement(
@@ -595,6 +621,7 @@ class DoomGANTrainer:
             # Save critic weights
             if self.critic is not None:
                 import torch
+
                 critic_path = self._checkpoint_dir / f"critic_step_{self._step}.pt"
                 critic_state = (
                     self.critic.module if hasattr(self.critic, "module") else self.critic
@@ -629,8 +656,10 @@ class DoomGANTrainer:
 
         if IS_MAIN:
             logger.info("=" * 70)
-            logger.info(f"DoomGAN Training — model={self.config.model_tier} "
-                        f"hpc={HPC_MODE} world={WORLD_SIZE}")
+            logger.info(
+                f"DoomGAN Training — model={self.config.model_tier} "
+                f"hpc={HPC_MODE} world={WORLD_SIZE}"
+            )
             logger.info("=" * 70)
 
         train_corpus, val_corpus = self._build_corpus()
@@ -658,8 +687,8 @@ class DoomGANTrainer:
             for batch_start in range(0, min(len(real_corpus), len(src_corpus)), cfg.batch_size):
                 if cfg.max_steps and self._step >= cfg.max_steps:
                     break
-                real_batch = real_corpus[batch_start:batch_start + cfg.batch_size]
-                src_batch = src_corpus[batch_start:batch_start + cfg.batch_size]
+                real_batch = real_corpus[batch_start : batch_start + cfg.batch_size]
+                src_batch = src_corpus[batch_start : batch_start + cfg.batch_size]
                 if not real_batch or not src_batch:
                     break
 
@@ -690,7 +719,9 @@ class DoomGANTrainer:
                 if IS_MAIN and self._step % 50 == 0:
                     wd = step_m.get("wasserstein_dist", 0)
                     rw = step_m.get("reward", 0)
-                    logger.info(f"E{epoch}|S{self._step} W-dist={wd:.3f} reward={rw:.3f} τ={tau:.3f}")
+                    logger.info(
+                        f"E{epoch}|S{self._step} W-dist={wd:.3f} reward={rw:.3f} τ={tau:.3f}"
+                    )
 
                 # Periodic eval
                 if self._step % cfg.eval_every_steps == 0 and IS_MAIN:
@@ -737,14 +768,18 @@ class DoomGANTrainer:
         purple = self._purple_eval()
         logger.info(f"Local eval: mean_reward={mean_r:.4f} | purple={purple}")
         return {
-            "mode": "local_eval", "mean_reward": mean_r,
-            "n_eval": len(rewards), "purple_eval": purple,
+            "mode": "local_eval",
+            "mean_reward": mean_r,
+            "n_eval": len(rewards),
+            "purple_eval": purple,
         }
 
     def _anneal_tau(self, epoch: int) -> float:
         from src.attacks.doom_generator import GumbelSoftmaxSampler
+
         return GumbelSoftmaxSampler.anneal(
-            epoch, self.config.epochs,
+            epoch,
+            self.config.epochs,
             tau_start=self.config.gumbel_tau_start,
             tau_end=self.config.gumbel_tau_end,
         )
@@ -753,6 +788,7 @@ class DoomGANTrainer:
 # =============================================================================
 # CLI Entry Point
 # =============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(description="DoomGAN Production Trainer")
@@ -787,15 +823,17 @@ def main():
         sys.path.insert(0, str(Path(__file__).parent / "../../"))
         from src.features.sentiment import analyze_text_sentiment
         from src.features.toxicity import analyze_text_toxicity
+
         def _predictor(text: str) -> float:
             sent = analyze_text_sentiment(text) or {}
-            tox  = analyze_text_toxicity(text) or {}
-            raw  = (
+            tox = analyze_text_toxicity(text) or {}
+            raw = (
                 sent.get("sentiment_negative", 0.0) * 40.0
                 + tox.get("toxicity_score", 0.0) * 40.0
                 + max(0.0, -sent.get("sentiment_compound", 0.0)) * 20.0
             )
             return min(99.0, max(1.0, raw * 1.2))
+
         doom_predictor = _predictor
         logger.info("Real doom predictor loaded.")
     except Exception as e:

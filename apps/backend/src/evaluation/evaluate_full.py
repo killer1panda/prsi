@@ -112,11 +112,16 @@ class ComprehensiveEvaluator:
                 logger.warning(f"Real inference failed ({e}); using heuristic probability estimate")
                 # Final fallback: deterministic hash-based pseudo-probability (no randomness)
                 y_prob = np.array(
-                    [abs(hash(str(t))) % 100 / 100.0 for t in df.get("text", range(len(df))).tolist()],
+                    [
+                        abs(hash(str(t))) % 100 / 100.0
+                        for t in df.get("text", range(len(df))).tolist()
+                    ],
                     dtype=float,
                 )
         else:
-            logger.warning("No 'text' or 'prediction_prob' column found; using deterministic hash fallback")
+            logger.warning(
+                "No 'text' or 'prediction_prob' column found; using deterministic hash fallback"
+            )
             y_prob = np.array(
                 [abs(hash(str(i))) % 100 / 100.0 for i in range(len(df))],
                 dtype=float,

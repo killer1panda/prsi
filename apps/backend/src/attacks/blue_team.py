@@ -30,7 +30,9 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 try:
-    from sentence_transformers import SentenceTransformer, util as st_util
+    from sentence_transformers import SentenceTransformer
+    from sentence_transformers import util as st_util
+
     _SBERT = SentenceTransformer("all-MiniLM-L6-v2")
     SBERT_AVAILABLE = True
 except Exception:
@@ -39,20 +41,23 @@ except Exception:
 
 # ─── Data structures ──────────────────────────────────────────────────────────
 
+
 @dataclass
 class BlueTeamVerdict:
     """Defense verdict for an incoming text."""
+
     text: str
     sanitized_text: str
-    threat_level: str        # clean | suspicious | adversarial | critical
-    confidence: float        # 0–1
+    threat_level: str  # clean | suspicious | adversarial | critical
+    confidence: float  # 0–1
     detections: List[str] = field(default_factory=list)
     anomaly_scores: Dict[str, float] = field(default_factory=dict)
-    action: str = "allow"    # allow | flag | sanitize | block
+    action: str = "allow"  # allow | flag | sanitize | block
     explanation: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         import dataclasses
+
         return dataclasses.asdict(self)
 
 
@@ -62,22 +67,23 @@ DefenseVerdict = BlueTeamVerdict
 
 # ─── B1: Unicode Anomaly Detector ─────────────────────────────────────────────
 
+
 class UnicodeAnomalyDetector:
     """Detects homoglyph substitution, zero-width characters, and invisible fillers."""
 
     INVISIBLE_RANGES: List[Tuple[int, int]] = [
-        (0x200B, 0x200F),   # Zero-width chars
-        (0x202A, 0x202E),   # LTR/RTL override
-        (0x2060, 0x206F),   # Word joiners
-        (0xFEFF, 0xFEFF),   # BOM
-        (0x1160, 0x11FF),   # Hangul Jungseong fillers
-        (0xFFA0, 0xFFA0),   # Halfwidth Hangul filler
-        (0x3164, 0x3164),   # Hangul filler
-        (0xE0000, 0xE007F), # Tags block (invisible)
+        (0x200B, 0x200F),  # Zero-width chars
+        (0x202A, 0x202E),  # LTR/RTL override
+        (0x2060, 0x206F),  # Word joiners
+        (0xFEFF, 0xFEFF),  # BOM
+        (0x1160, 0x11FF),  # Hangul Jungseong fillers
+        (0xFFA0, 0xFFA0),  # Halfwidth Hangul filler
+        (0x3164, 0x3164),  # Hangul filler
+        (0xE0000, 0xE007F),  # Tags block (invisible)
     ]
 
     SUSPICIOUS_CYRILLIC = set("абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ")
-    SUSPICIOUS_GREEK    = set("αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ")
+    SUSPICIOUS_GREEK = set("αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ")
 
     def _is_invisible(self, cp: int) -> bool:
         for lo, hi in self.INVISIBLE_RANGES:
@@ -94,9 +100,9 @@ class UnicodeAnomalyDetector:
         # Mixed-script words: words containing both ASCII and non-ASCII
         words = text.split()
         mixed_script_words = sum(
-            1 for w in words
-            if any(ord(c) < 128 and c.isalpha() for c in w)
-            and any(ord(c) > 127 for c in w)
+            1
+            for w in words
+            if any(ord(c) < 128 and c.isalpha() for c in w) and any(ord(c) > 127 for c in w)
         )
 
         invisible_ratio = invisible_count / total
@@ -127,6 +133,7 @@ class UnicodeAnomalyDetector:
 
 # ─── B2: Perplexity Guard ─────────────────────────────────────────────────────
 
+
 class PerplexityGuard:
     """
     Character-level unigram perplexity detector.
@@ -135,12 +142,33 @@ class PerplexityGuard:
 
     # Expected character frequency distribution (from English Wikipedia)
     ENGLISH_CHAR_FREQ: Dict[str, float] = {
-        " ": 0.130, "e": 0.127, "t": 0.091, "a": 0.082, "o": 0.075,
-        "i": 0.070, "n": 0.067, "s": 0.063, "h": 0.061, "r": 0.060,
-        "d": 0.043, "l": 0.040, "c": 0.028, "u": 0.028, "m": 0.024,
-        "w": 0.023, "f": 0.022, "g": 0.020, "y": 0.020, "p": 0.019,
-        "b": 0.015, "v": 0.010, "k": 0.008, "j": 0.002, "x": 0.002,
-        "q": 0.001, "z": 0.001,
+        " ": 0.130,
+        "e": 0.127,
+        "t": 0.091,
+        "a": 0.082,
+        "o": 0.075,
+        "i": 0.070,
+        "n": 0.067,
+        "s": 0.063,
+        "h": 0.061,
+        "r": 0.060,
+        "d": 0.043,
+        "l": 0.040,
+        "c": 0.028,
+        "u": 0.028,
+        "m": 0.024,
+        "w": 0.023,
+        "f": 0.022,
+        "g": 0.020,
+        "y": 0.020,
+        "p": 0.019,
+        "b": 0.015,
+        "v": 0.010,
+        "k": 0.008,
+        "j": 0.002,
+        "x": 0.002,
+        "q": 0.001,
+        "z": 0.001,
     }
 
     def compute_perplexity(self, text: str) -> float:
@@ -168,6 +196,7 @@ class PerplexityGuard:
 
 
 # ─── B3: Semantic Coherence Checker ───────────────────────────────────────────
+
 
 class SemanticCoherenceChecker:
     """
@@ -223,12 +252,26 @@ class SemanticCoherenceChecker:
 
 # ─── B5: Emoji Swing Normalizer ───────────────────────────────────────────────
 
+
 class EmojiSwingNormalizer:
     """Detects emoji storms and normalizes extreme emotional emoji payloads."""
 
     OUTRAGE_EMOJIS: Set[str] = {
-        "🚨", "💀", "🤡", "😡", "🔥", "💥", "🤮", "😤",
-        "🤬", "🗑️", "⚠️", "🚫", "☠️", "🤦", "😠",
+        "🚨",
+        "💀",
+        "🤡",
+        "😡",
+        "🔥",
+        "💥",
+        "🤮",
+        "😤",
+        "🤬",
+        "🗑️",
+        "⚠️",
+        "🚫",
+        "☠️",
+        "🤦",
+        "😠",
     }
     PANIC_EMOJIS: Set[str] = {"😱", "😰", "😨", "🙀", "😳", "🆘", "🫨"}
     NEUTRAL_EMOJIS: Set[str] = {"🤔", "💬", "📢", "ℹ️", "👀"}
@@ -236,6 +279,7 @@ class EmojiSwingNormalizer:
     def analyze(self, text: str) -> Dict[str, float]:
         try:
             import emoji
+
             emoji_list = [c for c in text if c in emoji.EMOJI_DATA]
         except ImportError:
             emoji_list = [c for c in text if ord(c) > 0x1F300]
@@ -260,6 +304,7 @@ class EmojiSwingNormalizer:
         """Count maximum consecutive emojis."""
         try:
             import emoji
+
             is_emoji_fn = lambda c: c in emoji.EMOJI_DATA
         except ImportError:
             is_emoji_fn = lambda c: ord(c) > 0x1F300
@@ -277,6 +322,7 @@ class EmojiSwingNormalizer:
         """Limit consecutive emoji runs to max_emojis."""
         try:
             import emoji
+
             is_emoji_fn = lambda c: c in emoji.EMOJI_DATA
         except ImportError:
             is_emoji_fn = lambda c: ord(c) > 0x1F300
@@ -296,14 +342,35 @@ class EmojiSwingNormalizer:
 
 # ─── B6: Code-Switch Detector ─────────────────────────────────────────────────
 
+
 class CodeSwitchDetector:
     """Detects multilingual code-switching used to evade English-only classifiers."""
 
     HINGLISH_VOCAB: Set[str] = {
-        "bahut", "sach", "bilkul", "sarkar", "log", "bhrashtachar",
-        "dhoka", "sachch", "istifa", "nakab", "jhooth", "nakli",
-        "accha", "theek", "bhai", "yaar", "desh", "neta", "janta",
-        "andolan", "inqilab", "azadi", "jung", "danga",
+        "bahut",
+        "sach",
+        "bilkul",
+        "sarkar",
+        "log",
+        "bhrashtachar",
+        "dhoka",
+        "sachch",
+        "istifa",
+        "nakab",
+        "jhooth",
+        "nakli",
+        "accha",
+        "theek",
+        "bhai",
+        "yaar",
+        "desh",
+        "neta",
+        "janta",
+        "andolan",
+        "inqilab",
+        "azadi",
+        "jung",
+        "danga",
     }
 
     ARABIC_PATTERN = re.compile(r"[\u0600-\u06FF\u0750-\u077F]")
@@ -336,19 +403,29 @@ class CodeSwitchDetector:
 
 # ─── B7: Coordinated Pattern Detector ─────────────────────────────────────────
 
+
 class CoordinatedPatternDetector:
     """Detects astroturfing, bot amplification, and narrative laundering patterns."""
 
     BOT_SIGNALS = [
-        r"\bRT if\b", r"\bshare before they delete\b", r"\bbreaking\b.*\bthread\b",
-        r"\bwhat they don.t want\b", r"\bsource in bio\b", r"\bleaked\b",
-        r"\bmainstream media won.t\b", r"\b\d+/\d+\b",  # Thread numbering 1/?
-        r"\burgent\s*🚨", r"\bwake up\b.*sheep",
+        r"\bRT if\b",
+        r"\bshare before they delete\b",
+        r"\bbreaking\b.*\bthread\b",
+        r"\bwhat they don.t want\b",
+        r"\bsource in bio\b",
+        r"\bleaked\b",
+        r"\bmainstream media won.t\b",
+        r"\b\d+/\d+\b",  # Thread numbering 1/?
+        r"\burgent\s*🚨",
+        r"\bwake up\b.*sheep",
     ]
 
     LAUNDERING_SIGNALS = [
-        r"\bresearch question\b", r"\bmultiple credible\b", r"\bindependent sources\b",
-        r"\bfor the sake of argument\b", r"\bhypothetically speaking\b",
+        r"\bresearch question\b",
+        r"\bmultiple credible\b",
+        r"\bindependent sources\b",
+        r"\bfor the sake of argument\b",
+        r"\bhypothetically speaking\b",
         r"\bpreliminary findings\b.*\bsuggest\b",
     ]
 
@@ -370,6 +447,7 @@ class CoordinatedPatternDetector:
 
 
 # ─── B8: Adversarial Text Sanitizer ──────────────────────────────────────────
+
 
 class AdversarialSanitizer:
     """Multi-layer text sanitizer that strips adversarial artifacts."""
@@ -399,6 +477,7 @@ class AdversarialSanitizer:
         # Layer 3: Collapse repeated emojis (keep max 2 consecutive)
         try:
             from src.attacks.blue_team import EmojiSwingNormalizer
+
             normalizer = EmojiSwingNormalizer()
             normalized = normalizer.normalize(result, max_emojis=2)
             if normalized != result:
@@ -410,11 +489,12 @@ class AdversarialSanitizer:
         # Layer 4: Decode common evasion encodings
         # Base64 decoding attempt on isolated tokens
         import base64
+
         tokens = result.split()
         decoded_tokens = []
         for token in tokens:
             # Require >=24 chars AND = padding to avoid false-decoding normal words
-            if len(token) >= 24 and token.endswith("=") and re.match(r'^[A-Za-z0-9+/]+=+$', token):
+            if len(token) >= 24 and token.endswith("=") and re.match(r"^[A-Za-z0-9+/]+=+$", token):
                 try:
                     decoded = base64.b64decode(token + "==").decode("utf-8", errors="ignore")
                     if decoded.isprintable() and len(decoded) > 2:
@@ -427,7 +507,7 @@ class AdversarialSanitizer:
         result = " ".join(decoded_tokens)
 
         # Layer 5: Strip ALL CAPS shouting
-        decaps = re.sub(r'\b[A-Z]{4,}\b', lambda m: m.group(0).capitalize(), result)
+        decaps = re.sub(r"\b[A-Z]{4,}\b", lambda m: m.group(0).capitalize(), result)
         if decaps != result:
             applied.append("normalized_all_caps")
             result = decaps
@@ -436,6 +516,7 @@ class AdversarialSanitizer:
 
 
 # ─── B9: Adaptive Rate Limiter ─────────────────────────────────────────────────
+
 
 class AttackRateLimiter:
     """
@@ -468,6 +549,7 @@ class AttackRateLimiter:
 
 # ─── Master Blue Team Orchestrator ────────────────────────────────────────────
 
+
 class BlueTeamOrchestrator:
     """
     Orchestrates all defense layers and produces a single BlueTeamVerdict.
@@ -475,15 +557,13 @@ class BlueTeamOrchestrator:
     """
 
     THRESHOLDS = {
-        "unicode_anomaly_score": 0.12,    # Tight: any homoglyphs are suspicious
+        "unicode_anomaly_score": 0.12,  # Tight: any homoglyphs are suspicious
         "perplexity_threat_score": 0.55,  # Tuned: normal English ~0.4-0.5; Cyrillic text ~2.0+
-        "coherence_threat_score": 0.65,   # Tuned: semantic drift needs strong signal
-        "emoji_storm_score": 0.50,        # 50% outrage/panic emojis = storm
-        "code_switch_score": 0.20,        # Low: any multilingual mixing is notable
-        "coordinated_threat_score": 0.15, # Tight: coordinated patterns are rare
+        "coherence_threat_score": 0.65,  # Tuned: semantic drift needs strong signal
+        "emoji_storm_score": 0.50,  # 50% outrage/panic emojis = storm
+        "code_switch_score": 0.20,  # Low: any multilingual mixing is notable
+        "coordinated_threat_score": 0.15,  # Tight: coordinated patterns are rare
     }
-
-
 
     def __init__(self):
         self.unicode_detector = UnicodeAnomalyDetector()
@@ -498,6 +578,7 @@ class BlueTeamOrchestrator:
     def defend(self, text: str, source_id: str = "unknown") -> BlueTeamVerdict:
         """Run all defense layers and return a comprehensive verdict."""
         import time
+
         ts = time.time()
 
         sanitized_text, sanitize_ops = self.sanitizer.sanitize(text)
@@ -508,7 +589,9 @@ class BlueTeamOrchestrator:
         uni = self.unicode_detector.analyze(text)
         anomaly_scores["unicode_anomaly_score"] = uni["unicode_anomaly_score"]
         if uni["unicode_anomaly_score"] > self.THRESHOLDS["unicode_anomaly_score"]:
-            detections.append(f"UNICODE_ANOMALY(homoglyphs={uni['homoglyph_ratio']:.2%},invisible={uni['invisible_ratio']:.2%})")
+            detections.append(
+                f"UNICODE_ANOMALY(homoglyphs={uni['homoglyph_ratio']:.2%},invisible={uni['invisible_ratio']:.2%})"
+            )
 
         ppl = self.perplexity_guard.analyze(text)
         anomaly_scores["perplexity_threat_score"] = ppl["perplexity_threat_score"]
@@ -523,7 +606,9 @@ class BlueTeamOrchestrator:
         emoji_a = self.emoji_normalizer.analyze(text)
         anomaly_scores["emoji_storm_score"] = emoji_a["emoji_storm_score"]
         if emoji_a["storm_detected"]:
-            detections.append(f"EMOJI_STORM(outrage={emoji_a['outrage_emoji_count']},panic={emoji_a['panic_emoji_count']})")
+            detections.append(
+                f"EMOJI_STORM(outrage={emoji_a['outrage_emoji_count']},panic={emoji_a['panic_emoji_count']})"
+            )
 
         cs = self.code_switch_detector.analyze(text)
         anomaly_scores["code_switch_score"] = cs["code_switch_score"]
@@ -578,5 +663,7 @@ class BlueTeamOrchestrator:
             detections=detections,
             anomaly_scores={k: round(v, 4) for k, v in anomaly_scores.items()},
             action=action,
-            explanation="; ".join(explanation_parts) if explanation_parts else "No threats detected",
+            explanation=(
+                "; ".join(explanation_parts) if explanation_parts else "No threats detected"
+            ),
         )

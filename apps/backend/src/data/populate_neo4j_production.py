@@ -52,7 +52,7 @@ class Neo4jConfig:
 
     uri: str = "bolt://localhost:7687"
     user: str = "neo4j"
-    password: str = "doom_index_prod_2026"
+    password: str = os.getenv("NEO4J_PASSWORD", "neo4j_password")
     database: str = "neo4j"
     max_pool_size: int = 50
     connection_timeout: int = 30
@@ -123,7 +123,7 @@ class ProductionNeo4jPopulator:
             self.driver = GraphDatabase.driver(
                 self.config.uri,
                 auth=(self.config.user, self.config.password),
-                max_pool_size=self.config.max_pool_size,
+                max_connection_pool_size=self.config.max_pool_size,
                 connection_timeout=self.config.connection_timeout,
             )
 
@@ -766,7 +766,7 @@ async def main():
     parser.add_argument("--reddit-data", type=str, help="Path to Reddit data")
     parser.add_argument("--limit", type=int, default=None, help="Limit records")
     parser.add_argument("--uri", type=str, default="bolt://localhost:7687")
-    parser.add_argument("--password", type=str, default="doom_index_prod_2026")
+    parser.add_argument("--password", type=str, default=os.getenv("NEO4J_PASSWORD", "neo4j_password"))
 
     args = parser.parse_args()
 

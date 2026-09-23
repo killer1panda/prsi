@@ -27,8 +27,8 @@ class DataPreprocessor:
         (0x1F300, 0x1F5FF),  # symbols & pictographs (🔥, 💀, 💔, etc.)
         (0x1F680, 0x1F6FF),  # transport & map symbols (🚀, 🚨, etc.)
         (0x1F1E0, 0x1F1FF),  # flags
-        (0x2600, 0x26FF),    # misc symbols (⚠️, ☠️, ⚡, etc.)
-        (0x2700, 0x27BF),    # dingbats (✨, ✂️, etc.)
+        (0x2600, 0x26FF),  # misc symbols (⚠️, ☠️, ⚡, etc.)
+        (0x2700, 0x27BF),  # dingbats (✨, ✂️, etc.)
         (0x1F900, 0x1F9FF),  # supplemental symbols & pictographs (🤬, 🤡, 🤮, 🥺, etc.)
         (0x1FA70, 0x1FAFF),  # symbols & pictographs extended-a
     )
@@ -61,6 +61,7 @@ class DataPreprocessor:
             return ""
         try:
             import emoji
+
             return emoji.demojize(text, delimiters=(" :", ": "))
         except Exception:
             return text
@@ -89,7 +90,9 @@ class DataPreprocessor:
                 "irony_flag": False,
             }
 
-        found_emojis = [c for c in text if any(start <= ord(c) <= end for start, end in self._EMOJI_RANGES)]
+        found_emojis = [
+            c for c in text if any(start <= ord(c) <= end for start, end in self._EMOJI_RANGES)
+        ]
         count = len(found_emojis)
 
         if count == 0:
@@ -120,9 +123,23 @@ class DataPreprocessor:
 
         # Detect irony/sarcasm when positive words collide with cynical emojis
         lower_text = text.lower()
-        positive_words = {"great", "awesome", "amazing", "good", "love", "fantastic", "perfect", "genius", "fine", "normal"}
+        positive_words = {
+            "great",
+            "awesome",
+            "amazing",
+            "good",
+            "love",
+            "fantastic",
+            "perfect",
+            "genius",
+            "fine",
+            "normal",
+        }
         has_positive_words = any(w in lower_text.split() for w in positive_words)
-        irony_flag = bool(has_positive_words and (cynicism_count > 0 or "🤡" in found_emojis or "💀" in found_emojis))
+        irony_flag = bool(
+            has_positive_words
+            and (cynicism_count > 0 or "🤡" in found_emojis or "💀" in found_emojis)
+        )
 
         return {
             "emoji_count": count,

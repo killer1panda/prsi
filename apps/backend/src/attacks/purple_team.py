@@ -40,50 +40,119 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-
+from src.attacks.blue_team import BlueTeamOrchestrator, BlueTeamVerdict
 from src.attacks.red_team import (
     RedTeamOrchestrator,
     RedTeamResult,
 )
-from src.attacks.blue_team import BlueTeamOrchestrator, BlueTeamVerdict
 
 logger = logging.getLogger(__name__)
 
 # ─── MITRE ATT&CK for NLP technique mapping ───────────────────────────────────
 
 ATTACK_TECHNIQUE_MAP: Dict[str, Dict[str, str]] = {
-    "HomoglyphSubstitution":    {"id": "T-NLP-001", "tactic": "Defense Evasion", "subtactic": "Obfuscation"},
-    "ZeroWidthInjection":       {"id": "T-NLP-002", "tactic": "Defense Evasion", "subtactic": "Steganography"},
-    "LeetSpeak":                {"id": "T-NLP-003", "tactic": "Defense Evasion", "subtactic": "Character Manipulation"},
-    "TyposquatInjection":       {"id": "T-NLP-004", "tactic": "Defense Evasion", "subtactic": "Typosquatting"},
-    "InvisibleCharInsertion":   {"id": "T-NLP-005", "tactic": "Defense Evasion", "subtactic": "Invisible Unicode"},
-    "SynonymEscalation":        {"id": "T-NLP-006", "tactic": "Impact",           "subtactic": "Sentiment Amplification"},
-    "QualifierNegation":        {"id": "T-NLP-007", "tactic": "Impact",           "subtactic": "Assertion Hardening"},
-    "PresuppositionInjection":  {"id": "T-NLP-008", "tactic": "Influence Ops",   "subtactic": "Framing Manipulation"},
-    "NegationReversal":         {"id": "T-NLP-009", "tactic": "Influence Ops",   "subtactic": "Semantic Inversion"},
-    "HinglishCodeSwitching":    {"id": "T-NLP-010", "tactic": "Defense Evasion", "subtactic": "Language Obfuscation"},
-    "DogwhistleSubstitution":   {"id": "T-NLP-011", "tactic": "Collection",       "subtactic": "Dog-Whistle Encoding"},
-    "EmojiStorm":               {"id": "T-NLP-012", "tactic": "Impact",           "subtactic": "Emotional Amplification"},
-    "HypotheticalFraming":      {"id": "T-NLP-013", "tactic": "Defense Evasion", "subtactic": "Plausible Deniability"},
-    "BotAmplification":         {"id": "T-NLP-014", "tactic": "Influence Ops",   "subtactic": "Coordinated Inauthentic Behavior"},
-    "AstroturfingVariant":      {"id": "T-NLP-015", "tactic": "Influence Ops",   "subtactic": "Astroturfing"},
-    "NarrativeLaundering":      {"id": "T-NLP-016", "tactic": "Influence Ops",   "subtactic": "Legitimization Framing"},
-    "TextAttack_TEXTFOOLER":    {"id": "T-NLP-017", "tactic": "Evasion",         "subtactic": "Word Substitution (NLP)"},
-    "TextAttack_BAE":           {"id": "T-NLP-018", "tactic": "Evasion",         "subtactic": "MLM Perturbation"},
-    "TextAttack_PWWS":          {"id": "T-NLP-019", "tactic": "Evasion",         "subtactic": "PWWS Word Swap"},
-    "TextAttack_DEEPWORDBUG":   {"id": "T-NLP-020", "tactic": "Evasion",         "subtactic": "Character-level Bug"},
+    "HomoglyphSubstitution": {
+        "id": "T-NLP-001",
+        "tactic": "Defense Evasion",
+        "subtactic": "Obfuscation",
+    },
+    "ZeroWidthInjection": {
+        "id": "T-NLP-002",
+        "tactic": "Defense Evasion",
+        "subtactic": "Steganography",
+    },
+    "LeetSpeak": {
+        "id": "T-NLP-003",
+        "tactic": "Defense Evasion",
+        "subtactic": "Character Manipulation",
+    },
+    "TyposquatInjection": {
+        "id": "T-NLP-004",
+        "tactic": "Defense Evasion",
+        "subtactic": "Typosquatting",
+    },
+    "InvisibleCharInsertion": {
+        "id": "T-NLP-005",
+        "tactic": "Defense Evasion",
+        "subtactic": "Invisible Unicode",
+    },
+    "SynonymEscalation": {
+        "id": "T-NLP-006",
+        "tactic": "Impact",
+        "subtactic": "Sentiment Amplification",
+    },
+    "QualifierNegation": {
+        "id": "T-NLP-007",
+        "tactic": "Impact",
+        "subtactic": "Assertion Hardening",
+    },
+    "PresuppositionInjection": {
+        "id": "T-NLP-008",
+        "tactic": "Influence Ops",
+        "subtactic": "Framing Manipulation",
+    },
+    "NegationReversal": {
+        "id": "T-NLP-009",
+        "tactic": "Influence Ops",
+        "subtactic": "Semantic Inversion",
+    },
+    "HinglishCodeSwitching": {
+        "id": "T-NLP-010",
+        "tactic": "Defense Evasion",
+        "subtactic": "Language Obfuscation",
+    },
+    "DogwhistleSubstitution": {
+        "id": "T-NLP-011",
+        "tactic": "Collection",
+        "subtactic": "Dog-Whistle Encoding",
+    },
+    "EmojiStorm": {"id": "T-NLP-012", "tactic": "Impact", "subtactic": "Emotional Amplification"},
+    "HypotheticalFraming": {
+        "id": "T-NLP-013",
+        "tactic": "Defense Evasion",
+        "subtactic": "Plausible Deniability",
+    },
+    "BotAmplification": {
+        "id": "T-NLP-014",
+        "tactic": "Influence Ops",
+        "subtactic": "Coordinated Inauthentic Behavior",
+    },
+    "AstroturfingVariant": {
+        "id": "T-NLP-015",
+        "tactic": "Influence Ops",
+        "subtactic": "Astroturfing",
+    },
+    "NarrativeLaundering": {
+        "id": "T-NLP-016",
+        "tactic": "Influence Ops",
+        "subtactic": "Legitimization Framing",
+    },
+    "TextAttack_TEXTFOOLER": {
+        "id": "T-NLP-017",
+        "tactic": "Evasion",
+        "subtactic": "Word Substitution (NLP)",
+    },
+    "TextAttack_BAE": {"id": "T-NLP-018", "tactic": "Evasion", "subtactic": "MLM Perturbation"},
+    "TextAttack_PWWS": {"id": "T-NLP-019", "tactic": "Evasion", "subtactic": "PWWS Word Swap"},
+    "TextAttack_DEEPWORDBUG": {
+        "id": "T-NLP-020",
+        "tactic": "Evasion",
+        "subtactic": "Character-level Bug",
+    },
 }
 
 
 # ─── Data structures ──────────────────────────────────────────────────────────
 
+
 @dataclass
 class AttackRecord:
     """Records the outcome of a single red-team attack and blue-team defense."""
+
     red_result: RedTeamResult
     blue_verdict: BlueTeamVerdict
-    bypassed_defense: bool          # True if attack succeeded AND blue missed it
-    technique: Dict[str, str]       # MITRE mapping
+    bypassed_defense: bool  # True if attack succeeded AND blue missed it
+    technique: Dict[str, str]  # MITRE mapping
     timestamp: float = field(default_factory=time.time)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -108,6 +177,7 @@ class AttackRecord:
 @dataclass
 class EngagementReport:
     """Full purple team engagement report."""
+
     target_text: str
     base_doom_score: float
     total_attacks: int
@@ -118,7 +188,7 @@ class EngagementReport:
     defense_coverage: Dict[str, float]  # detection_layer -> coverage%
     top_bypasses: List[AttackRecord]
     recommended_actions: List[str]
-    training_examples: List[Dict[str, Any]]   # adversarial training set
+    training_examples: List[Dict[str, Any]]  # adversarial training set
     timestamp: float = field(default_factory=time.time)
 
     def summary(self) -> str:
@@ -171,6 +241,7 @@ class EngagementReport:
 
 # ─── Purple Team Core ─────────────────────────────────────────────────────────
 
+
 class PurpleTeamOrchestrator:
     """
     Orchestrates red team attacks and blue team defenses in a continuous loop.
@@ -199,6 +270,7 @@ class PurpleTeamOrchestrator:
     ) -> Dict[str, Dict[str, float]]:
         """Compute per-attack-type effectiveness metrics."""
         from collections import defaultdict
+
         by_type: Dict[str, List[AttackRecord]] = defaultdict(list)
         for r in records:
             by_type[r.red_result.attack_type].append(r)
@@ -220,9 +292,7 @@ class PurpleTeamOrchestrator:
             }
         return matrix
 
-    def _compute_defense_coverage(
-        self, records: List[AttackRecord]
-    ) -> Dict[str, float]:
+    def _compute_defense_coverage(self, records: List[AttackRecord]) -> Dict[str, float]:
         """How well does each detection layer cover the attacks?"""
         detection_keywords = {
             "unicode": "UNICODE_ANOMALY",
@@ -257,9 +327,7 @@ class PurpleTeamOrchestrator:
             )
 
         # Find highest-bypass attack categories
-        high_bypass = [
-            (atype, m) for atype, m in matrix.items() if m["bypass_rate"] > 0.5
-        ]
+        high_bypass = [(atype, m) for atype, m in matrix.items() if m["bypass_rate"] > 0.5]
         high_bypass.sort(key=lambda x: x[1]["bypass_rate"], reverse=True)
 
         for atype, m in high_bypass[:3]:
@@ -270,21 +338,29 @@ class PurpleTeamOrchestrator:
             )
 
         # Category-specific recs
-        char_bypasses = [r for r in records if r.red_result.attack_category == "char" and r.bypassed_defense]
+        char_bypasses = [
+            r for r in records if r.red_result.attack_category == "char" and r.bypassed_defense
+        ]
         if len(char_bypasses) > 2:
             recommendations.append(
                 "Deploy NFKC Unicode normalization at ingestion point (pre-model), "
                 "not just detection (B8 layer)."
             )
 
-        social_bypasses = [r for r in records if r.red_result.attack_category == "social" and r.bypassed_defense]
+        social_bypasses = [
+            r for r in records if r.red_result.attack_category == "social" and r.bypassed_defense
+        ]
         if len(social_bypasses) > 1:
             recommendations.append(
                 "Expand multilingual toxicity coverage: add Hinglish + Arabic + Devanagari "
                 "detectors to primary pipeline."
             )
 
-        coord_bypasses = [r for r in records if r.red_result.attack_category == "coordinated" and r.bypassed_defense]
+        coord_bypasses = [
+            r
+            for r in records
+            if r.red_result.attack_category == "coordinated" and r.bypassed_defense
+        ]
         if len(coord_bypasses) > 1:
             recommendations.append(
                 "Implement cross-post deduplication: cluster near-duplicate texts "
@@ -305,9 +381,7 @@ class PurpleTeamOrchestrator:
 
         return recommendations
 
-    def _generate_training_examples(
-        self, records: List[AttackRecord]
-    ) -> List[Dict[str, Any]]:
+    def _generate_training_examples(self, records: List[AttackRecord]) -> List[Dict[str, Any]]:
         """
         Generate adversarial training dataset from bypass records.
         Format: {text, label, attack_type, doom_score, is_adversarial}
@@ -315,24 +389,28 @@ class PurpleTeamOrchestrator:
         examples = []
         for r in records:
             # Original (should be caught)
-            examples.append({
-                "text": r.red_result.original_text,
-                "label": 1 if r.red_result.doom_score_before >= 50 else 0,
-                "doom_score": r.red_result.doom_score_before,
-                "is_adversarial": False,
-                "attack_type": None,
-            })
+            examples.append(
+                {
+                    "text": r.red_result.original_text,
+                    "label": 1 if r.red_result.doom_score_before >= 50 else 0,
+                    "doom_score": r.red_result.doom_score_before,
+                    "is_adversarial": False,
+                    "attack_type": None,
+                }
+            )
             # Adversarial variant (hardening target)
             if r.red_result.attack_success:
-                examples.append({
-                    "text": r.red_result.mutated_text,
-                    "label": 1,  # Always label adversarial as high-doom for training
-                    "doom_score": r.red_result.doom_score_after,
-                    "is_adversarial": True,
-                    "attack_type": r.red_result.attack_type,
-                    "technique_id": r.technique["id"],
-                    "bypassed_defense": r.bypassed_defense,
-                })
+                examples.append(
+                    {
+                        "text": r.red_result.mutated_text,
+                        "label": 1,  # Always label adversarial as high-doom for training
+                        "doom_score": r.red_result.doom_score_after,
+                        "is_adversarial": True,
+                        "attack_type": r.red_result.attack_type,
+                        "technique_id": r.technique["id"],
+                        "bypassed_defense": r.bypassed_defense,
+                    }
+                )
         return examples
 
     def full_engagement(
@@ -376,17 +454,19 @@ class PurpleTeamOrchestrator:
                 technique = self._get_technique(rr.attack_type)
 
                 # Did the attack succeed AND bypass blue team?
-                bypassed = (
-                    rr.attack_success
-                    and bv.action in ("allow", "flag")  # Blue didn't block/sanitize
-                )
+                bypassed = rr.attack_success and bv.action in (
+                    "allow",
+                    "flag",
+                )  # Blue didn't block/sanitize
 
-                records.append(AttackRecord(
-                    red_result=rr,
-                    blue_verdict=bv,
-                    bypassed_defense=bypassed,
-                    technique=technique,
-                ))
+                records.append(
+                    AttackRecord(
+                        red_result=rr,
+                        blue_verdict=bv,
+                        bypassed_defense=bypassed,
+                        technique=technique,
+                    )
+                )
             except Exception as e:
                 logger.debug(f"Blue team defense error: {e}")
 
@@ -429,9 +509,7 @@ class PurpleTeamOrchestrator:
         )
         return report
 
-    def batch_engagement(
-        self, texts: List[str], max_attacks_per_text: int = 10
-    ) -> Dict[str, Any]:
+    def batch_engagement(self, texts: List[str], max_attacks_per_text: int = 10) -> Dict[str, Any]:
         """Run engagements across multiple texts, return aggregate statistics."""
         all_reports = []
         for text in texts:
@@ -445,6 +523,7 @@ class PurpleTeamOrchestrator:
 
         # Aggregate effectiveness matrix
         from collections import defaultdict
+
         agg_matrix: Dict[str, List[float]] = defaultdict(list)
         for report in all_reports:
             for atype, metrics in report.effectiveness_matrix.items():
@@ -457,8 +536,7 @@ class PurpleTeamOrchestrator:
             "overall_bypass_rate": round(total_bypasses / max(total_attacks, 1), 4),
             "avg_base_doom_score": round(avg_base_doom, 2),
             "attack_type_bypass_rates": {
-                atype: round(float(np.mean(rates)), 4)
-                for atype, rates in agg_matrix.items()
+                atype: round(float(np.mean(rates)), 4) for atype, rates in agg_matrix.items()
             },
             "individual_reports": [r.to_dict() for r in all_reports],
         }

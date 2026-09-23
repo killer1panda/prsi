@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 try:
     from doubleml import DoubleMLPLR
     from econml.dml import CausalForestDML
+
     ECONML_AVAILABLE = True
 except ImportError:
     ECONML_AVAILABLE = False
@@ -100,7 +101,9 @@ class PearlianSCM:
         logger.debug(f"do({var}={value:.3f}) -> doom_score={result.get('doom_score', 0):.3f}")
         return result
 
-    def counterfactual(self, obs: Dict[str, float], intervention: Dict[str, float]) -> Dict[str, float]:
+    def counterfactual(
+        self, obs: Dict[str, float], intervention: Dict[str, float]
+    ) -> Dict[str, float]:
         """
         Pearl's 3-step counterfactual algorithm:
         1. Abduction: infer noise residuals from observed values
@@ -118,9 +121,7 @@ class PearlianSCM:
             residuals[var] = obs.get(var, 0.0) - predicted
 
         # Step 2: Action — apply intervention
-        cf = self.do_intervention(
-            list(intervention.keys())[0], list(intervention.values())[0]
-        )
+        cf = self.do_intervention(list(intervention.keys())[0], list(intervention.values())[0])
 
         # Step 3: Prediction — add abduced residuals back
         for var in self.dag:
@@ -142,7 +143,9 @@ class CausalDMLEstimator:
             except Exception as e:
                 logger.warning(f"CausalForestDML init failed: {e}")
 
-    def fit(self, Y: np.ndarray, T: np.ndarray, X: np.ndarray, W: Optional[np.ndarray] = None) -> None:
+    def fit(
+        self, Y: np.ndarray, T: np.ndarray, X: np.ndarray, W: Optional[np.ndarray] = None
+    ) -> None:
         """
         Fit the DML estimator.
         Y: outcome (doom_score), T: treatment (e.g. emoji_outrage_score),
@@ -154,6 +157,7 @@ class CausalDMLEstimator:
         else:
             # Lightweight OLS fallback: fit linear treatment effect
             from numpy.linalg import lstsq
+
             n = len(Y)
             features = np.column_stack([T.reshape(-1, 1), X]) if X is not None else T.reshape(-1, 1)
             coefs, _, _, _ = lstsq(np.hstack([features, np.ones((n, 1))]), Y, rcond=None)
@@ -231,6 +235,7 @@ class CausalDPORewriter:
         def decaps(match: re.Match) -> str:
             word = match.group(0)
             return word.capitalize() if len(word) > 3 else word
+
         result = re.sub(r"\b[A-Z]{4,}\b", decaps, result)
 
         return result.strip()

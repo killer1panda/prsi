@@ -144,8 +144,19 @@ class DoomInferenceWorker:
         except Exception as e:
             logger.warning(f"Real inference failed ({e}); using heuristic fallback")
             # Last-resort heuristic: keyword density
-            outrage_words = {"fraud", "corrupt", "resign", "boycott", "expose", "liar",
-                             "cancel", "fascist", "disgusting", "scam", "predator"}
+            outrage_words = {
+                "fraud",
+                "corrupt",
+                "resign",
+                "boycott",
+                "expose",
+                "liar",
+                "cancel",
+                "fascist",
+                "disgusting",
+                "scam",
+                "predator",
+            }
             words = set(content.lower().split())
             hit_ratio = len(words & outrage_words) / max(len(words), 1)
             doom_score = min(95.0, max(5.0, hit_ratio * 600 + 10.0))

@@ -226,11 +226,7 @@ class SentimentAnalyzer:
             "sentiment_compound": round(compound, 4),
             "base_compound": vader_res.get("compound", 0.0),
             "sentiment_negative": vader_res.get("neg", 0.0)
-            + (
-                0.2
-                if emoji_metrics["irony_flag"] or emoji_metrics["outrage_score"] > 0.5
-                else 0.0
-            ),
+            + (0.2 if emoji_metrics["irony_flag"] or emoji_metrics["outrage_score"] > 0.5 else 0.0),
             "sentiment_positive": vader_res.get("pos", 0.0),
             "emoji_metrics": emoji_metrics,
             "text_length": len(text),

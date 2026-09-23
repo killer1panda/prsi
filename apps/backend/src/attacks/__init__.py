@@ -8,17 +8,17 @@ from .adversarial_production import ProductionAdversarialGenerator
 from .adversarial_production import (
     ProductionAdversarialGenerator as AdversarialGenerator,
 )
-
-# Red / Blue / Purple team
-from .red_team import RedTeamOrchestrator, AggressiveRedTeamOrchestrator, RedTeamResult
 from .blue_team import BlueTeamOrchestrator, DefenseVerdict
-from .purple_team import PurpleTeamOrchestrator
+from .doom_discriminator import MultiRewardComposer, WassersteinCritic
+from .doom_gan_trainer import DoomGANTrainer, SeedCorpusBuilder, TrainingConfig
 
 # Production GAN stack
-from .doom_generator import ProductionDoomGenerator, DoomGenerator, GumbelSoftmaxSampler
-from .doom_discriminator import WassersteinCritic, MultiRewardComposer
+from .doom_generator import DoomGenerator, GumbelSoftmaxSampler, ProductionDoomGenerator
 from .doom_reward_model import DoomRewardModel
-from .doom_gan_trainer import DoomGANTrainer, TrainingConfig, SeedCorpusBuilder
+from .purple_team import PurpleTeamOrchestrator
+
+# Red / Blue / Purple team
+from .red_team import AggressiveRedTeamOrchestrator, RedTeamOrchestrator, RedTeamResult
 
 __all__ = [
     # Legacy

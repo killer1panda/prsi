@@ -48,36 +48,60 @@ CHECKPOINT_DIR: Path = Path(os.environ.get("DOOM_GAN_CHECKPOINT", "/tmp/doom_gan
 # ─── Model registry ──────────────────────────────────────────────────────────
 MODEL_REGISTRY: Dict[str, Dict] = {
     "7b": {
-        "model_id":    "mistralai/Mistral-7B-Instruct-v0.3",
+        "model_id": "mistralai/Mistral-7B-Instruct-v0.3",
         "chat_format": "mistral",
         "context_len": 4096,
-        "min_gpus":    1,
+        "min_gpus": 1,
         "vram_bf16_gb": 16,
         "lora_targets": ["q_proj", "k_proj", "v_proj", "o_proj"],
     },
     "8b": {
-        "model_id":    "meta-llama/Llama-3.1-8B-Instruct",
+        "model_id": "meta-llama/Llama-3.1-8B-Instruct",
         "chat_format": "llama3",
         "context_len": 8192,
-        "min_gpus":    1,
+        "min_gpus": 1,
         "vram_bf16_gb": 18,
-        "lora_targets": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        "lora_targets": [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ],
     },
     "27b": {
-        "model_id":    "google/gemma-2-27b-it",
+        "model_id": "google/gemma-2-27b-it",
         "chat_format": "gemma",
         "context_len": 8192,
-        "min_gpus":    2,
+        "min_gpus": 2,
         "vram_bf16_gb": 56,
-        "lora_targets": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        "lora_targets": [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ],
     },
     "70b": {
-        "model_id":    "meta-llama/Llama-3.1-70B-Instruct",
+        "model_id": "meta-llama/Llama-3.1-70B-Instruct",
         "chat_format": "llama3",
         "context_len": 8192,
-        "min_gpus":    4,
+        "min_gpus": 4,
         "vram_bf16_gb": 140,
-        "lora_targets": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        "lora_targets": [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ],
     },
 }
 
@@ -122,10 +146,10 @@ ATTACK_STRATEGY_HINTS: List[str] = [
 ]
 
 DOOM_SCORE_BUCKETS = {
-    "mild":    (0,   45,  30.0),
-    "medium":  (45,  60,  52.0),
-    "high":    (60,  80,  70.0),
-    "extreme": (80, 100,  92.0),
+    "mild": (0, 45, 30.0),
+    "medium": (45, 60, 52.0),
+    "high": (60, 80, 70.0),
+    "extreme": (80, 100, 92.0),
 }
 
 
@@ -144,6 +168,7 @@ def build_condition_prefix(target_doom: float) -> str:
 # Production Generator
 # =============================================================================
 
+
 class ProductionDoomGenerator:
     """
     Production-grade adversarial text generator.
@@ -160,29 +185,29 @@ class ProductionDoomGenerator:
 
     # QLoRA configuration (applied on HPC)
     QLORA_CONFIG = {
-        "load_in_4bit":              True,
-        "bnb_4bit_quant_type":       "nf4",          # Normal Float 4 — best quality
-        "bnb_4bit_compute_dtype":    "bfloat16",      # bf16 compute on H100
-        "bnb_4bit_use_double_quant": True,            # nested quantization for extra savings
+        "load_in_4bit": True,
+        "bnb_4bit_quant_type": "nf4",  # Normal Float 4 — best quality
+        "bnb_4bit_compute_dtype": "bfloat16",  # bf16 compute on H100
+        "bnb_4bit_use_double_quant": True,  # nested quantization for extra savings
     }
 
     # LoRA configuration
     LORA_CONFIG = {
-        "r":            64,     # rank — higher = more capacity, more VRAM
-        "lora_alpha":   128,    # scaling factor (α/r = 2.0 — standard)
+        "r": 64,  # rank — higher = more capacity, more VRAM
+        "lora_alpha": 128,  # scaling factor (α/r = 2.0 — standard)
         "lora_dropout": 0.05,
-        "bias":         "none",
-        "task_type":    "CAUSAL_LM",
+        "bias": "none",
+        "task_type": "CAUSAL_LM",
     }
 
     # Generation hyperparameters
     GEN_CONFIG = {
-        "max_new_tokens":      200,
-        "temperature":         0.85,
-        "top_p":               0.92,
-        "top_k":               50,
-        "repetition_penalty":  1.15,
-        "do_sample":           True,
+        "max_new_tokens": 200,
+        "temperature": 0.85,
+        "top_p": 0.92,
+        "top_k": 50,
+        "repetition_penalty": 1.15,
+        "do_sample": True,
         "num_return_sequences": 1,
     }
 
@@ -224,8 +249,12 @@ class ProductionDoomGenerator:
 
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-            from peft import PeftModel, LoraConfig, get_peft_model, TaskType
+            from peft import LoraConfig, PeftModel, TaskType, get_peft_model
+            from transformers import (
+                AutoModelForCausalLM,
+                AutoTokenizer,
+                BitsAndBytesConfig,
+            )
 
             logger.info(f"Loading tokenizer: {self.model_cfg['model_id']}")
             self._tokenizer = AutoTokenizer.from_pretrained(
@@ -237,17 +266,22 @@ class ProductionDoomGenerator:
             if self._tokenizer.pad_token is None:
                 self._tokenizer.pad_token = self._tokenizer.eos_token
 
-            bnb_config = BitsAndBytesConfig(**{
-                k: (torch.bfloat16 if v == "bfloat16" else v)
-                if k == "bnb_4bit_compute_dtype" else v
-                for k, v in self.QLORA_CONFIG.items()
-            })
+            bnb_config = BitsAndBytesConfig(
+                **{
+                    k: (
+                        (torch.bfloat16 if v == "bfloat16" else v)
+                        if k == "bnb_4bit_compute_dtype"
+                        else v
+                    )
+                    for k, v in self.QLORA_CONFIG.items()
+                }
+            )
 
             logger.info(f"Loading base model with 4-bit QLoRA on rank {self.local_rank}...")
             base = AutoModelForCausalLM.from_pretrained(
                 self.model_cfg["model_id"],
                 quantization_config=bnb_config,
-                device_map={"": self.local_rank},   # put on this GPU rank
+                device_map={"": self.local_rank},  # put on this GPU rank
                 torch_dtype=torch.bfloat16,
                 cache_dir=HF_CACHE_DIR,
                 attn_implementation="flash_attention_2",  # FlashAttention-2 on H100
@@ -335,13 +369,14 @@ class ProductionDoomGenerator:
         if self._load() and self._model is not None:
             results = []
             for i in range(0, len(texts), batch_size):
-                batch = texts[i:i + batch_size]
+                batch = texts[i : i + batch_size]
                 results.extend(self._generate_hpc_batch(batch, target_doom))
             return results
         return [self._generate_fallback(t, target_doom) for t in texts]
 
     def _generate_hpc(self, text: str, target_doom: float, n_samples: int) -> str:
         import torch
+
         prompts = [self._build_prompt(text, target_doom) for _ in range(n_samples)]
         outputs = self._generate_hpc_batch(prompts, target_doom)
 
@@ -351,6 +386,7 @@ class ProductionDoomGenerator:
 
     def _generate_hpc_batch(self, texts: List[str], target_doom: float) -> List[str]:
         import torch
+
         enc = self._tokenizer(
             texts,
             return_tensors="pt",
@@ -373,7 +409,7 @@ class ProductionDoomGenerator:
         # Decode only newly generated tokens
         results = []
         for i, seq in enumerate(out):
-            new_tokens = seq[input_ids.shape[1]:]
+            new_tokens = seq[input_ids.shape[1] :]
             decoded = self._tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
             # Clean up trailing chat template artifacts
             decoded = re.sub(r"<\|.*?\|>|<end_of_turn>|<start_of_turn>.*", "", decoded).strip()
@@ -385,9 +421,12 @@ class ProductionDoomGenerator:
         bucket = score_to_bucket(target_doom)
         try:
             from src.attacks.red_team import (
-                ChainAttack, GCGHotFlipSuffix,
-                SycophancyBypass, WordSemanticAttacks,
+                ChainAttack,
+                GCGHotFlipSuffix,
+                SycophancyBypass,
+                WordSemanticAttacks,
             )
+
             if bucket == "mild":
                 return WordSemanticAttacks().presupposition_injection(text).mutated_text
             elif bucket == "medium":
@@ -420,6 +459,7 @@ class ProductionDoomGenerator:
         if self._model is None:
             raise RuntimeError("No model loaded.")
         from peft import PeftModel
+
         merged = self._model.merge_and_unload()
         merged.save_pretrained(str(export_path))
         if self._tokenizer:
@@ -430,16 +470,19 @@ class ProductionDoomGenerator:
     @property
     def model_info(self) -> Dict:
         cfg = self.model_cfg.copy()
-        cfg.update({
-            "tier": self.model_tier,
-            "hpc_mode": HPC_MODE,
-            "loaded": self._model is not None,
-            "checkpoint": str(self.checkpoint_path),
-        })
+        cfg.update(
+            {
+                "tier": self.model_tier,
+                "hpc_mode": HPC_MODE,
+                "loaded": self._model is not None,
+                "checkpoint": str(self.checkpoint_path),
+            }
+        )
         return cfg
 
 
 # ─── Gumbel-Softmax (used in training loop for continuous relaxation) ─────────
+
 
 class GumbelSoftmaxSampler:
     """
@@ -455,6 +498,7 @@ class GumbelSoftmaxSampler:
     def sample(logits: "torch.Tensor", tau: float = 1.0, hard: bool = True) -> "torch.Tensor":
         import torch
         import torch.nn.functional as F
+
         g = -torch.log(-torch.log(torch.rand_like(logits).clamp(1e-20)) + 1e-20)
         y = (logits + g) / max(tau, 0.01)
         y_soft = F.softmax(y, dim=-1)

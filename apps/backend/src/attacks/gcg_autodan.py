@@ -26,22 +26,28 @@ logger = logging.getLogger(__name__)
 
 # Homoglyph mapping: ASCII char -> visually similar Unicode alternatives
 HOMOGLYPH_MAP: Dict[str, List[str]] = {
-    "a": ["а", "ɑ", "α"],   # Cyrillic 'а', Latin alpha, Greek alpha
-    "e": ["е", "ε", "ё"],   # Cyrillic 'е', Greek epsilon
-    "i": ["і", "ι", "1"],   # Cyrillic 'і', Greek iota
-    "o": ["о", "ο", "0"],   # Cyrillic 'о', Greek omicron
-    "c": ["с", "ϲ"],         # Cyrillic 'с'
-    "p": ["р", "ρ"],         # Cyrillic 'р', Greek rho
-    "x": ["х", "χ"],         # Cyrillic 'х', Greek chi
-    "y": ["у", "ý"],         # Cyrillic 'у'
+    "a": ["а", "ɑ", "α"],  # Cyrillic 'а', Latin alpha, Greek alpha
+    "e": ["е", "ε", "ё"],  # Cyrillic 'е', Greek epsilon
+    "i": ["і", "ι", "1"],  # Cyrillic 'і', Greek iota
+    "o": ["о", "ο", "0"],  # Cyrillic 'о', Greek omicron
+    "c": ["с", "ϲ"],  # Cyrillic 'с'
+    "p": ["р", "ρ"],  # Cyrillic 'р', Greek rho
+    "x": ["х", "χ"],  # Cyrillic 'х', Greek chi
+    "y": ["у", "ý"],  # Cyrillic 'у'
     "s": ["ѕ", "$"],
-    "t": ["τ"],               # Greek tau
+    "t": ["τ"],  # Greek tau
 }
 
 # Leetspeak substitutions
 LEET_MAP: Dict[str, str] = {
-    "a": "@", "e": "3", "i": "!", "o": "0",
-    "s": "$", "t": "+", "l": "1", "g": "9",
+    "a": "@",
+    "e": "3",
+    "i": "!",
+    "o": "0",
+    "s": "$",
+    "t": "+",
+    "l": "1",
+    "g": "9",
 }
 
 # Outrage emoji intensifiers to inject

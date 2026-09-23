@@ -66,6 +66,10 @@ const graphNodes = Array.from({ length: 20 }).map(() => ({
   threat: Math.random() > 0.7 ? "high" : "low"
 }));
 
+// ⚡ Bolt: Hoisted static filtering outside the component to prevent recreating arrays on every render
+const highThreatNodes = graphNodes.filter(n => n.threat === 'high');
+const lowThreatNodes = graphNodes.filter(n => n.threat === 'low');
+
 function getRiskColor(score: number): string {
   if (score >= 80) return "text-rose-500";
   if (score >= 60) return "text-amber-500";
@@ -109,13 +113,14 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
   );
 };
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt: Memoized LiveFeedPanel to prevent re-renders when parent component (ThreatIntelligenceDashboard) updates via jitter
+const LiveFeedPanel = React.memo(function LiveFeedPanel() {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  // ⚡ Bolt: Initialized state to "connecting" to avoid immediate re-render on mount from useEffect
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +200,11 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt: Memoized ThreatAnalyzer to prevent re-renders when parent component updates via jitter.
+// This relies on the onResult prop being stable (which is wrapped in useCallback in the parent).
+const ThreatAnalyzer = React.memo(function ThreatAnalyzer({ onResult }: { onResult: (r: AnalysisResult) => void }) {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +344,7 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);
@@ -413,8 +420,8 @@ export default function ThreatIntelligenceDashboard() {
                     <YAxis type="number" dataKey="y" hide />
                     <ZAxis type="number" dataKey="z" range={[50, 400]} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#09090b', borderColor: '#3f3f46' }} />
-                    <Scatter data={graphNodes.filter(n => n.threat === 'high')} fill="#f43f5e" />
-                    <Scatter data={graphNodes.filter(n => n.threat === 'low')} fill="#3f3f46" />
+                    <Scatter data={highThreatNodes} fill="#f43f5e" />
+                    <Scatter data={lowThreatNodes} fill="#3f3f46" />
                   </ScatterChart>
                 </ResponsiveContainer>
               </CardContent>

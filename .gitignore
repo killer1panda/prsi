@@ -38,3 +38,5 @@ enterprise_*.png
 pert.png
 system_design.png
 workflow.png
+.turbo/
+apps/desktop/dist/

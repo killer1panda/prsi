@@ -7,3 +7,8 @@
 **Vulnerability:** Found multiple scraper scripts (selenium_login.py, run_twitter_scraper.py, playwright_login.py, playwright_login_v2.py, uc_login.py) that contained hardcoded plain-text developer credentials for Twitter (email, username, password) which would be exposed in the repository.
 **Learning:** Hardcoded credentials are often copied across multiple similar scripts as different approaches are attempted (e.g., trying different scraping tools like Selenium, Playwright, or Twikit). Finding one hardcoded secret likely means others exist in sibling scripts.
 **Prevention:** All scripts, even one-off helper or test scripts, should retrieve credentials using environment variables (`os.environ.get()` or a centralized config manager) instead of hardcoding them. Establish a pre-commit hook to scan for sensitive tokens.
+
+## 2025-02-28 - Hardcoded Neo4j Credentials
+**Vulnerability:** Found hardcoded Neo4j production password `[REDACTED]` in `Neo4jConfig` default values, test setups, and `EXECUTION_SUMMARY.md`.
+**Learning:** Default values for configurations and test utilities can accidentally leak real production secrets into source control when developers take shortcuts or document examples. Tests were asserting against or using realistic mock credentials instead of dummy placeholders.
+**Prevention:** Always use `os.getenv` for secrets with empty strings or clearly identifiable dummy values (e.g., `dummy_password_for_testing`) as fallbacks. Audit documentation and shell examples to use environment variables (`$SECRET`) rather than actual values.

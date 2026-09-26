@@ -1,0 +1,3 @@
+## 2024-09-26 - Accessible Scrollable Regions
+**Learning:** Custom scrollable containers (like those using `overflow-y-auto` for live feeds or logs) are inherently inaccessible to keyboard-only users unless they receive focus. Without focus, users cannot arrow-key scroll through the content.
+**Action:** Always add `tabIndex={0}`, `role="region"`, and an `aria-label` to custom scrollable containers. Additionally, pair this with `focus-visible` outline styles (e.g., `focus-visible:outline-none focus-visible:ring-2`) so keyboard users can see when the region is focused, without degrading the mouse user experience.

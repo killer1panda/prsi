@@ -1,0 +1,3 @@
+## 2025-05-18 - Accessibility for custom scrollable regions
+**Learning:** Found an accessibility issue pattern specific to this app's components, where custom scrollable UI containers created with 'overflow-y-auto' could not be accessed by screen readers or keyboard navigation.
+**Action:** When adding or fixing custom scrollable elements using 'overflow-y-auto', always add 'tabIndex={0}', 'role="region"', an 'aria-label' describing its purpose, and ensure it has proper 'focus-visible' outline styling without degrading mouse UX.

@@ -1,3 +1,6 @@
 ## 2025-03-07 - Optimization in temporal edge extraction nested loop
 **Learning:** In Neo4j graph production builds (`extract_temporal_edges`), calculating user interactions within a timeframe used an $O(N^2)$ nested loop despite the users list already being sorted by timestamp. This is a common anti-pattern in temporal aggregations.
 **Action:** Always check if loops iterating over sorted data (like timestamps) can be short-circuited with an early `break` condition (e.g., breaking once the `time_diff` exceeds the window) to reduce the algorithm's actual time complexity.
+## 2024-10-24 - React.memo on Polled Dashboard Components
+**Learning:** In top-level Next.js components that use setInterval for frequent state updates (like polling `globalScore` every 2 seconds in `ThreatIntelligenceDashboard`), child components that don't depend on this polling state will suffer from continuous cascading re-renders, impacting performance.
+**Action:** Always identify heavy or complex child components (e.g. `LiveFeedPanel`, `ThreatAnalyzer`) within such polled parents and wrap them with `React.memo()` (setting `.displayName` afterward for Next.js linters) to stop unnecessary DOM updates. Ensure any initial `useState` logic isn't synchronously triggering updates in `useEffect` (e.g., set `sseStatus` default directly).

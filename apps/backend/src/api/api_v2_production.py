@@ -269,7 +269,20 @@ async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(sec
         )
 
     # In production, validate against database or cache
-    valid_keys = os.environ.get("API_KEYS", "").split(",")
+    valid_keys = [k for k in os.environ.get("API_KEYS", "").split(",") if k]
+    if not valid_keys:
+        # If API_KEYS is not set, deny all requests for security
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="API_KEYS not configured"
+        )
+
+    if not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key format"
+        )
+
     for valid_key in valid_keys:
         if secrets.compare_digest(credentials.credentials, valid_key):
             return credentials.credentials

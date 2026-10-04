@@ -1,12 +1,6 @@
 name: Deploy GitHub Pages Showcase
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docs/**'
-      - '.github/workflows/deploy-gh-pages.yml'
   workflow_dispatch:
 
 permissions:

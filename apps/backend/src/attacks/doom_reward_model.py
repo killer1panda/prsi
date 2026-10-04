@@ -307,13 +307,85 @@ class _DeBERTaRegressorHead:
             return object.__new__(cls)
 
 
+# ─── Dataset Loading ──────────────────────────────────────────────────────────
+
+def load_doom_dataset(path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    Load labeled doom examples from CSV, Parquet, or JSONL.
+    If no path is provided, searches for processed_sample.csv or processed data dirs.
+    Derives real multi-signal doom scores [0, 100] from toxicity, engagement, and outrage flags.
+    """
+    import json
+    from pathlib import Path
+
+    target_path: Optional[Path] = None
+    if path:
+        target_path = Path(path)
+    else:
+        module_root = Path(__file__).resolve().parents[4]
+        candidates = [
+            Path("processed_sample.csv"),
+            module_root / "processed_sample.csv",
+            module_root / "data/processed/weak_labels.parquet",
+            module_root / "data/processed/labeled_doom.parquet",
+            Path("apps/backend/processed_sample.csv"),
+            Path("data/processed/weak_labels.parquet"),
+            Path("data/processed/labeled_doom.parquet"),
+        ]
+        for c in candidates:
+            if c.exists():
+                target_path = c
+                break
+
+    if target_path and target_path.exists():
+        logger.info(f"Loading real doom dataset from {target_path}")
+        if target_path.suffix == ".jsonl":
+            with open(target_path) as f:
+                return [json.loads(line) for line in f if line.strip()]
+
+        try:
+            import pandas as pd
+            if target_path.suffix in (".parquet", ".pq"):
+                df = pd.read_parquet(target_path)
+            else:
+                df = pd.read_csv(target_path)
+
+            examples = []
+            for _, row in df.iterrows():
+                text = str(row.get("text", "")).strip()
+                if not text or len(text) < 10:
+                    continue
+
+                if "doom_score" in row:
+                    score = float(row["doom_score"])
+                elif "final_label" in row:
+                    score = float(row.get("corrected_label_prob", row["final_label"])) * 100.0
+                else:
+                    # Grounded multi-signal doom score
+                    toxic = float(row.get("is_toxic", 0)) * 30.0
+                    intensity = abs(float(row.get("sentiment_intensity", 0.5))) * 25.0
+                    polarity = max(0.0, -float(row.get("sentiment_polarity", 0.0))) * 20.0
+                    outrage_cols = ["has_outrage", "has_backlash", "has_controversy", "has_cancel", "has_boycott"]
+                    flags = sum(1 for col in outrage_cols if bool(row.get(col, False)))
+                    flag_score = min(25.0, flags * 5.0)
+                    score = min(99.0, max(1.0, toxic + intensity + polarity + flag_score))
+
+                examples.append({"text": text, "doom_score": round(score, 1)})
+            logger.info(f"Extracted {len(examples)} real doom-labeled examples from {target_path}")
+            return examples
+        except Exception as e:
+            logger.warning(f"Failed to load dataset from {target_path}: {e}")
+
+    return []
+
+
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(description="DoomRewardModel training / evaluation")
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--eval", action="store_true")
-    parser.add_argument("--corpus", default=None, help="Path to JSONL corpus {text, doom_score}")
+    parser.add_argument("--corpus", default=None, help="Path to CSV, Parquet, or JSONL corpus")
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=2e-5)
@@ -325,12 +397,13 @@ def main():
     if args.train:
         corpus = []
         if args.corpus:
-            with open(args.corpus) as f:
-                corpus = [json.loads(l) for l in f if l.strip()]
-        else:
-            # Generate from rule-based red team
+            corpus = load_doom_dataset(args.corpus)
+        if not corpus:
+            corpus = load_doom_dataset()
+
+        if not corpus:
+            # Generate fallback from rule-based red team
             from src.attacks.doom_gan_trainer import SeedCorpusBuilder
-            from dataclasses import asdict
             builder = SeedCorpusBuilder()
             examples = builder.build(max_examples=2000, verbose=True)
             corpus = [

@@ -562,3 +562,47 @@ class TestProductionUpgrades:
                 assert "verify_api_key" in deps, f"Route {route.path} missing verify_api_key auth dependency"
         assert found == 3
 
+    def test_lora_gradient_update_smoke(self):
+        """Verify that gradients properly flow to LoRA parameters during training steps without downloading models."""
+        pytest.importorskip("torch")
+        import torch
+        from transformers import AutoConfig, AutoModelForCausalLM
+        from peft import LoraConfig, get_peft_model, TaskType
+
+        cfg = AutoConfig.for_model(
+            "llama",
+            hidden_size=32,
+            num_hidden_layers=1,
+            num_attention_heads=1,
+            num_key_value_heads=1,
+            intermediate_size=64,
+            vocab_size=100,
+            max_position_embeddings=64,
+        )
+        base = AutoModelForCausalLM.from_config(cfg)
+        lora_cfg = LoraConfig(r=4, lora_alpha=8, target_modules=["q_proj", "v_proj"], task_type=TaskType.CAUSAL_LM)
+        model = get_peft_model(base, lora_cfg)
+
+        opt = torch.optim.AdamW(model.parameters(), lr=0.1)
+        w_before = model.base_model.model.model.layers[0].self_attn.q_proj.lora_A.default.weight.clone()
+
+        input_ids = torch.randint(0, 100, (2, 8))
+        out = model(input_ids, labels=input_ids)
+        out.loss.backward()
+        opt.step()
+
+        w_after = model.base_model.model.model.layers[0].self_attn.q_proj.lora_A.default.weight
+        diff = (w_after - w_before).abs().sum().item()
+        assert diff > 0.0, "LoRA weights must be updated by optimizer step"
+
+    def test_load_doom_dataset_real_data(self):
+        """Verify that real doom dataset can be loaded and scored."""
+        from src.attacks.doom_reward_model import load_doom_dataset
+        examples = load_doom_dataset()
+        assert len(examples) > 0
+        for ex in examples[:5]:
+            assert "text" in ex
+            assert "doom_score" in ex
+            assert 0.0 <= ex["doom_score"] <= 100.0
+
+

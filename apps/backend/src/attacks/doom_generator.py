@@ -244,14 +244,26 @@ class ProductionDoomGenerator:
             })
 
             logger.info(f"Loading base model with 4-bit QLoRA on rank {self.local_rank}...")
-            base = AutoModelForCausalLM.from_pretrained(
-                self.model_cfg["model_id"],
-                quantization_config=bnb_config,
-                device_map={"": self.local_rank},   # put on this GPU rank
-                torch_dtype=torch.bfloat16,
-                cache_dir=HF_CACHE_DIR,
-                attn_implementation="flash_attention_2",  # FlashAttention-2 on H100
-            )
+            attn_impl = "eager" if self.model_tier == "27b" else "flash_attention_2"
+            try:
+                base = AutoModelForCausalLM.from_pretrained(
+                    self.model_cfg["model_id"],
+                    quantization_config=bnb_config,
+                    device_map={"": self.local_rank},
+                    torch_dtype=torch.bfloat16,
+                    cache_dir=HF_CACHE_DIR,
+                    attn_implementation=attn_impl,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load with attn_implementation={attn_impl}, retrying with eager: {e}")
+                base = AutoModelForCausalLM.from_pretrained(
+                    self.model_cfg["model_id"],
+                    quantization_config=bnb_config,
+                    device_map={"": self.local_rank},
+                    torch_dtype=torch.bfloat16,
+                    cache_dir=HF_CACHE_DIR,
+                    attn_implementation="eager",
+                )
             base.config.use_cache = False  # Required for gradient checkpointing
 
             # Load existing LoRA checkpoint or init fresh
@@ -336,7 +348,8 @@ class ProductionDoomGenerator:
             results = []
             for i in range(0, len(texts), batch_size):
                 batch = texts[i:i + batch_size]
-                results.extend(self._generate_hpc_batch(batch, target_doom))
+                prompts = [self._build_prompt(t, target_doom) for t in batch]
+                results.extend(self._generate_hpc_batch(prompts, target_doom))
             return results
         return [self._generate_fallback(t, target_doom) for t in texts]
 
@@ -417,13 +430,25 @@ class ProductionDoomGenerator:
 
     def merge_and_export(self, export_path: Path) -> Path:
         """Merge LoRA weights into base model and save for deployment."""
-        if self._model is None:
-            raise RuntimeError("No model loaded.")
+        if self._model is None and not self.checkpoint_path.exists():
+            raise RuntimeError("No model or checkpoint available.")
+        import torch
         from peft import PeftModel
-        merged = self._model.merge_and_unload()
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        export_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Reloading base {self.model_cfg['model_id']} in bfloat16 for clean LoRA merge...")
+        base = AutoModelForCausalLM.from_pretrained(
+            self.model_cfg["model_id"],
+            torch_dtype=torch.bfloat16,
+            device_map="auto" if torch.cuda.is_available() else "cpu",
+            cache_dir=HF_CACHE_DIR,
+        )
+        model_to_merge = PeftModel.from_pretrained(base, str(self.checkpoint_path))
+        merged = model_to_merge.merge_and_unload()
         merged.save_pretrained(str(export_path))
-        if self._tokenizer:
-            self._tokenizer.save_pretrained(str(export_path))
+        tok = self._tokenizer or AutoTokenizer.from_pretrained(self.model_cfg["model_id"], cache_dir=HF_CACHE_DIR)
+        tok.save_pretrained(str(export_path))
         logger.info(f"Merged model saved to {export_path}")
         return export_path
 

@@ -75,6 +75,12 @@ cd "$REPO_DIR"
 # ── Verify GPU availability ───────────────────────────────────────────────────
 python3 -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'GPUs: {torch.cuda.device_count()}'); print(f'CUDA: {torch.version.cuda}')"
 
+# ── Master address resolution for multi-node torchrun ────────────────────────
+MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" 2>/dev/null | head -n 1 || echo "localhost")
+MASTER_PORT=29500
+export MASTER_ADDR MASTER_PORT
+export PYTHONPATH="$REPO_DIR/apps/backend:${PYTHONPATH:-}"
+
 # ── Phase 0: Reward Model Warm-Up (if no checkpoint exists) ──────────────────
 REWARD_CKPT="$CHECKPOINT_DIR/reward_model"
 if [ ! -d "$REWARD_CKPT" ]; then
@@ -83,7 +89,7 @@ if [ ! -d "$REWARD_CKPT" ]; then
     HF_HOME="$HF_HOME" \
     DOOM_GAN_CHECKPOINT="$CHECKPOINT_DIR" \
     DOOM_GAN_MODEL="$DOOM_GAN_MODEL" \
-    python3 apps/backend/src/attacks/doom_reward_model.py \
+    python3 "$REPO_DIR/apps/backend/src/attacks/doom_reward_model.py" \
         --train \
         --epochs 5 \
         --batch-size 32
@@ -92,7 +98,7 @@ else
     echo "Phase 0 skipped: reward model checkpoint found at $REWARD_CKPT"
 fi
 
-# ── Phase 1: GAN Adversarial Training ────────────────────────────────────────
+# ── Phase 1: GAN Adversarial Training (GRPO + WGAN) ─────────────────────────
 echo "Phase 1: GAN training (model=$DOOM_GAN_MODEL, epochs=$DOOM_GAN_EPOCHS)..."
 
 # Distributed training via torchrun
@@ -101,15 +107,15 @@ HF_HOME="$HF_HOME" \
 DOOM_GAN_CHECKPOINT="$CHECKPOINT_DIR" \
 DOOM_GAN_MODEL="$DOOM_GAN_MODEL" \
 WANDB_PROJECT="doom-gan" \
-WANDB_RUN_NAME="doomgan-${DOOM_GAN_MODEL}-job${SLURM_JOB_ID}" \
+WANDB_RUN_NAME="doomgan-${DOOM_GAN_MODEL}-job${SLURM_JOB_ID:-local}" \
 torchrun \
-    --nnodes=$SLURM_NNODES \
+    --nnodes=${SLURM_NNODES:-1} \
     --nproc-per-node=4 \
     --rdzv-backend=c10d \
-    --rdzv-endpoint=$SLURM_NODELIST:29500 \
-    --rdzv-id=$SLURM_JOB_ID \
-    apps/backend/src/attacks/doom_gan_trainer.py \
-        --config configs/doom_gan_hpc.yaml \
+    --rdzv-endpoint="$MASTER_ADDR:$MASTER_PORT" \
+    --rdzv-id="${SLURM_JOB_ID:-12345}" \
+    "$REPO_DIR/apps/backend/src/attacks/doom_gan_trainer.py" \
+        --config "$REPO_DIR/configs/doom_gan_hpc.yaml" \
         --model-tier "$DOOM_GAN_MODEL" \
         --epochs "$DOOM_GAN_EPOCHS" \
         --seed-size "$DOOM_GAN_SEED_SIZE"
@@ -119,26 +125,26 @@ EXIT_CODE=$?
 # ── Post-training ─────────────────────────────────────────────────────────────
 echo "Training finished with exit code $EXIT_CODE"
 echo "Checkpoint dir contents:"
-ls -lh "$CHECKPOINT_DIR" | head -20
+ls -lh "$CHECKPOINT_DIR" 2>/dev/null | head -20
 
 if [ $EXIT_CODE -eq 0 ]; then
-    # Optional: merge LoRA and export final model
     echo "Exporting merged model..."
     HPC_MODE=1 \
     HF_HOME="$HF_HOME" \
     DOOM_GAN_CHECKPOINT="$CHECKPOINT_DIR" \
     DOOM_GAN_MODEL="$DOOM_GAN_MODEL" \
-    python3 - <<'PYEOF'
+    python3 -c "
+import os, sys
 from pathlib import Path
-import os
 from src.attacks.doom_generator import ProductionDoomGenerator
-gen = ProductionDoomGenerator(model_tier=os.environ["DOOM_GAN_MODEL"])
-gen._load()
-if gen._model:
-    export = Path(os.environ["DOOM_GAN_CHECKPOINT"]) / "merged_final"
+gen = ProductionDoomGenerator(model_tier=os.environ['DOOM_GAN_MODEL'])
+export = Path(os.environ['DOOM_GAN_CHECKPOINT']) / 'merged_final'
+try:
     gen.merge_and_export(export)
-    print(f"Merged model saved to {export}")
-PYEOF
+    print(f'Merged model saved to {export}')
+except Exception as e:
+    print(f'Export warning: {e}')
+"
 fi
 
 echo "DoomGAN job complete."

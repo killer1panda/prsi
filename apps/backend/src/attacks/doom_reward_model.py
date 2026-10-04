@@ -245,6 +245,7 @@ class DoomRewardModel:
     def _rank_loss(self, pred: "torch.Tensor", target: "torch.Tensor") -> "torch.Tensor":
         """Pairwise ranking loss within batch."""
         import torch
+        import torch.nn as nn
         n = pred.size(0)
         loss = torch.tensor(0.0, device=pred.device)
         count = 0

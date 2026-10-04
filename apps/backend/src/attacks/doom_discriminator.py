@@ -134,6 +134,9 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
 
         # Lightweight CNN fallback (used when DeBERTa not loaded)
         self._cnn_fallback = self._build_cnn_fallback()
+        self._proj = nn.Linear(128, self.HIDDEN_SIZE)
+        self._emb_proj = nn.Linear(128, self.HIDDEN_SIZE)
+        self._tokenizer = None
         self._encoder_loaded = False
 
     def _build_cnn_fallback(self) -> "nn.Module":
@@ -153,8 +156,12 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
         if not HPC_MODE:
             return False
         try:
-            from transformers import AutoModel
-            logger.info(f"Loading DeBERTa-v3-large critic encoder...")
+            from transformers import AutoModel, AutoTokenizer
+            logger.info(f"Loading DeBERTa-v3-large critic encoder & tokenizer...")
+            self._tokenizer = AutoTokenizer.from_pretrained(
+                self.DEBERTA_MODEL,
+                cache_dir=HF_CACHE_DIR,
+            )
             self._encoder = AutoModel.from_pretrained(
                 self.DEBERTA_MODEL,
                 cache_dir=HF_CACHE_DIR,
@@ -200,13 +207,27 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
 
     def _cnn_encode(self, input_ids: "torch.Tensor") -> "torch.Tensor":
         """CNN fallback encoding → mean-pool to [B, 128] → project to [B, 1024]."""
-        import torch
         emb = self._cnn_fallback[0](input_ids)  # [B, L, 128]
         pooled = emb.mean(dim=1)                # [B, 128]
-        # Project to critic head input size via learned linear
-        if not hasattr(self, "_proj"):
-            self._proj = nn.Linear(128, self.HIDDEN_SIZE).to(input_ids.device)
         return self._proj(pooled)               # [B, 1024]
+
+    def tokenize(self, texts: List[str], max_length: int = 128) -> Tuple["torch.Tensor", "torch.Tensor"]:
+        """Tokenize texts using DeBERTa's tokenizer if available, else fallback."""
+        import torch
+        if self._load_encoder() and self._tokenizer is not None:
+            enc = self._tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
+            return enc["input_ids"].to(self.critic_head[0].weight.device), enc["attention_mask"].to(self.critic_head[0].weight.device)
+        # Fast local deterministic hash tokenization
+        batch_ids = []
+        for t in texts:
+            words = t.split()[:max_length]
+            ids = [abs(hash(w)) % 32000 for w in words] or [0]
+            batch_ids.append(ids)
+        max_l = max(len(b) for b in batch_ids)
+        padded = [b + [0] * (max_l - len(b)) for b in batch_ids]
+        mask = [[1] * len(b) + [0] * (max_l - len(b)) for b in batch_ids]
+        dev = self.critic_head[0].weight.device
+        return torch.tensor(padded, dtype=torch.long, device=dev), torch.tensor(mask, dtype=torch.long, device=dev)
 
     def forward(
         self,
@@ -239,8 +260,7 @@ class WassersteinCritic(nn.Module if TORCH_AVAILABLE else object):
         """
         pooled = embeddings.mean(dim=1)  # [B, D]
         if pooled.shape[-1] != self.HIDDEN_SIZE:
-            if not hasattr(self, "_emb_proj"):
-                import torch.nn as nn
+            if not hasattr(self, "_emb_proj") or self._emb_proj.in_features != pooled.shape[-1]:
                 self._emb_proj = nn.Linear(pooled.shape[-1], self.HIDDEN_SIZE).to(pooled.device)
             pooled = self._emb_proj(pooled)
         return self.critic_head(pooled)
@@ -481,10 +501,21 @@ class MultiRewardComposer:
                     if sim > max_sim:
                         max_sim = sim
             return float(1.0 - max_sim)
-        elif self.known_attack_embeddings is None:
+        elif self.known_attack_embeddings is not None:
+            sbert = _get_sbert()
+            if sbert is not None:
+                try:
+                    gen_emb = sbert.encode([generated], convert_to_tensor=False)
+                    sims = np.dot(self.known_attack_embeddings, gen_emb[0]) / (
+                        np.linalg.norm(self.known_attack_embeddings, axis=1) *
+                        np.linalg.norm(gen_emb[0]) + 1e-8
+                    )
+                    return float(1.0 - np.max(sims))
+                except Exception:
+                    pass
+            return 0.7
+        else:
             return 1.0  # No corpus or embeddings = 100% novel
-
-        return 0.7  # Default fallback
 
     def compute(self, original: str, generated: str) -> Dict[str, float]:
         w = self.weights

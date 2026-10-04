@@ -505,3 +505,60 @@ class TestAggressiveRedTeamOrchestrator:
         results = ort.full_assault(NEUTRAL_TEXT, max_variants=10)
         uplifts = [r.doom_uplift for r in results]
         assert uplifts == sorted(uplifts, reverse=True)
+
+
+# =============================================================================
+# Production Upgrades Verification Tests
+# =============================================================================
+
+class TestProductionUpgrades:
+
+    def test_critic_tokenize_and_params(self):
+        pytest.importorskip("torch")
+        from src.attacks.doom_discriminator import WassersteinCritic
+        critic = WassersteinCritic()
+        param_names = [name for name, _ in critic.named_parameters()]
+        assert any("_proj" in name for name in param_names)
+        assert any("_emb_proj" in name for name in param_names)
+        ids, mask = critic.tokenize(["Test breaking crisis!", "Normal headline."])
+        assert ids.shape[0] == 2
+        assert mask.shape == ids.shape
+
+    def test_multi_reward_novelty_embeddings(self):
+        import numpy as np
+        from src.attacks.doom_discriminator import MultiRewardComposer
+        dummy_embs = np.random.randn(5, 384)
+        rc = MultiRewardComposer(known_attack_embeddings=dummy_embs)
+        score = rc.r_novelty("Something completely unexpected happened.")
+        assert 0.0 <= score <= 1.0
+
+    def test_reward_model_rank_loss(self):
+        pytest.importorskip("torch")
+        import torch
+        from src.attacks.doom_reward_model import DoomRewardModel
+        rm = DoomRewardModel()
+        pred = torch.tensor([80.0, 30.0, 95.0, 10.0])
+        target = torch.tensor([75.0, 25.0, 90.0, 15.0])
+        loss = rm._rank_loss(pred, target)
+        assert isinstance(loss, torch.Tensor)
+        assert float(loss.item()) >= 0.0
+
+    def test_training_config_grpo_default(self):
+        from src.attacks.doom_gan_trainer import TrainingConfig, DoomGANTrainer
+        cfg = TrainingConfig()
+        assert cfg.training_mode == "grpo"
+        assert cfg.model_tier == "27b"
+        trainer = DoomGANTrainer(config=cfg)
+        assert hasattr(trainer, "_train_grpo")
+
+    def test_api_gan_endpoints_require_auth(self):
+        from src.api.api_v2_production import app
+        gan_paths = ["/security/gan/generate", "/security/gan/train", "/security/gan/status"]
+        found = 0
+        for route in app.routes:
+            if getattr(route, "path", None) in gan_paths:
+                found += 1
+                deps = [d.dependency.__name__ for d in route.dependencies if hasattr(d, "dependency") and hasattr(d.dependency, "__name__")]
+                assert "verify_api_key" in deps, f"Route {route.path} missing verify_api_key auth dependency"
+        assert found == 3
+

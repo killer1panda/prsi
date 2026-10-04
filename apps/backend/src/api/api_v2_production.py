@@ -1177,8 +1177,8 @@ def _get_gan_generator():
     return _gan_generator
 
 
-@app.post("/security/gan/generate", tags=["security"])
-async def gan_generate(request: Request):
+@app.post("/security/gan/generate", tags=["Security"], dependencies=[Depends(verify_api_key)])
+async def gan_generate(request: Request, api_key: str = Depends(verify_api_key)):
     """
     Generate one or more adversarial variants of a text using the DoomGAN generator.
 
@@ -1216,11 +1216,12 @@ async def gan_generate(request: Request):
                 "reward_scores": rewards,
             })
 
+        gen_mode = f"{gen.model_tier}_lora" if getattr(gen, "_model", None) is not None else "rule_based_fallback"
         return {
             "original_text": text,
             "target_doom": target_doom,
             "generated": results,
-            "generator_mode": "t5_lora" if gen._model is not None else "rule_based_fallback",
+            "generator_mode": gen_mode,
             "request_id": getattr(request.state, "request_id", "unknown"),
         }
     except Exception as e:
@@ -1228,33 +1229,51 @@ async def gan_generate(request: Request):
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)[:200]}")
 
 
-@app.post("/security/gan/train", tags=["security"])
-async def gan_train(request: Request, background_tasks: "BackgroundTasks"):
+@app.post("/security/gan/train", tags=["Security"], dependencies=[Depends(verify_api_key)])
+async def gan_train(request: Request, background_tasks: "BackgroundTasks", api_key: str = Depends(verify_api_key)):
     """
-    Launch DoomGAN training as a background job.
+    Launch DoomGAN training as a background job or SLURM job.
 
     Body:
       epochs       (int, 5)          — training epochs
       seed_size    (int, 200)        — seed corpus size (keep low on CPU: 200-500)
       batch_size   (int, 4)          — batch size per step
       device       (str, "auto")     — auto / cpu / mps / cuda
+      submit_slurm (bool, false)     — submit as SLURM batch job on HPC
 
     Returns:
       job_id, status message. Poll GET /security/gan/status for progress.
     """
     global _gan_training_status
-    if _gan_training_status.get("state") == "running":
+    if _gan_training_status.get("state") in ("running", "submitted_slurm"):
         raise HTTPException(status_code=409, detail="Training already running. Poll /security/gan/status.")
 
     body = await request.json()
+
+    # Optional SLURM dispatch if requested
+    if body.get("submit_slurm", False):
+        import subprocess
+        slurm_script = Path(__file__).parent.parent.parent.parent / "scripts/slurm/doom_gan.sh"
+        if slurm_script.exists():
+            try:
+                res = subprocess.run(["sbatch", str(slurm_script)], capture_output=True, text=True, check=True)
+                slurm_job_id = res.stdout.strip().split()[-1]
+                _gan_training_status.update({"state": "submitted_slurm", "job_id": slurm_job_id, "started_at": time.time()})
+                return {
+                    "job_id": slurm_job_id,
+                    "state": "submitted_slurm",
+                    "message": f"Submitted SLURM job {slurm_job_id}",
+                    "request_id": getattr(request.state, "request_id", "unknown"),
+                }
+            except Exception as e:
+                logger.error(f"SLURM sbatch submission failed: {e}")
+
     config_overrides = {
         "epochs":     int(body.get("epochs", 5)),
         "seed_size":  int(body.get("seed_size", 200)),
         "batch_size": int(body.get("batch_size", 4)),
-        "device":     body.get("device", "auto"),
-        "purple_team_eval": bool(body.get("purple_team_eval", False)),
-        "eval_every": int(body.get("eval_every", 100)),
-        "verbose":    True,
+        "training_mode": body.get("training_mode", "grpo"),
+        "purple_eval_enabled": bool(body.get("purple_team_eval", False)),
     }
 
     import time
@@ -1285,16 +1304,16 @@ async def gan_train(request: Request, background_tasks: "BackgroundTasks"):
     }
 
 
-@app.get("/security/gan/status", tags=["security"])
-async def gan_status(request: Request):
+@app.get("/security/gan/status", tags=["Security"], dependencies=[Depends(verify_api_key)])
+async def gan_status(request: Request, api_key: str = Depends(verify_api_key)):
     """
     Returns current DoomGAN training status + checkpoint info.
 
     Response:
-      state          — idle / running / done / failed
+      state          — idle / running / submitted_slurm / done / failed
       summary        — training summary dict (when done)
       checkpoint     — checkpoint directory + files (when available)
-      generator_mode — t5_lora / rule_based_fallback / not_loaded
+      generator_mode — tier_lora / rule_based_fallback / not_loaded
     """
     import os
     from pathlib import Path
@@ -1314,8 +1333,8 @@ async def gan_status(request: Request):
     gen = _get_gan_generator()
     if gen is None:
         gen_mode = "not_loaded"
-    elif gen._model is not None:
-        gen_mode = "t5_lora" if gen._lora_loaded else "t5_base"
+    elif getattr(gen, "_model", None) is not None:
+        gen_mode = f"{gen.model_tier}_lora"
     else:
         gen_mode = "rule_based_fallback"
 

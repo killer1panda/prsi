@@ -232,6 +232,7 @@ class SeedCorpusBuilder:
 class TrainingConfig:
     # ── Model selection
     model_tier: str = "27b"              # 7b / 8b / 27b / 70b
+    training_mode: str = "grpo"          # "grpo" (TRL policy gradient) or "wgan" (step-by-step)
 
     # ── Data
     seed_size: int = 1000
@@ -498,8 +499,8 @@ class DoomGANTrainer:
         self.critic.train()
         self.opt_d.zero_grad()
         try:
-            real_ids, real_mask = self._tokenize(real_texts)
-            fake_ids, fake_mask = self._tokenize(gen_texts)
+            real_ids, real_mask = self.critic.tokenize(real_texts)
+            fake_ids, fake_mask = self.critic.tokenize(gen_texts)
             d_real = self.critic(real_ids, real_mask).mean()
             d_fake = self.critic(fake_ids, fake_mask).mean()
             gp = gradient_penalty(
@@ -639,6 +640,137 @@ class DoomGANTrainer:
 
         if not HPC_MODE or (self.critic is None and self.generator._model is None):
             return self._local_eval_loop(train_corpus, val_corpus)
+
+        if getattr(self.config, "training_mode", "grpo") == "grpo":
+            return self._train_grpo(train_corpus)
+
+    def _train_grpo(self, train_corpus: List[CorpusExample]) -> Dict[str, Any]:
+        """Production GRPO training using TRL and QLoRA on HPC."""
+        logger.info("Starting production GRPO policy training via TRL...")
+        import torch
+        from datasets import Dataset
+        from trl import GRPOConfig, GRPOTrainer
+        from peft import LoraConfig, TaskType
+        from transformers import BitsAndBytesConfig
+
+        cfg = self.config
+        model_cfg = self.generator.model_cfg
+
+        # 1. Prepare Dataset with formatted prompts
+        prompts = [
+            self.generator._build_prompt(ex.original_text, target_doom=85.0)
+            for ex in train_corpus
+        ]
+        originals = [ex.original_text for ex in train_corpus]
+        dataset = Dataset.from_dict({
+            "prompt": prompts,
+            "original_text": originals,
+        })
+
+        # 2. Reward functions
+        def reward_doom_func(completions, **kwargs):
+            return [self.reward_composer.r_doom(c) for c in completions]
+
+        def reward_fluency_func(completions, **kwargs):
+            return [self.reward_composer.r_fluency(c) for c in completions]
+
+        def reward_blue_bypass_func(completions, **kwargs):
+            return [self.reward_composer.r_blue(c) for c in completions]
+
+        def reward_semantic_func(prompts, completions, original_text=None, **kwargs):
+            if original_text is not None:
+                return [self.reward_composer.r_semantic(orig, c) for orig, c in zip(original_text, completions)]
+            return [self.reward_composer.r_semantic(p, c) for p, c in zip(prompts, completions)]
+
+        def reward_novelty_func(completions, **kwargs):
+            return [self.reward_composer.r_novelty(c) for c in completions]
+
+        def reward_critic_func(completions, **kwargs):
+            if self.critic is not None:
+                try:
+                    ids, mask = self.critic.tokenize(completions)
+                    with torch.no_grad():
+                        scores = self.critic(ids, mask).squeeze(-1)
+                    return [float(torch.sigmoid(s).item()) for s in scores]
+                except Exception:
+                    pass
+            return [0.5] * len(completions)
+
+        reward_funcs = [
+            reward_doom_func,
+            reward_fluency_func,
+            reward_blue_bypass_func,
+            reward_semantic_func,
+            reward_novelty_func,
+            reward_critic_func,
+        ]
+        reward_weights = [0.30, 0.15, 0.20, 0.15, 0.10, 0.10]
+
+        # 3. GRPO Config
+        grpo_args = GRPOConfig(
+            output_dir=str(self._checkpoint_dir),
+            learning_rate=cfg.lr_g,
+            per_device_train_batch_size=cfg.batch_size,
+            gradient_accumulation_steps=4,
+            num_train_epochs=cfg.epochs,
+            num_generations=4,
+            max_completion_length=200,
+            beta=cfg.lambda_kl,
+            epsilon=cfg.ppo_clip_eps,
+            bf16=cfg.bf16,
+            gradient_checkpointing=cfg.gradient_checkpointing,
+            logging_steps=10,
+            save_steps=cfg.save_every_steps,
+            report_to="wandb" if cfg.wandb_project else "none",
+            reward_weights=reward_weights,
+            scale_rewards=True,
+        )
+
+        # 4. LoRA and Quantization Configs
+        lora_config = LoraConfig(
+            r=self.generator.LORA_CONFIG["r"],
+            lora_alpha=self.generator.LORA_CONFIG["lora_alpha"],
+            target_modules=model_cfg["lora_targets"],
+            lora_dropout=self.generator.LORA_CONFIG["lora_dropout"],
+            bias=self.generator.LORA_CONFIG["bias"],
+            task_type=TaskType.CAUSAL_LM,
+        )
+
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
+
+        # 5. Initialize GRPOTrainer
+        trainer = GRPOTrainer(
+            model=model_cfg["model_id"],
+            reward_funcs=reward_funcs,
+            args=grpo_args,
+            train_dataset=dataset,
+            peft_config=lora_config,
+            quantization_config=bnb_config,
+        )
+
+        # 6. Train
+        start = time.time()
+        train_result = trainer.train()
+        elapsed = time.time() - start
+
+        # 7. Save final adapter
+        final_adapter_dir = self._checkpoint_dir / "lora_adapter"
+        trainer.save_model(str(final_adapter_dir))
+        logger.info(f"GRPO training complete in {elapsed/60:.1f} min. Model saved to {final_adapter_dir}")
+
+        return {
+            "mode": "grpo",
+            "epochs": cfg.epochs,
+            "elapsed_sec": round(elapsed, 1),
+            "model_tier": cfg.model_tier,
+            "checkpoint_dir": str(self._checkpoint_dir),
+            "train_metrics": train_result.metrics if hasattr(train_result, "metrics") else {},
+        }
 
         # High-doom texts → real samples for D
         real_corpus = [c for c in train_corpus if c.adversarial_doom > 60]

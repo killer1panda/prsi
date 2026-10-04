@@ -12,6 +12,7 @@
 
 # ── Model ────────────────────────────────────────────────────────────────────
 model_tier: "27b"           # 7b | 8b | 27b | 70b
+training_mode: "grpo"       # grpo (TRL Group Relative Policy Optimization) | wgan
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 seed_size: 2000             # Rule-based corpus size (2000 for 27b, 5000 for 70b)

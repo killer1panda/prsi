@@ -109,13 +109,13 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
   );
 };
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt: Wrapped in React.memo to prevent unnecessary re-renders when parent globalScore changes every 2 seconds
+const LiveFeedPanel = React.memo(() => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +195,11 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
+LiveFeedPanel.displayName = "LiveFeedPanel";
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt: Wrapped in React.memo to prevent unnecessary re-renders when parent globalScore changes every 2 seconds
+const ThreatAnalyzer = React.memo(({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +339,8 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
+ThreatAnalyzer.displayName = "ThreatAnalyzer";
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);
@@ -354,6 +357,7 @@ export default function ThreatIntelligenceDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // ⚡ Bolt: Wrapped in useCallback to prevent recreation on every globalScore re-render, keeping ThreatAnalyzer React.memo effective
   const handleAnalysisResult = useCallback((result: AnalysisResult) => {
     // Update global doom score and radar from analysis result
     setGlobalScore(result.doom_score);

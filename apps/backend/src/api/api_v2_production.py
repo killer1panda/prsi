@@ -271,6 +271,9 @@ async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(sec
     # In production, validate against database or cache
     valid_keys = os.environ.get("API_KEYS", "").split(",")
     for valid_key in valid_keys:
+        # SEC-FIX: Prevent authentication bypass by ensuring empty keys are ignored
+        if not valid_key:
+            continue
         if secrets.compare_digest(credentials.credentials, valid_key):
             return credentials.credentials
 
@@ -497,11 +500,15 @@ app = FastAPI(
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 _cors_origins_env = os.environ.get("ALLOWED_ORIGINS", "")
-_cors_origins = [
-    origin.strip()
-    for origin in _cors_origins_env.split(",")
-    if origin.strip() and origin.strip() != "*"
-] if _cors_origins_env else []
+_cors_origins = (
+    [
+        origin.strip()
+        for origin in _cors_origins_env.split(",")
+        if origin.strip() and origin.strip() != "*"
+    ]
+    if _cors_origins_env
+    else []
+)
 # Always include localhost origins for local development
 _LOCAL_ORIGINS = [
     "http://localhost:3000",
@@ -830,7 +837,6 @@ async def get_fl_status(api_key: str = Depends(verify_api_key)):
     }
 
 
-
 @app.post("/analyze/explain", tags=["Prediction"])
 async def analyze_explain(request: Request, api_key: str = Depends(verify_api_key)):
     """
@@ -857,6 +863,7 @@ async def analyze_explain(request: Request, api_key: str = Depends(verify_api_ke
 
     # Detailed sentiment + emoji analysis
     from src.features.sentiment import analyze_text_sentiment
+
     sent = analyze_text_sentiment(text) or {}
     emoji_metrics = sent.get("emoji_metrics", {})
 
@@ -864,6 +871,7 @@ async def analyze_explain(request: Request, api_key: str = Depends(verify_api_ke
     word_attribution: list = []
     try:
         from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer as _VADER
+
         _vader = _VADER()
         words = text.split()
         base_compound = sent.get("sentiment_compound", 0.0)
@@ -872,11 +880,17 @@ async def analyze_explain(request: Request, api_key: str = Depends(verify_api_ke
             ablated = " ".join(w for j, w in enumerate(words) if j != i)
             ablated_score = _vader.polarity_scores(ablated).get("compound", 0.0) if ablated else 0.0
             attribution_delta = base_compound - ablated_score
-            word_attribution.append({
-                "word": word,
-                "attribution": round(attribution_delta, 4),
-                "direction": "negative" if attribution_delta < -0.01 else ("positive" if attribution_delta > 0.01 else "neutral"),
-            })
+            word_attribution.append(
+                {
+                    "word": word,
+                    "attribution": round(attribution_delta, 4),
+                    "direction": (
+                        "negative"
+                        if attribution_delta < -0.01
+                        else ("positive" if attribution_delta > 0.01 else "neutral")
+                    ),
+                }
+            )
         # Return top 5 most impactful words (by abs value)
         word_attribution.sort(key=lambda x: abs(x["attribution"]), reverse=True)
         word_attribution = word_attribution[:5]
@@ -887,17 +901,20 @@ async def analyze_explain(request: Request, api_key: str = Depends(verify_api_ke
     counterfactuals: list = []
     try:
         from src.models.causal_outrage import CausalDPORewriter
+
         rewriter = CausalDPORewriter()
         variants = rewriter.generate_variants(text, n=2)
         for i, variant in enumerate(variants):
             var_result = model_manager.predict([variant])
             var_score = var_result[0]["doom_score"] if var_result else 50.0
-            counterfactuals.append({
-                "variant_id": i + 1,
-                "rewritten_text": variant,
-                "doom_score": var_score,
-                "doom_reduction": round(result["doom_score"] - var_score, 2),
-            })
+            counterfactuals.append(
+                {
+                    "variant_id": i + 1,
+                    "rewritten_text": variant,
+                    "doom_score": var_score,
+                    "doom_reduction": round(result["doom_score"] - var_score, 2),
+                }
+            )
     except Exception as e:
         logger.warning(f"Counterfactual rewriting failed: {e}")
 
@@ -1016,6 +1033,7 @@ async def live_event_stream(request: Request):
 # Red / Blue / Purple Team Security Endpoints
 # =============================================================================
 
+
 @app.post("/security/red-team", tags=["Security"])
 async def red_team_attack(request: Request, api_key: str = Depends(verify_api_key)):
     """
@@ -1036,8 +1054,8 @@ async def red_team_attack(request: Request, api_key: str = Depends(verify_api_ke
     min_sim = float(body.get("min_semantic_similarity", 0.35))
 
     try:
-        from src.attacks.red_team import RedTeamOrchestrator
         from src.attacks.purple_team import ATTACK_TECHNIQUE_MAP
+        from src.attacks.red_team import RedTeamOrchestrator
 
         def predictor_fn(t: str) -> float:
             try:
@@ -1060,10 +1078,12 @@ async def red_team_attack(request: Request, api_key: str = Depends(verify_api_ke
                 (v for k, v in ATTACK_TECHNIQUE_MAP.items() if r.attack_type.startswith(k)),
                 {"id": "T-NLP-000", "tactic": "Unknown", "subtactic": "Unknown"},
             )
-            attacks.append({
-                **r.to_dict(),
-                "technique": technique,
-            })
+            attacks.append(
+                {
+                    **r.to_dict(),
+                    "technique": technique,
+                }
+            )
 
         return {
             "request_id": getattr(request.state, "request_id", "unknown"),
@@ -1097,6 +1117,7 @@ async def blue_team_defend(request: Request, api_key: str = Depends(verify_api_k
 
     try:
         from src.attacks.blue_team import BlueTeamOrchestrator
+
         blue = BlueTeamOrchestrator()
         verdict = blue.defend(text, source_id=source_id)
         return {
@@ -1171,6 +1192,7 @@ def _get_gan_generator():
     if _gan_generator is None:
         try:
             from src.attacks.doom_generator import DoomGenerator
+
             _gan_generator = DoomGenerator()
         except Exception as e:
             logger.warning(f"DoomGenerator init failed: {e}")
@@ -1204,19 +1226,26 @@ async def gan_generate(request: Request, api_key: str = Depends(verify_api_key))
 
     try:
         from src.attacks.doom_discriminator import MultiRewardComposer
+
         reward_composer = MultiRewardComposer()
 
         results = []
         for _ in range(n_samples):
             generated_text = gen.generate(text, target_doom=target_doom)
             rewards = reward_composer.compute(text, generated_text)
-            results.append({
-                "text": generated_text,
-                "target_doom": target_doom,
-                "reward_scores": rewards,
-            })
+            results.append(
+                {
+                    "text": generated_text,
+                    "target_doom": target_doom,
+                    "reward_scores": rewards,
+                }
+            )
 
-        gen_mode = f"{gen.model_tier}_lora" if getattr(gen, "_model", None) is not None else "rule_based_fallback"
+        gen_mode = (
+            f"{gen.model_tier}_lora"
+            if getattr(gen, "_model", None) is not None
+            else "rule_based_fallback"
+        )
         return {
             "original_text": text,
             "target_doom": target_doom,
@@ -1230,7 +1259,9 @@ async def gan_generate(request: Request, api_key: str = Depends(verify_api_key))
 
 
 @app.post("/security/gan/train", tags=["Security"], dependencies=[Depends(verify_api_key)])
-async def gan_train(request: Request, background_tasks: "BackgroundTasks", api_key: str = Depends(verify_api_key)):
+async def gan_train(
+    request: Request, background_tasks: "BackgroundTasks", api_key: str = Depends(verify_api_key)
+):
     """
     Launch DoomGAN training as a background job or SLURM job.
 
@@ -1246,19 +1277,26 @@ async def gan_train(request: Request, background_tasks: "BackgroundTasks", api_k
     """
     global _gan_training_status
     if _gan_training_status.get("state") in ("running", "submitted_slurm"):
-        raise HTTPException(status_code=409, detail="Training already running. Poll /security/gan/status.")
+        raise HTTPException(
+            status_code=409, detail="Training already running. Poll /security/gan/status."
+        )
 
     body = await request.json()
 
     # Optional SLURM dispatch if requested
     if body.get("submit_slurm", False):
         import subprocess
+
         slurm_script = Path(__file__).parent.parent.parent.parent / "scripts/slurm/doom_gan.sh"
         if slurm_script.exists():
             try:
-                res = subprocess.run(["sbatch", str(slurm_script)], capture_output=True, text=True, check=True)
+                res = subprocess.run(
+                    ["sbatch", str(slurm_script)], capture_output=True, text=True, check=True
+                )
                 slurm_job_id = res.stdout.strip().split()[-1]
-                _gan_training_status.update({"state": "submitted_slurm", "job_id": slurm_job_id, "started_at": time.time()})
+                _gan_training_status.update(
+                    {"state": "submitted_slurm", "job_id": slurm_job_id, "started_at": time.time()}
+                )
                 return {
                     "job_id": slurm_job_id,
                     "state": "submitted_slurm",
@@ -1269,21 +1307,25 @@ async def gan_train(request: Request, background_tasks: "BackgroundTasks", api_k
                 logger.error(f"SLURM sbatch submission failed: {e}")
 
     config_overrides = {
-        "epochs":     int(body.get("epochs", 5)),
-        "seed_size":  int(body.get("seed_size", 200)),
+        "epochs": int(body.get("epochs", 5)),
+        "seed_size": int(body.get("seed_size", 200)),
         "batch_size": int(body.get("batch_size", 4)),
         "training_mode": body.get("training_mode", "grpo"),
         "purple_eval_enabled": bool(body.get("purple_team_eval", False)),
     }
 
     import time
+
     job_id = f"gan_train_{int(time.time())}"
-    _gan_training_status.update({"state": "running", "started_at": time.time(), "job_id": job_id, "summary": None})
+    _gan_training_status.update(
+        {"state": "running", "started_at": time.time(), "job_id": job_id, "summary": None}
+    )
 
     async def _run_training():
         global _gan_training_status
         try:
             from src.attacks.doom_gan_trainer import DoomGANTrainer, TrainingConfig
+
             cfg = TrainingConfig(**config_overrides)
             trainer = DoomGANTrainer(config=cfg)
             summary = trainer.train()
@@ -1317,6 +1359,7 @@ async def gan_status(request: Request, api_key: str = Depends(verify_api_key)):
     """
     import os
     from pathlib import Path
+
     from src.attacks.doom_generator import DEFAULT_CHECKPOINT_DIR
 
     checkpoint_info = {"path": str(DEFAULT_CHECKPOINT_DIR), "files": []}

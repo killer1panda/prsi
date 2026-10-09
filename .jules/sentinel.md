@@ -7,3 +7,7 @@
 **Vulnerability:** Found multiple scraper scripts (selenium_login.py, run_twitter_scraper.py, playwright_login.py, playwright_login_v2.py, uc_login.py) that contained hardcoded plain-text developer credentials for Twitter (email, username, password) which would be exposed in the repository.
 **Learning:** Hardcoded credentials are often copied across multiple similar scripts as different approaches are attempted (e.g., trying different scraping tools like Selenium, Playwright, or Twikit). Finding one hardcoded secret likely means others exist in sibling scripts.
 **Prevention:** All scripts, even one-off helper or test scripts, should retrieve credentials using environment variables (`os.environ.get()` or a centralized config manager) instead of hardcoding them. Establish a pre-commit hook to scan for sensitive tokens.
+## 2026-10-09 - Empty String Bypass in Secrets Comparison
+**Vulnerability:** Comparing user input against a list of valid secrets derived from splitting an empty environment variable allowed authentication bypass because `"".split(",")` returns `['']`, which matches an empty string input.
+**Learning:** In Python, string splitting an empty string results in a list containing an empty string, not an empty list. When parsing secrets from environment variables, filtering out empty values is critical before digest comparisons.
+**Prevention:** Always filter out falsy values when constructing lists of valid credentials from split strings (e.g., `if not valid_key: continue`).

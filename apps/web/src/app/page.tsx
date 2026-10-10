@@ -100,22 +100,29 @@ interface LiveEvent {
   timestamp: number;
 }
 
-const LiveScoreDisplay = ({ score }: { score: number }) => {
+// ⚡ Bolt Optimization:
+// Added React.memo to LiveScoreDisplay to prevent unnecessary re-renders.
+// Expected impact: Prevents re-rendering every 2 seconds when other states change, improving render performance by avoiding DOM reconciliation.
+const LiveScoreDisplay = React.memo(({ score }: { score: number }) => {
   return (
     <div className={`text-7xl font-black tracking-tighter flex items-baseline ${getRiskColor(score)}`}>
       {score.toFixed(1)}
       <span className="text-2xl text-zinc-500 ml-2">/ 100</span>
     </div>
   );
-};
+});
+LiveScoreDisplay.displayName = "LiveScoreDisplay";
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt Optimization:
+// Added React.memo to LiveFeedPanel. Also removed the synchronous `setSseStatus("connecting")` inside `useEffect`
+// and set it as the initial state `useState("connecting")` to prevent cascading renders on mount.
+// Expected impact: Reduces double-rendering on mount and avoids re-rendering every 2 seconds from parent interval.
+const LiveFeedPanel = React.memo(() => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +202,13 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
+LiveFeedPanel.displayName = "LiveFeedPanel";
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt Optimization:
+// Added React.memo to ThreatAnalyzer. The `onResult` callback in the parent is already wrapped in `useCallback`.
+// Expected impact: Prevents expensive re-renders of this complex component (which manages its own fetch state and rendering) every 2 seconds.
+const ThreatAnalyzer = React.memo(({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +348,8 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
+ThreatAnalyzer.displayName = "ThreatAnalyzer";
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);

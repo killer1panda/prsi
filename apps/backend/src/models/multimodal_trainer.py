@@ -309,12 +309,41 @@ class MultimodalTrainer:
             num_training_steps=total_steps,
         )
 
+    def _compute_cached_graph_embeddings(self):
+        """Precompute static node representations once per epoch to avoid O(batches * |E|) cost."""
+        raw_model = self.model.module if hasattr(self.model, "module") else self.model
+        if not (hasattr(raw_model, "hypergraph_encoder") and hasattr(raw_model, "graph_proj")):
+            return None
+
+        hyperedge_index = getattr(self.graph_data, "hyperedge_index", None)
+        if hyperedge_index is None:
+            hyperedge_index = self.graph_data.edge_index
+        edge_weight = getattr(self.graph_data, "edge_weight", None)
+        edge_type = getattr(self.graph_data, "edge_type", None)
+        if edge_type is None:
+            edge_type = torch.zeros(self.graph_data.edge_index.size(1), dtype=torch.long, device=self.device)
+
+        neighbor_embs = self.graph_data.x.unsqueeze(1)
+        time_deltas = torch.zeros(self.graph_data.x.size(0), 1, device=self.device)
+
+        hg_emb = raw_model.hypergraph_encoder(self.graph_data.x, hyperedge_index, edge_weight)
+        cg_emb = raw_model.compgcn_encoder(self.graph_data.x, self.graph_data.edge_index, edge_type)
+        ct_emb = raw_model.ctdga_encoder(self.graph_data.x, neighbor_embs, time_deltas)
+        combined_graph = torch.cat([hg_emb, cg_emb, ct_emb], dim=-1)
+        return raw_model.graph_proj(combined_graph)
+
     def train_epoch(self, epoch: int):
-        """Train for one epoch."""
+        """Train for one epoch with precomputed graph representations."""
         self.model.train()
 
         if self.ddp:
             self.train_loader.sampler.set_epoch(epoch)
+
+        # Precompute static graph representations once per epoch
+        with torch.no_grad():
+            self.model.eval()
+            cached_graph_embs = self._compute_cached_graph_embeddings()
+            self.model.train()
 
         total_loss = 0.0
         num_batches = 0
@@ -330,16 +359,22 @@ class MultimodalTrainer:
             labels = batch["label"].to(self.device)
 
             with autocast(enabled=self.fp16):
-                logits = self.model(
-                    x=self.graph_data.x,
-                    edge_index=self.graph_data.edge_index,
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    user_indices=user_indices,
-                    edge_weight=getattr(self.graph_data, "edge_weight", None),
-                    hyperedge_index=getattr(self.graph_data, "hyperedge_index", None),
-                    edge_type=getattr(self.graph_data, "edge_type", None),
-                )
+                if cached_graph_embs is not None:
+                    raw_model = self.model.module if hasattr(self.model, "module") else self.model
+                    batch_user_embs = cached_graph_embs[user_indices]
+                    text_embeddings = raw_model.text_encoder(input_ids, attention_mask)
+                    logits = raw_model.fusion(batch_user_embs, text_embeddings)
+                else:
+                    logits = self.model(
+                        x=self.graph_data.x,
+                        edge_index=self.graph_data.edge_index,
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        user_indices=user_indices,
+                        edge_weight=getattr(self.graph_data, "edge_weight", None),
+                        hyperedge_index=getattr(self.graph_data, "hyperedge_index", None),
+                        edge_type=getattr(self.graph_data, "edge_type", None),
+                    )
 
                 # Focal Loss — blueprint-required for imbalanced doom score distribution
                 loss = self.criterion(logits, labels)
@@ -386,6 +421,8 @@ class MultimodalTrainer:
         all_probs = []
         total_loss = 0.0
 
+        cached_graph_embs = self._compute_cached_graph_embeddings()
+
         for batch in tqdm(self.val_loader, desc="Evaluating", disable=self.local_rank != 0):
             input_ids = batch["input_ids"].to(self.device)
             attention_mask = batch["attention_mask"].to(self.device)
@@ -393,16 +430,22 @@ class MultimodalTrainer:
             labels = batch["label"].to(self.device)
 
             with autocast(enabled=self.fp16):
-                logits = self.model(
-                    x=self.graph_data.x,
-                    edge_index=self.graph_data.edge_index,
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    user_indices=user_indices,
-                    edge_weight=getattr(self.graph_data, "edge_weight", None),
-                    hyperedge_index=getattr(self.graph_data, "hyperedge_index", None),
-                    edge_type=getattr(self.graph_data, "edge_type", None),
-                )
+                if cached_graph_embs is not None:
+                    raw_model = self.model.module if hasattr(self.model, "module") else self.model
+                    batch_user_embs = cached_graph_embs[user_indices]
+                    text_embeddings = raw_model.text_encoder(input_ids, attention_mask)
+                    logits = raw_model.fusion(batch_user_embs, text_embeddings)
+                else:
+                    logits = self.model(
+                        x=self.graph_data.x,
+                        edge_index=self.graph_data.edge_index,
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        user_indices=user_indices,
+                        edge_weight=getattr(self.graph_data, "edge_weight", None),
+                        hyperedge_index=getattr(self.graph_data, "hyperedge_index", None),
+                        edge_type=getattr(self.graph_data, "edge_type", None),
+                    )
 
                 loss = nn.functional.cross_entropy(logits, labels)
 

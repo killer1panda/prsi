@@ -214,12 +214,18 @@ class DriftDetector:
             first_buffer = list(self.detection_buffer.values())[0]
             if len(first_buffer) >= 100:
                 # Reconstruct recent samples
-                recent = np.array(
-                    [
-                        list(self.detection_buffer.get(f"feat_{i}", [0] * 100))[-100:]
-                        for i in range(len(self.reference_stats))
-                    ]
-                ).T
+                recent_features = []
+                for i in range(len(self.reference_stats)):
+                    key = (
+                        self.config.feature_names[i]
+                        if i < len(self.config.feature_names)
+                        else f"feat_{i}"
+                    )
+                    recent_features.append(
+                        list(self.detection_buffer.get(key, [0.0] * 100))[-100:]
+                    )
+
+                recent = np.array(recent_features).T
 
                 if recent.shape[1] == len(self.reference_stats):
                     X_recent = torch.tensor(recent, dtype=torch.float32)

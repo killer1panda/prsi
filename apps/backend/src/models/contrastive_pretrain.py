@@ -32,12 +32,12 @@ class ContrastiveConfig:
 
 
 class NTXentLoss(nn.Module):
-    """Normalized Temperature-scaled Cross Entropy Loss (SimCLR)."""
+    """Memory-bounded NT-Xent loss with negative chunking to prevent O(N^2) memory explosion."""
 
-    def __init__(self, temperature: float = 0.07):
+    def __init__(self, temperature: float = 0.07, max_negatives: int = 1024):
         super().__init__()
         self.temperature = temperature
-        self.criterion = nn.CrossEntropyLoss()
+        self.max_negatives = max_negatives
 
     def forward(self, z_i: torch.Tensor, z_j: torch.Tensor) -> torch.Tensor:
         """
@@ -45,32 +45,28 @@ class NTXentLoss(nn.Module):
             z_i: (B, projection_dim) first augmented view
             z_j: (B, projection_dim) second augmented view
         Returns:
-            Scalar loss
+            Scalar InfoNCE loss
         """
         B = z_i.size(0)
-        z = torch.cat([z_i, z_j], dim=0)  # (2B, D)
-        z = F.normalize(z, dim=-1)
+        z_i = F.normalize(z_i, dim=-1)
+        z_j = F.normalize(z_j, dim=-1)
 
-        # Similarity matrix
-        sim = torch.mm(z, z.t()) / self.temperature  # (2B, 2B)
+        # Positive pair cosine similarities: (B,)
+        pos_sim = torch.sum(z_i * z_j, dim=-1) / self.temperature
 
-        # Mask out self-similarities
-        mask = torch.eye(2 * B, device=z.device).bool()
-        sim = sim.masked_fill(mask, -9e15)
+        # Subsample negatives if batch is large to prevent O(N^2) explosion
+        if B > self.max_negatives:
+            indices = torch.randperm(B, device=z_i.device)[:self.max_negatives]
+            neg_pool = z_j[indices]
+        else:
+            neg_pool = z_j
 
-        # Numerical stability: subtract max BEFORE extracting pos_sim
-        # (was previously subtracted AFTER, causing overflow in pos_sim)
-        sim_max, _ = sim.max(dim=1, keepdim=True)
-        sim = sim - sim_max.detach()
+        # Compute negative similarity matrix: (B, M)
+        neg_sim = torch.mm(z_i, neg_pool.t()) / self.temperature
 
-        # Positive pairs: (i, i+B) and (i+B, i) — extracted AFTER max-subtraction
-        pos_sim = torch.cat([torch.diag(sim, B), torch.diag(sim, -B)])  # (2B,)
-
-        # Denominator: sum over all negatives
-        denom = torch.exp(sim).sum(dim=1)
-
-        # Loss: -log(exp(pos) / sum(exp(all)))
-        loss = -pos_sim + torch.log(denom)
+        # InfoNCE: - log ( exp(pos) / ( exp(pos) + sum(exp(neg)) ) )
+        denom = torch.logsumexp(torch.cat([pos_sim.unsqueeze(1), neg_sim], dim=1), dim=1)
+        loss = -pos_sim + denom
         return loss.mean()
 
 

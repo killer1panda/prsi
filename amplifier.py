@@ -3,10 +3,30 @@
 🚀 DOOM AMPLIFIER: Offensive Stress Test
 Goal: Maximize Doom Score to find the model's ceiling.
 """
+import sys
+from pathlib import Path
+
+# Resolve backend imports
+backend_path = Path(__file__).resolve().parent / "apps" / "backend"
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
 import torch
+import torch.nn as nn
 import random
 from transformers import AutoTokenizer
-from scripts.train_text_baseline_v2 import DoomMistral
+from src.models.gnn_model import TextEncoder
+
+class DoomMistral(nn.Module):
+    """Self-contained Doom Mistral regression model for offensive testing."""
+    def __init__(self, model_name="mistralai/Mistral-7B-Instruct-v0.3"):
+        super().__init__()
+        self.encoder = TextEncoder(model_name=model_name)
+        self.head = nn.Linear(4096, 1)
+
+    def forward(self, input_ids, attention_mask):
+        emb = self.encoder(input_ids, attention_mask)
+        return torch.sigmoid(self.head(emb)) * 100.0
 
 class DoomAmplifier:
     def __init__(self, model_path):

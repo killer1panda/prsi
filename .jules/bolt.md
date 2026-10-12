@@ -1,3 +1,6 @@
 ## 2025-03-07 - Optimization in temporal edge extraction nested loop
 **Learning:** In Neo4j graph production builds (`extract_temporal_edges`), calculating user interactions within a timeframe used an $O(N^2)$ nested loop despite the users list already being sorted by timestamp. This is a common anti-pattern in temporal aggregations.
 **Action:** Always check if loops iterating over sorted data (like timestamps) can be short-circuited with an early `break` condition (e.g., breaking once the `time_diff` exceeds the window) to reduce the algorithm's actual time complexity.
+## 2026-10-12 - [React UseState Initialization vs UseEffect Sync Update]
+**Learning:** In Next.js/React applications, when refactoring components to prevent cascading re-renders via memoization, be vigilant about internal component state initialization. Setting initial state synchronously inside a `useEffect` hook on mount (e.g., `useEffect(() => { setStatus('connecting'); ... }, [])`) triggers an immediate secondary render cycle, hurting performance and causing linter warnings.
+**Action:** Always initialize the desired starting state directly in the `useState` hook definition (e.g., `const [status, setStatus] = useState('connecting');`) to prevent unnecessary initial double-renders.

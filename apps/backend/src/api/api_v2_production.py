@@ -271,6 +271,7 @@ async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(sec
     # In production, validate against database or cache
     valid_keys = os.environ.get("API_KEYS", "").split(",")
     for valid_key in valid_keys:
+        if not valid_key: continue
         if secrets.compare_digest(credentials.credentials, valid_key):
             return credentials.credentials
 

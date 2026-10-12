@@ -81,7 +81,7 @@ class TextEncoder(nn.Module):
         if not hpc_mode or not torch.cuda.is_available() or not PEFT_AVAILABLE:
             logger.info("Local mode or CUDA/bitsandbytes unavailable: using lightweight CPU TextEncoder (4096d)")
             self.hidden_size = 4096
-            self.embedding = nn.Embedding(32000, 4096)
+            self.embedding = nn.Embedding(32768, 4096)
             self._is_fallback = True
             return
 
@@ -121,7 +121,7 @@ class TextEncoder(nn.Module):
         except Exception as e:
             logger.warning(f"Could not load 4-bit model ({e}); falling back to lightweight 4096d encoder.")
             self.hidden_size = 4096
-            self.embedding = nn.Embedding(32000, 4096)
+            self.embedding = nn.Embedding(32768, 4096)
             self._is_fallback = True
 
     def forward(self, input_ids, attention_mask):

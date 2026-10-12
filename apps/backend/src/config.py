@@ -30,17 +30,21 @@ def load_config(config_path: str = None) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def get_env_var(key: str, default: str = None) -> str:
+def get_env_var(key: str, default: str = None, required: bool = False) -> str:
     """Get environment variable with optional default.
 
     Args:
         key: Environment variable name
         default: Default value if not found
+        required: If True, raise ValueError if variable is missing
 
     Returns:
         Environment variable value or default
     """
-    return os.getenv(key, default)
+    val = os.getenv(key, default)
+    if required and val is None:
+        raise ValueError(f"Required environment variable '{key}' is not set.")
+    return val
 
 
 class Config:

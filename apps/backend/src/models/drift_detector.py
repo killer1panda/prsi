@@ -214,13 +214,12 @@ class DriftDetector:
             first_buffer = list(self.detection_buffer.values())[0]
             if len(first_buffer) >= 100:
                 # Reconstruct recent samples
+                feature_keys = list(self.reference_stats.keys()) if self.reference_stats else [
+                    self.config.feature_names[i] if i < len(self.config.feature_names) else f"feat_{i}"
+                    for i in range(len(self.reference_stats))
+                ]
                 recent_features = []
-                for i in range(len(self.reference_stats)):
-                    key = (
-                        self.config.feature_names[i]
-                        if i < len(self.config.feature_names)
-                        else f"feat_{i}"
-                    )
+                for key in feature_keys:
                     recent_features.append(
                         list(self.detection_buffer.get(key, [0.0] * 100))[-100:]
                     )

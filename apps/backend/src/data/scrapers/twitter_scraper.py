@@ -126,20 +126,20 @@ class TwitterScraper:
         # ---------------------
         # Resolve config
         # ---------------------
-        self.api_key = api_key or get_env_var("TWITTER_API_KEY", required=False)
-        self.api_secret = api_secret or get_env_var("TWITTER_API_SECRET", required=False)
-        self.access_token = access_token or get_env_var("TWITTER_ACCESS_TOKEN", required=False)
-        self.access_secret = access_secret or get_env_var("TWITTER_ACCESS_SECRET", required=False)
-        self.bearer_token = bearer_token or get_env_var("TWITTER_BEARER_TOKEN", required=False)
+        self.api_key = api_key or get_env_var("TWITTER_API_KEY")
+        self.api_secret = api_secret or get_env_var("TWITTER_API_SECRET")
+        self.access_token = access_token or get_env_var("TWITTER_ACCESS_TOKEN")
+        self.access_secret = access_secret or get_env_var("TWITTER_ACCESS_SECRET")
+        self.bearer_token = bearer_token or get_env_var("TWITTER_BEARER_TOKEN")
 
         self.twikit_config = twikit_config or TwikitConfig(
-            email=get_env_var("TWIKIT_EMAIL", required=False),
-            username=get_env_var("TWIKIT_USERNAME", required=False),
-            password=get_env_var("TWIKIT_PASSWORD", required=False),
-            two_factor_secret=get_env_var("TWIKIT_2FA_SECRET", required=False),
-            session_file=get_env_var("TWIKIT_SESSION_FILE", required=False),
-            cookies_file=get_env_var("TWIKIT_COOKIES_FILE", required=False),
-            search_product=get_env_var("TWIKIT_SEARCH_PRODUCT", required=False) or "Top",
+            email=get_env_var("TWIKIT_EMAIL"),
+            username=get_env_var("TWIKIT_USERNAME"),
+            password=get_env_var("TWIKIT_PASSWORD"),
+            two_factor_secret=get_env_var("TWIKIT_2FA_SECRET"),
+            session_file=get_env_var("TWIKIT_SESSION_FILE"),
+            cookies_file=get_env_var("TWIKIT_COOKIES_FILE"),
+            search_product=get_env_var("TWIKIT_SEARCH_PRODUCT") or "Top",
         )
 
         # ---------------------

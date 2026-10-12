@@ -1,7 +1,7 @@
 {
   "regulation": "Regulation (EU) 2024/1689 (EU AI Act)",
   "classification": "High-Risk AI System (Annex III, Category 5/8)",
-  "dossier_id": "EU-AIA-ANNEX4-20260831181243",
+  "dossier_id": "EU-AIA-ANNEX4-20261012171041",
   "system_description": {
     "intended_purpose": "Predictive Social Outrage & Cascade Risk Assessment",
     "model_architecture": "Multimodal Qwen2-VL + Mistral-7B QLoRA + Hypergraph HGNN + DiT Diffusion"

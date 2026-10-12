@@ -4,9 +4,9 @@ services:
     url: http://doom-backend-svc:80
     routes:
       - name: doom-backend-route
+        strip_path: false
         paths:
           - /api/v2
-        strip_path: true
     plugins:
       - name: rate-limiting
         config:

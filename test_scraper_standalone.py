@@ -8,8 +8,9 @@ import json
 import os
 import sys
 
-# Add the scrapers folder to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src/data/scrapers"))
+# Add the scrapers folder from apps/backend to sys.path
+root_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(root_dir, "apps", "backend", "src", "data", "scrapers"))
 
 # Now import just what we need
 from loguru import logger

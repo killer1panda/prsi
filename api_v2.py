@@ -9,8 +9,14 @@ Endpoints:
 """
 
 import logging
-import sys
 from pathlib import Path
+import sys
+from typing import Any, Dict, List, Optional
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel, Field
 
 # Ensure apps/backend is in sys.path
 root_dir = Path(__file__).resolve().parent

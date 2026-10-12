@@ -447,7 +447,7 @@ class MultimodalTrainer:
                         edge_type=getattr(self.graph_data, "edge_type", None),
                     )
 
-                loss = nn.functional.cross_entropy(logits, labels)
+                loss = self.criterion(logits, labels)
 
             total_loss += loss.item()
 

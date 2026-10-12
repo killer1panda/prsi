@@ -4,12 +4,14 @@
 
 """FastAPI application for doom-index predictions."""
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import sys
+import logging
 from pathlib import Path
+import sys
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
 # Ensure apps/backend is in sys.path
 root_dir = Path(__file__).resolve().parent

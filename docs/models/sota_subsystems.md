@@ -55,3 +55,25 @@ PRSI integrates 11 state-of-the-art scientific and engineering subsystems verifi
 ### 11. Compliance Dossier & Academic Benchmark Suite
 - **Source**: [`compliance_engine.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/evaluation/compliance_engine.py), [`audit_pdf_generator.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/evaluation/audit_pdf_generator.py).
 - **Theory**: Auto-generates EU AI Act Annex IV conformity assessments and 300 DPI Red Team Security Audit PDFs with ROC curves and calibration tables (Composite Benchmark AUROC: **0.930**).
+
+---
+
+## 🔗 Phase 2 Integrated Frontier Architecture
+
+In Phase 2, core disconnected subsystems were fully integrated into end-to-end production runtime paths:
+
+### 1. `DiffusionTrajectoryForecaster` (DiT-based 72h Cascade Forecasting)
+- **Source**: [`diffusion_trajectory.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/models/diffusion_trajectory.py), integrated in [`run_pipeline_v2.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/scripts/run_pipeline_v2.py).
+- **Role**: Employs 1D continuous diffusion transformers (DiT) with reverse SDE Euler-Maruyama sampling to simulate non-linear 72-hour stochastic cascade trajectories and threshold-crossing probabilities alongside linear baseline forecasters.
+
+### 2. `HypergraphHGNN` (Higher-Order Interaction Modeling)
+- **Source**: [`hypergraph_gnn.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/models/hypergraph_gnn.py), connected via [`graph_extractor.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/features/graph_extractor.py).
+- **Role**: Uses Feng et al. hypergraph convolution ($\mathbf{D}_v^{-1/2} \mathbf{H} \mathbf{W} \mathbf{D}_e^{-1} \mathbf{H}^\top \mathbf{D}_v^{-1/2} \mathbf{\Theta}$) over extracted hyperedges representing multi-user thread pile-ons and subreddit discussions, capturing higher-order structural motifs beyond pairwise graph edges.
+
+### 3. `ConformalPredictor` (CQR Finite-Sample Calibrated Intervals)
+- **Source**: [`conformal_predictor.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/models/conformal_predictor.py), wired into [`integrated_predictor.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/models/integrated_predictor.py) and [`api_v2_production.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/api/api_v2_production.py).
+- **Role**: Provides finite-sample, distribution-free confidence bands $[q_{\text{lower}}, q_{\text{upper}}]$ guaranteeing $1 - \alpha = 0.90$ empirical coverage for doom scores across all `/analyze`, `/predict`, and `/predict/batch` endpoints.
+
+### 4. `PearlianSCM` (Pearl's Do-Calculus Causal Reasoning)
+- **Source**: [`causal_outrage.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/models/causal_outrage.py), integrated into `/analyze/explain` in [`api_v2_production.py`](file:///Users/ajay/Downloads/doom-index/apps/backend/src/api/api_v2_production.py).
+- **Role**: Implements Pearlian structural causal model (SCM) DAGs to perform formal interventions ($do(\text{emoji\_outrage} = 0)$, $do(\text{toxicity} = 0)$) and abduction-action-prediction counterfactual reasoning, delivering causal explanations alongside token attribution heatmaps and DPO rewrites.

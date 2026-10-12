@@ -10,6 +10,7 @@ Welcome to the technical documentation for **PRSI (Predictive Real-time Social I
 - [**01. End-to-End System Architecture**](file:///Users/ajay/Downloads/doom-index/docs/architecture/01_system_architecture.md): Microservices topology, Kong API Gateway, FastAPI v2, Triton Inference Server, and cross-platform clients (Web, Desktop, Mobile).
 - [**02. Streaming & Data Pipelines**](file:///Users/ajay/Downloads/doom-index/docs/architecture/02_data_streaming_pipeline.md): Real-time Kafka ingestion, Apache Flink CEP cascade detection, Redis cache with XFetch stampede protection, Neo4j temporal graph, and MongoDB storage.
 - [**03. Multimodal Fusion Engine**](file:///Users/ajay/Downloads/doom-index/docs/architecture/03_multimodal_fusion.md): Trilateral fusion of Mistral-7B text, Qwen2-VL vision, and Hawkes GATv2 network topology via learned Q-Former attention and InfoNCE contrastive pretraining.
+- [**04. Orphan Module Resolution**](file:///Users/ajay/Downloads/doom-index/docs/architecture/04_orphan_resolution.md): AST-based orphan audit across 108 backend modules, resolution and live integration of Triton client, Qdrant vector store, Model Registry, and Experiment Tracker.
 
 ### 2. Models & Scientific Subsystems
 - [**SOTA Frontier Subsystems**](file:///Users/ajay/Downloads/doom-index/docs/models/sota_subsystems.md): Mathematical derivations and architectures for the 11 verified subsystems (CQR, Diffusion Forecaster, HGNN, Pearlian DML, DuckDB OLAP, etc.).

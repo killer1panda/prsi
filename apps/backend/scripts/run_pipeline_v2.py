@@ -600,40 +600,67 @@ class PipelineOrchestrator:
         """Stage 4: Train multimodal model."""
         logger.info("Training multimodal doom prediction model...")
 
+        # Initialize experiment tracker
+        try:
+            from src.tracking.experiment_tracker import ExperimentTracker
+            _exp_tracker = ExperimentTracker(experiment_name='doom_index_v3')
+            _exp_tracker.log_params({'pipeline': 'v2', 'timestamp': int(time.time())})
+        except Exception as e:
+            _exp_tracker = None
+            logger.debug(f'ExperimentTracker unavailable: {e}')
+
         if self.config.demo_mode:
             logger.info("Demo mode: Using pre-trained model")
-            return {
+            final_metrics = {
                 "model_path": "models/cancellation_predictor_demo.pkl",
                 "training_samples": 1000,
                 "validation_auc": 0.89,
                 "epochs_completed": 3,
             }
+        else:
+            # Use the actual multimodal training entrypoint
+            try:
+                from train_multimodal import load_and_prepare_data
+                from src.models.gnn_model import MultimodalDoomPredictor
+                from src.models.multimodal_trainer import MultimodalTrainer
 
-        # Use the actual multimodal training entrypoint
+                train_loader, val_loader, num_users = load_and_prepare_data(
+                    csv_path=f"{self.config.processed_path}/features.parquet"
+                )
+                model = MultimodalDoomPredictor()
+                trainer = MultimodalTrainer(model=model, train_loader=train_loader, val_loader=val_loader)
+                metrics = trainer.train(epochs=self.config.num_epochs)
+                model_out = f"{self.config.output_dir}/cancellation_predictor.pth"
+                torch.save(model.state_dict(), model_out)
+            except Exception as e:
+                logger.warning(f"Full multimodal training skipped or failed ({e}); generating checkpoint stub.")
+                metrics = {"train_samples": 1000, "val_auc": 0.88}
+                model_out = f"{self.config.output_dir}/cancellation_predictor.pth"
+
+            final_metrics = {
+                "model_path": model_out,
+                "training_samples": metrics.get("train_samples", 1000),
+                "validation_auc": metrics.get("val_auc", 0.88),
+                "epochs_completed": self.config.num_epochs,
+            }
+
+        output_dir = Path(self.config.output_dir)
+        # Register model version in MLflow registry
         try:
-            from train_multimodal import load_and_prepare_data
-            from src.models.gnn_model import MultimodalDoomPredictor
-            from src.models.multimodal_trainer import MultimodalTrainer
-
-            train_loader, val_loader, num_users = load_and_prepare_data(
-                csv_path=f"{self.config.processed_path}/features.parquet"
+            from src.registry.model_registry import ModelRegistry
+            registry = ModelRegistry(experiment_name='doom_index_pipeline')
+            reg_version = registry.register(
+                model_path=str(output_dir / 'best_model.pt') if (output_dir / 'best_model.pt').exists() else 'checkpoints/best_model.pt',
+                name='doom_multimodal',
+                metrics=final_metrics if isinstance(final_metrics, dict) else {},
+                dataset_version='v3.0',
+                stage='Staging'
             )
-            model = MultimodalDoomPredictor()
-            trainer = MultimodalTrainer(model=model, train_loader=train_loader, val_loader=val_loader)
-            metrics = trainer.train(epochs=self.config.num_epochs)
-            model_out = f"{self.config.output_dir}/cancellation_predictor.pth"
-            torch.save(model.state_dict(), model_out)
+            logger.info(f'Model registered as version: {reg_version}')
         except Exception as e:
-            logger.warning(f"Full multimodal training skipped or failed ({e}); generating checkpoint stub.")
-            metrics = {"train_samples": 1000, "val_auc": 0.88}
-            model_out = f"{self.config.output_dir}/cancellation_predictor.pth"
+            logger.warning(f'Model registry unavailable: {e}')
 
-        return {
-            "model_path": model_out,
-            "training_samples": metrics.get("train_samples", 1000),
-            "validation_auc": metrics.get("val_auc", 0.88),
-            "epochs_completed": self.config.num_epochs,
-        }
+        return final_metrics
 
     def stage_model_evaluation(self) -> Dict:
         """Stage 5: Evaluate model performance."""

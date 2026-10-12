@@ -77,6 +77,14 @@ class QdrantVectorEngine:
             self._memory_payloads.append(pay)
         return True
 
+    async def search(
+        self, query_vector: Any, top_k: int = 5, platform_filter: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Search similar vectors accepting numpy array or list."""
+        if not isinstance(query_vector, np.ndarray):
+            query_vector = np.array(query_vector, dtype=np.float32)
+        return await self.search_similar(query_vector, top_k=top_k, platform_filter=platform_filter)
+
     async def search_similar(
         self, query_vector: np.ndarray, top_k: int = 5, platform_filter: Optional[str] = None
     ) -> List[Dict[str, Any]]:

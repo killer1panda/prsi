@@ -452,66 +452,42 @@ Answer:"""
             return -1
 
     def balance_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Balance dataset to target positive ratio using undersampling + SMOTE.
-        """
-        from imblearn.over_sampling import SMOTE
-        from imblearn.pipeline import Pipeline as ImbPipeline
-        from imblearn.under_sampling import RandomUnderSampler
-
+        """Balance dataset preserving text and categorical fields."""
         label_col = "final_label" if "final_label" in df.columns else "weak_label"
+        if label_col not in df.columns:
+            return df
 
         positive = df[df[label_col] == 1]
         negative = df[df[label_col] == 0]
 
-        current_ratio = len(positive) / max(len(df), 1)
-        logger.info(f"Current positive ratio: {current_ratio:.2%}")
-
-        if current_ratio >= self.config.positive_label_ratio_target:
-            logger.info("Dataset already sufficiently balanced")
+        if len(positive) == 0 or len(negative) == 0:
             return df
 
-        # Calculate target counts
-        target_pos = int(len(df) * self.config.positive_label_ratio_target)
-        target_neg = len(df) - target_pos
+        current_ratio = len(positive) / len(df)
+        if current_ratio >= self.config.positive_label_ratio_target:
+            return df
 
-        # Undersample negative, SMOTE positive
-        sampling_strategy = {0: min(target_neg, len(negative)), 1: max(target_pos, len(positive))}
-
-        # For SMOTE, we need numeric features
-        numeric_df = df.select_dtypes(include=[np.number]).fillna(0)
-        X = numeric_df.drop(columns=[label_col], errors="ignore")
-        y = df[label_col]
-
-        pipeline = ImbPipeline(
-            [
-                (
-                    "under",
-                    RandomUnderSampler(
-                        sampling_strategy={0: sampling_strategy[0]}, random_state=42
-                    ),
-                ),
-                ("over", SMOTE(sampling_strategy={1: sampling_strategy[1]}, random_state=42)),
-            ]
+        target_pos_count = int(
+            len(negative)
+            * (
+                self.config.positive_label_ratio_target
+                / (1.0 - self.config.positive_label_ratio_target)
+            )
         )
 
-        try:
-            X_res, y_res = pipeline.fit_resample(X, y)
+        # Resample minority class with replacement (retaining all text and attributes intact)
+        oversampled_pos = positive.sample(n=target_pos_count, replace=True, random_state=42)
+        balanced_df = (
+            pd.concat([negative, oversampled_pos], axis=0)
+            .sample(frac=1.0, random_state=42)
+            .reset_index(drop=True)
+        )
 
-            # Reconstruct DataFrame
-            resampled_df = pd.DataFrame(X_res, columns=X.columns)
-            resampled_df[label_col] = y_res
-
-            # Add back text columns
-            # (Simplified: in production, use SMOTENC for categorical + text)
-
-            logger.info(
-                f"Balanced dataset: {len(resampled_df)} samples, " f"{y_res.mean():.2%} positive"
-            )
-            return resampled_df
-        except (TimeoutError, ValueError, KeyError, httpx.RequestError, json.JSONDecodeError) as e:
-            logger.warning(f"Balancing failed: {e}. Returning original.")
-            return df
+        logger.info(
+            f"Balanced dataset: {len(balanced_df)} samples, "
+            f"{balanced_df[label_col].mean():.2%} positive (text intact)"
+        )
+        return balanced_df
 
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
         """Run complete weak labeling pipeline."""

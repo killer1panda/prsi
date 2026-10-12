@@ -8,9 +8,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
-import pickle
-import logging
+import sys
+from pathlib import Path
+
+# Ensure apps/backend is in sys.path
+root_dir = Path(__file__).resolve().parent
+backend_src = root_dir / "apps" / "backend"
+if str(backend_src) not in sys.path:
+    sys.path.insert(0, str(backend_src))
 
 from src.features import analyze_text_sentiment, analyze_text_toxicity
 from src.models import CancellationPredictor

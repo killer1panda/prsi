@@ -199,7 +199,7 @@ class ONNXDoomPredictor:
         return results
 
     def _onnx_text_encode(self, input_ids, attention_mask):
-        """Run text encoding through ONNX Runtime."""
+        """Run text encoding through ONNX Runtime extracting last causal token."""
         # Convert to numpy
         input_ids_np = input_ids.cpu().numpy()
         attention_np = attention_mask.cpu().numpy()
@@ -209,11 +209,14 @@ class ONNXDoomPredictor:
             None, {"input_ids": input_ids_np, "attention_mask": attention_np}
         )
 
-        # Extract CLS embedding [batch, hidden]
-        last_hidden = outputs[0]  # [batch, seq, hidden]
-        cls_emb = last_hidden[:, 0, :]  # [batch, hidden]
+        last_hidden = outputs[0]  # [B, L, D]
 
-        return torch.from_numpy(cls_emb).to(self.device)
+        # Gather the last non-padded token index per sample
+        seq_lengths = np.maximum(0, attention_np.sum(axis=-1) - 1)
+        batch_size = last_hidden.shape[0]
+        last_token_embs = last_hidden[np.arange(batch_size), seq_lengths]
+
+        return torch.from_numpy(last_token_embs).to(self.device)
 
     def quantize(self, model_path: str, output_path: str):
         """Quantize ONNX model to INT8 for CPU inference."""

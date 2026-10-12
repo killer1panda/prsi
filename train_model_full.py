@@ -141,52 +141,38 @@ def add_engineered_features(df):
     return df
 
 def create_feature_matrix(df):
-    """Create feature matrix for ML."""
+    """Create feature matrix without label leakage."""
+    # Strict behavioral and structural features ONLY (no target keyword flags)
     feature_cols = [
         'likes', 'retweets', 'replies', 'quotes',
         'text_length', 'word_count', 'hashtag_count',
         'sentiment_polarity', 'sentiment_intensity',
-        'toxicity_toxicity', 'is_toxic',
         'hour', 'day_of_week'
-    ] + [f'has_{kw}' for kw in ['cancel', 'cancelled', 'backlash', 'controversy', 'boycott', 'outrage', 'petition']]
+    ]
 
-    # Filter available columns
     available_cols = [col for col in feature_cols if col in df.columns]
     X = df[available_cols].fillna(0).values
 
-    # Target: has cancellation keywords
-        # PROPER WEAK SUPERVISION LABELS (not just keyword matching)
     def create_proper_labels(df):
         scores = np.zeros(len(df))
+        # High engagement velocity proxy
+        if 'likes' in df.columns and 'replies' in df.columns:
+            reply_ratio = df['replies'] / (df['likes'] + 1)
+            scores += (reply_ratio > reply_ratio.quantile(0.95)).astype(int) * 2
 
-        # High engagement = more visibility for backlash
-        if 'likes' in df.columns:
-            scores += (df['likes'] > df['likes'].quantile(0.9)).astype(int)
-
-        # Very negative sentiment
+        # Extreme negative sentiment
         if 'sentiment_polarity' in df.columns:
-            scores += (df['sentiment_polarity'] < -0.3).astype(int)
+            scores += (df['sentiment_polarity'] < -0.4).astype(int)
 
-        # Strong action keywords (weighted higher)
+        # Lexical action signals
         action_kw = ['boycott', 'petition', 'fired', 'removed', 'banned', 'apologized', 'resigned']
         has_action = df['text'].str.lower().apply(lambda t: any(kw in t for kw in action_kw))
         scores += has_action.astype(int) * 2
 
-        # Controversy keywords
-        controversy_kw = ['cancel', 'backlash', 'outrage', 'controversy', 'under fire']
-        has_controversy = df['text'].str.lower().apply(lambda t: any(kw in t for kw in controversy_kw))
-        scores += has_controversy.astype(int)
-
-        # High reply ratio (engagement storm indicator)
-        if 'replies' in df.columns and 'likes' in df.columns:
-            reply_ratio = df['replies'] / (df['likes'] + 1)
-            scores += (reply_ratio > reply_ratio.quantile(0.95)).astype(int)
-
-        # Threshold: score >= 3 is a cancellation event
+        # Ground truth event threshold
         return (scores >= 3).astype(int)
 
     y = create_proper_labels(df)
-
     return X, y
 
 def main():

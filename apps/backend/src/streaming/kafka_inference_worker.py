@@ -54,6 +54,8 @@ class DoomInferenceWorker:
         )
 
         self.running = False
+        self.commit_interval = 100
+        self.msg_count = 0
 
     def start(self) -> None:
         """Start the consumer loop."""
@@ -107,15 +109,19 @@ class DoomInferenceWorker:
             # Publish result
             self._publish_result(result)
 
-            # Commit offset on success
-            self.consumer.commit(asynchronous=False)
-            logger.debug(f"Successfully processed and committed message at offset {msg.offset()}")
+            # Batched asynchronous offset commit on success
+            self.msg_count += 1
+            if self.msg_count % self.commit_interval == 0:
+                self.consumer.commit(asynchronous=True)
+                logger.debug(f"Asynchronously committed offset at batch count {self.msg_count}")
 
         except Exception as e:
             logger.error(f"Failed to process message at offset {msg.offset()}: {e}")
             self._send_to_dlq(msg, str(e))
-            # Commit offset even on failure to avoid poison pills blocking the pipeline
-            self.consumer.commit(asynchronous=False)
+            # Batched asynchronous offset commit even on failure to avoid poison pills
+            self.msg_count += 1
+            if self.msg_count % self.commit_interval == 0:
+                self.consumer.commit(asynchronous=True)
 
     def _predict_doom(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Real inference: sentiment + toxicity + emoji emotional swing scoring."""

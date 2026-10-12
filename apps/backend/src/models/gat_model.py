@@ -50,7 +50,8 @@ class GraphAttentionNetwork(nn.Module):
         self.residuals = nn.ModuleList()
 
         for i in range(config.num_layers):
-            in_ch = config.hidden_channels if i > 0 else config.in_channels
+            # All layers operate within hidden_channels after input_proj
+            in_ch = config.hidden_channels
             out_ch = config.hidden_channels if i < config.num_layers - 1 else config.out_channels
 
             # Last layer uses single head for stability
@@ -99,7 +100,8 @@ class GraphAttentionNetwork(nn.Module):
         Returns:
             (N, out_channels) node embeddings
         """
-        x = self.input_proj(x)
+        # 1. Project input features to hidden space
+        x = self.activation(self.input_proj(x))
 
         for i, (conv, bn, res) in enumerate(zip(self.convs, self.bns, self.residuals)):
             x_res = res(x)

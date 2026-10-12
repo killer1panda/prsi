@@ -1,10 +1,7 @@
-# Python base image
 FROM python:3.10-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -12,18 +9,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for caching
-COPY requirements.txt .
-
-# Install Python dependencies
+# Copy backend requirements correctly from apps/backend
+COPY apps/backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy workspace
 COPY . .
 
-# Set environment variables
+ENV PYTHONPATH="/app/apps/backend"
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
 
-# Default command
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000
+CMD ["uvicorn", "apps.backend.src.api.api_v2_production:app", "--host", "0.0.0.0", "--port", "8000"]

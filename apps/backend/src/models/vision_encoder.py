@@ -208,14 +208,28 @@ class VisionEncoder(nn.Module):
     def forward(
         self, pixel_values: torch.Tensor, image_grid_thw: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
-        """Forward pass for training with preprocessed tensors."""
+        """Forward pass for training with preprocessed batch tensors."""
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
             visual_outputs = self.vision_model.model.visual(
                 pixel_values=pixel_values,
                 image_grid_thw=image_grid_thw,
             )
-        pooled = visual_outputs.mean(dim=0, keepdim=True)
-        return self.projection(pooled.float())
+
+        # visual_outputs: (total_patches_in_batch, 3584)
+        if image_grid_thw is not None and image_grid_thw.ndim == 2:
+            patch_counts = image_grid_thw.prod(dim=1).tolist()
+            pooled_list = []
+            for img_patches in torch.split(visual_outputs, patch_counts):
+                pooled_list.append(img_patches.mean(dim=0, keepdim=True))
+            pooled = torch.cat(pooled_list, dim=0)  # Shape: (B, 3584)
+        else:
+            # Fallback if 3D tensor: [B, N_patches, D]
+            if visual_outputs.ndim == 3:
+                pooled = visual_outputs.mean(dim=1)
+            else:
+                pooled = visual_outputs
+
+        return self.projection(pooled.float())  # Shape: (B, projection_dim)
 
     @torch.no_grad()
     def ocr_extract(self, image: Union[str, Path, Image.Image]) -> str:

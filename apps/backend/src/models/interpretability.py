@@ -68,34 +68,33 @@ class DoomExplainer:
         # Get attention from last layer [batch, heads, seq, seq]
         attentions = outputs.attentions[-1]  # Last layer
 
-        # Average over heads and take CLS attention [seq]
-        cls_attention = attentions[0, :, 0, :].mean(dim=0).cpu().numpy()
+        # Mistral-7B is causal: evaluate attention from the last non-padded token
+        seq_len = int(inputs["attention_mask"].sum(dim=-1).item())
+        last_token_idx = max(0, seq_len - 1)
+        # Extract attention weights directed to all preceding tokens
+        token_attention = attentions[0, :, last_token_idx, :seq_len].mean(dim=0).cpu().numpy()
 
-        # Get tokens
-        tokens = self.tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
+        tokens = self.tokenizer.convert_ids_to_tokens(inputs["input_ids"][0][:seq_len])
 
-        # Aggregate subword attention to words
-        word_attentions = []
-        words = []
-        current_word = ""
-        current_attn = 0
-        count = 0
+        # Merge SentencePiece / BPE tokens (prefix ' ' or 'Ġ')
+        words, word_attentions = [], []
+        current_word, current_attn, count = "", 0.0, 0
 
-        for token, attn in zip(tokens, cls_attention):
-            if token.startswith("##"):
-                current_word += token[2:]
-                current_attn += attn
-                count += 1
-            else:
-                if current_word:
-                    words.append(current_word)
-                    word_attentions.append(current_attn / max(count, 1))
-                current_word = token.replace("Ġ", "").replace("##", "")
-                current_attn = attn
+        for token, attn in zip(tokens, token_attention):
+            clean_tok = token.replace(" ", " ").replace("Ġ", " ")
+            if clean_tok.startswith(" ") and current_word:
+                words.append(current_word.strip())
+                word_attentions.append(current_attn / max(count, 1))
+                current_word = clean_tok
+                current_attn = float(attn)
                 count = 1
+            else:
+                current_word += clean_tok
+                current_attn += float(attn)
+                count += 1
 
         if current_word:
-            words.append(current_word)
+            words.append(current_word.strip())
             word_attentions.append(current_attn / max(count, 1))
 
         # Normalize

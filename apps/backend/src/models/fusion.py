@@ -142,26 +142,24 @@ class CrossModalAttention(nn.Module):
 
 
 class GatedFusion(nn.Module):
-    """Gated multimodal fusion with learnable modality importance.
-
-    Inspired by 'Gated Multimodal Units' (Arevalo et al., 2017).
-    Learns a soft gate to control how much each modality contributes.
-    """
+    """Gated multimodal fusion for Graph (128d), Text (4096d), and Vision (512d)."""
 
     def __init__(
         self,
         graph_dim: int = 128,
         text_dim: int = 4096,
+        vision_dim: int = 512,
         hidden_dim: int = 256,
         num_classes: int = 2,
         dropout: float = 0.3,
     ):
         super().__init__()
-
         self.graph_dim = graph_dim
         self.text_dim = text_dim
+        self.vision_dim = vision_dim
+        self.hidden_dim = hidden_dim
 
-        # Modality-specific projections
+        # Modality transforms
         self.graph_transform = nn.Sequential(
             nn.Linear(graph_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -174,59 +172,71 @@ class GatedFusion(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
         )
-
-        # Gating mechanism
-        self.gate = nn.Sequential(
-            nn.Linear(graph_dim + text_dim, hidden_dim),
-            nn.Sigmoid(),
+        self.vision_transform = nn.Sequential(
+            nn.Linear(vision_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
         )
 
-        # Joint representation
+        # 3-way softmax gating mechanism
+        self.gate_network = nn.Sequential(
+            nn.Linear(hidden_dim * 3, hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, 3),
+        )
+
+        # Joint classification head
         self.joint = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.LayerNorm(hidden_dim // 2),
-            nn.GELU(),
-            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, num_classes),
         )
-
-        self.classifier = nn.Linear(hidden_dim // 2, num_classes)
 
     def forward(
         self,
-        graph_emb: torch.Tensor,
-        text_emb: torch.Tensor,
+        text_emb: Optional[torch.Tensor] = None,
+        graph_emb: Optional[torch.Tensor] = None,
+        vision_emb: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Forward with gating.
+        # Backward compatibility: support legacy positional signature forward(graph_emb, text_emb)
+        if text_emb is not None and graph_emb is not None:
+            if text_emb.shape[-1] == self.graph_dim and graph_emb.shape[-1] == self.text_dim:
+                graph_emb, text_emb = text_emb, graph_emb
 
-        Returns:
-            logits: [batch, num_classes]
-        """
-        # Transform each modality
-        g = self.graph_transform(graph_emb)  # [batch, hidden]
-        t = self.text_transform(text_emb)  # [batch, hidden]
+        primary_tensor = text_emb if text_emb is not None else (graph_emb if graph_emb is not None else vision_emb)
+        if primary_tensor is None:
+            raise ValueError("At least one modality embedding must be provided to GatedFusion")
 
-        # Compute gate from concatenated raw embeddings
-        gate_input = torch.cat([graph_emb, text_emb], dim=-1)
-        gate = self.gate(gate_input)  # [batch, hidden]
+        batch_size = primary_tensor.size(0)
+        device = primary_tensor.device
 
-        # Fused representation: weighted combination
-        fused = gate * g + (1 - gate) * t
+        t = self.text_transform(text_emb) if text_emb is not None else torch.zeros(batch_size, self.hidden_dim, device=device)
+        g = self.graph_transform(graph_emb) if graph_emb is not None else torch.zeros_like(t)
+        v = self.vision_transform(vision_emb) if vision_emb is not None else torch.zeros_like(t)
 
-        # Joint processing
-        joint = self.joint(fused)
+        gate_in = torch.cat([g, t, v], dim=-1)
+        gate_weights = F.softmax(self.gate_network(gate_in), dim=-1)  # [B, 3]
 
-        # Classify
-        logits = self.classifier(joint)
+        # Zero out missing modalities in gating
+        mask = torch.tensor(
+            [graph_emb is not None, text_emb is not None, vision_emb is not None],
+            dtype=torch.float32,
+            device=device,
+        ).unsqueeze(0)
+        masked_gates = gate_weights * mask
+        norm_gates = masked_gates / (masked_gates.sum(dim=-1, keepdim=True) + 1e-8)
 
-        # Store gate for interpretability without breaking the forward contract
-        # Access via model.last_gate after forward() call
-        self.last_gate = gate.detach()
+        fused = (
+            norm_gates[:, 0:1] * g
+            + norm_gates[:, 1:2] * t
+            + norm_gates[:, 2:3] * v
+        )
 
-        return logits  # Plain Tensor — callers must not unpack as tuple
+        self.last_gate = norm_gates.detach()
+        return self.joint(fused)
 
 
 class TransformerFusion(nn.Module):

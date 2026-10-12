@@ -58,33 +58,39 @@ class FocalLoss(nn.Module):
         """
         Args:
             logits: [B, C] raw model outputs (pre-softmax) for classification,
-                    or [B] for regression doom scores
+                    or [B] / [B, 1] for continuous doom scores in [0, 1]
             targets: [B] class indices or [B] float doom scores
         """
         if logits.dim() == 1 or logits.shape[-1] == 1:
-            # Regression mode: MSE-based focal weighting
+            # Continuous/Regression Doom Score in [0, 1]
             logits = logits.squeeze(-1)
             targets = targets.float()
-            mse = F.mse_loss(logits, targets, reduction="none")
-            # Weight by how surprising the prediction is (like hard example mining)
-            residual = torch.abs(targets - torch.sigmoid(logits))
-            focal_weight = (residual**self.gamma).detach()
-            loss = focal_weight * mse
+
+            # Numerically stable focal binary cross-entropy with logits
+            bce = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+            p_t = torch.sigmoid(logits)
+            p_target = targets * p_t + (1.0 - targets) * (1.0 - p_t)
+            focal_weight = self.alpha * ((1.0 - p_target) ** self.gamma)
+            loss = focal_weight * bce
         else:
-            # Classification mode: standard focal loss
+            # Classification mode (C classes)
             log_prob = F.log_softmax(logits, dim=-1)
             prob = torch.exp(log_prob)
             targets_long = targets.long()
             log_p_t = log_prob.gather(1, targets_long.unsqueeze(1)).squeeze(1)
             p_t = prob.gather(1, targets_long.unsqueeze(1)).squeeze(1)
-            # α weighting: α for positive class, (1-α) for negative
-            alpha_t = torch.where(
-                targets_long == 1,
-                torch.tensor(self.alpha, device=logits.device),
-                torch.tensor(1 - self.alpha, device=logits.device),
-            )
-            focal_weight = alpha_t * (1 - p_t) ** self.gamma
-            loss = -focal_weight * log_p_t
+
+            num_classes = logits.size(-1)
+            if num_classes == 2:
+                alpha_t = torch.where(
+                    targets_long == 1,
+                    torch.tensor(self.alpha, device=logits.device),
+                    torch.tensor(1.0 - self.alpha, device=logits.device),
+                )
+            else:
+                alpha_t = torch.ones_like(p_t)
+
+            loss = -alpha_t * ((1.0 - p_t) ** self.gamma) * log_p_t
 
         if self.reduction == "mean":
             return loss.mean()

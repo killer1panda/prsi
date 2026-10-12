@@ -267,23 +267,30 @@ class IntegratedDoomPredictor:
 
         user_idx = self.user_to_idx[author_id]
 
-        # ── Full multimodal predict ──────────────────────────────────────────
-        pred, prob = self.model.predict(
-            x=self.graph_data.x,
-            edge_index=self.graph_data.edge_index,
-            text=processed_text,
-            user_idx=user_idx,
-            device=self.device,
-        )
-
-        # Get embeddings for interpretability
-        embeddings = self.model.get_multimodal_embeddings(
-            x=self.graph_data.x,
-            edge_index=self.graph_data.edge_index,
-            text=processed_text,
-            user_idx=user_idx,
-            device=self.device,
-        )
+        # ── Consolidated single forward pass ────────────────────────────────
+        if hasattr(self.model, "predict_with_embeddings"):
+            (pred, prob), embeddings = self.model.predict_with_embeddings(
+                x=self.graph_data.x,
+                edge_index=self.graph_data.edge_index,
+                text=processed_text,
+                user_idx=user_idx,
+                device=self.device,
+            )
+        else:
+            pred, prob = self.model.predict(
+                x=self.graph_data.x,
+                edge_index=self.graph_data.edge_index,
+                text=processed_text,
+                user_idx=user_idx,
+                device=self.device,
+            )
+            embeddings = self.model.get_multimodal_embeddings(
+                x=self.graph_data.x,
+                edge_index=self.graph_data.edge_index,
+                text=processed_text,
+                user_idx=user_idx,
+                device=self.device,
+            )
 
         return self._build_result(pred, prob, embeddings, followers=followers, language=language)
 

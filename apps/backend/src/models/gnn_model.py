@@ -5,6 +5,7 @@ Hypergraph HGNN + CompGCN + CTDGA (Hawkes Process) for user network embeddings
 """
 
 import logging
+import os
 from typing import Optional, Tuple
 
 import torch
@@ -69,46 +70,69 @@ class CompGCNEncoder(nn.Module):
 
 
 class TextEncoder(nn.Module):
-    """Mistral-7B-Instruct text encoder with 4-bit QLoRA (r=16)."""
+    """Mistral-7B-Instruct text encoder with 4-bit QLoRA (r=16), with CPU/non-CUDA fallback."""
 
     def __init__(
         self, model_name: str = "mistralai/Mistral-7B-Instruct-v0.3", freeze_layers: int = 5
     ):
         super().__init__()
 
-        # 4-bit BitsAndBytes quantization config
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16,
-            bnb_4bit_use_double_quant=True,
-        )
+        hpc_mode = os.environ.get("HPC_MODE", "0") == "1"
+        if not hpc_mode or not torch.cuda.is_available() or not PEFT_AVAILABLE:
+            logger.info("Local mode or CUDA/bitsandbytes unavailable: using lightweight CPU TextEncoder (4096d)")
+            self.hidden_size = 4096
+            self.embedding = nn.Embedding(32000, 4096)
+            self._is_fallback = True
+            return
 
-        base_model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            quantization_config=bnb_config,
-            device_map="auto",
-            trust_remote_code=True,
-        )
+        try:
+            # 4-bit BitsAndBytes quantization config
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_use_double_quant=True,
+            )
 
-        # QLoRA adapter: r=16, alpha=32, target q_proj and v_proj
-        lora_config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            target_modules=["q_proj", "v_proj"],
-            lora_dropout=0.05,
-            bias="none",
-            task_type=TaskType.CAUSAL_LM,
-        )
-        self.model = get_peft_model(base_model, lora_config)
-        self.hidden_size = self.model.config.hidden_size  # 4096
+            base_model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                quantization_config=bnb_config,
+                device_map="auto",
+                trust_remote_code=True,
+            )
 
-        logger.info(
-            f"TextEncoder: Mistral-7B-Instruct loaded with 4-bit QLoRA "
-            f"(r=16, alpha=32). hidden_size={self.hidden_size}"
-        )
+            # QLoRA adapter: r=16, alpha=32, target q_proj and v_proj
+            lora_config = LoraConfig(
+                r=16,
+                lora_alpha=32,
+                target_modules=["q_proj", "v_proj"],
+                lora_dropout=0.05,
+                bias="none",
+                task_type=TaskType.CAUSAL_LM,
+            )
+            self.model = get_peft_model(base_model, lora_config)
+            self.hidden_size = self.model.config.hidden_size  # 4096
+            self._is_fallback = False
+
+            logger.info(
+                f"TextEncoder: Mistral-7B-Instruct loaded with 4-bit QLoRA "
+                f"(r=16, alpha=32). hidden_size={self.hidden_size}"
+            )
+        except Exception as e:
+            logger.warning(f"Could not load 4-bit model ({e}); falling back to lightweight 4096d encoder.")
+            self.hidden_size = 4096
+            self.embedding = nn.Embedding(32000, 4096)
+            self._is_fallback = True
 
     def forward(self, input_ids, attention_mask):
+        if getattr(self, "_is_fallback", False):
+            # Lightweight embedding projection
+            embs = self.embedding(input_ids)
+            mask_expanded = attention_mask.unsqueeze(-1).float()
+            sum_embs = (embs * mask_expanded).sum(dim=1)
+            sum_mask = mask_expanded.sum(dim=1).clamp(min=1e-9)
+            return sum_embs / sum_mask
+
         outputs = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -235,8 +259,22 @@ class MultimodalDoomPredictor(nn.Module):
             dropout=dropout,
         )
 
-        self.tokenizer = AutoTokenizer.from_pretrained(text_model)
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(text_model)
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+        except Exception as e:
+            logger.info(f"Using lightweight local tokenizer fallback: {e}")
+            class _LocalTokenizer:
+                def __call__(self, text, return_tensors="pt", max_length=512, truncation=True, padding=True):
+                    words = text.split() if isinstance(text, str) else []
+                    ids = [abs(hash(w)) % 30000 + 1 for w in words][:max_length] or [1]
+                    ids_tensor = torch.tensor([ids], dtype=torch.long)
+                    mask = torch.ones_like(ids_tensor)
+                    return {"input_ids": ids_tensor, "attention_mask": mask}
+                pad_token = "<pad>"
+                eos_token = "</s>"
+            self.tokenizer = _LocalTokenizer()
 
     def forward(
         self,
@@ -361,6 +399,71 @@ class MultimodalDoomPredictor(nn.Module):
             prob = probs[0, 1].item()  # Probability of class 1 (doom)
 
         return pred, prob
+
+    def predict_with_embeddings(
+        self,
+        x,
+        edge_index,
+        text: str,
+        user_idx: int,
+        edge_weight=None,
+        hyperedge_index=None,
+        edge_type=None,
+        neighbor_embs=None,
+        time_deltas=None,
+        device="cuda",
+    ) -> Tuple[Tuple[int, float], dict]:
+        """Run single forward pass returning both (pred, prob) and intermediate embeddings."""
+        self.eval()
+
+        inputs = self.tokenizer(
+            text, return_tensors="pt", truncation=True, padding=True, max_length=1024
+        ).to(device)
+
+        x = x.to(device)
+        edge_index = edge_index.to(device)
+        if edge_weight is not None:
+            edge_weight = edge_weight.to(device)
+        if hyperedge_index is not None:
+            hyperedge_index = hyperedge_index.to(device)
+        if edge_type is not None:
+            edge_type = edge_type.to(device)
+        if neighbor_embs is not None:
+            neighbor_embs = neighbor_embs.to(device)
+        if time_deltas is not None:
+            time_deltas = time_deltas.to(device)
+
+        with torch.no_grad():
+            if hyperedge_index is None:
+                hyperedge_index = edge_index
+            if edge_type is None:
+                edge_type = torch.zeros(edge_index.size(1), dtype=torch.long, device=x.device)
+            if neighbor_embs is None:
+                neighbor_embs = x.unsqueeze(1)
+            if time_deltas is None:
+                time_deltas = torch.zeros(x.size(0), neighbor_embs.size(1), device=x.device)
+
+            hg_emb = self.hypergraph_encoder(x, hyperedge_index, edge_weight)
+            cg_emb = self.compgcn_encoder(x, edge_index, edge_type)
+            ct_emb = self.ctdga_encoder(x, neighbor_embs, time_deltas)
+
+            combined_graph = torch.cat([hg_emb, cg_emb, ct_emb], dim=-1)
+            graph_embeddings = self.graph_proj(combined_graph)
+
+            user_emb = graph_embeddings[user_idx : user_idx + 1]
+            text_emb = self.text_encoder(inputs["input_ids"], inputs["attention_mask"])
+
+            logits = self.fusion(user_emb, text_emb)
+            probs = F.softmax(logits, dim=-1)
+            pred = probs.argmax(dim=-1).item()
+            prob = probs[0, 1].item() if probs.shape[-1] > 1 else probs[0, 0].item()
+
+        embeddings = {
+            "graph_embedding": user_emb.squeeze(0).cpu().numpy(),
+            "text_embedding": text_emb.squeeze(0).cpu().numpy(),
+            "combined_dim": user_emb.shape[-1] + text_emb.shape[-1],
+        }
+        return (pred, prob), embeddings
 
     def get_multimodal_embeddings(
         self,

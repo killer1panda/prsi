@@ -63,9 +63,16 @@ class AdaptiveDPAdam:
             layer_grads = [sample[l_idx] for sample in per_sample_grads]
             norms = torch.tensor([torch.norm(g, p=2) for g in layer_grads])
 
-            # Update layer-wise adaptive clip threshold
-            exceeded = (norms > self.clip_norms[l_idx]).float().mean().item()
-            self.clip_norms[l_idx] *= np.exp(-0.2 * (exceeded - (1.0 - self.gamma_q)))
+            # Calculate raw empirical fraction exceeding threshold
+            raw_exceeded = (norms > self.clip_norms[l_idx]).float().mean().item()
+            # Add calibrated Laplace noise for private quantile estimation
+            laplace_scale = 1.0 / (batch_size * max(self.epsilon, 1e-4))
+            noisy_exceeded = raw_exceeded + float(np.random.laplace(0, laplace_scale))
+            noisy_exceeded = min(1.0, max(0.0, noisy_exceeded))
+
+            # Update layer-wise adaptive clip threshold privately
+            self.clip_norms[l_idx] *= np.exp(-0.2 * (noisy_exceeded - (1.0 - self.gamma_q)))
+            self.clip_norms[l_idx] = max(1e-4, min(100.0, self.clip_norms[l_idx]))
 
             # Clip individual gradients
             C = self.clip_norms[l_idx]

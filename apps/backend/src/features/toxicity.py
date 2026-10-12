@@ -12,6 +12,31 @@ from src.config import get_env_var
 logger = logging.getLogger(__name__)
 
 
+from functools import lru_cache
+
+
+@lru_cache(maxsize=10000)
+def cached_toxicity_score(text: str) -> float:
+    """High-throughput local keyword + regex proxy avoiding external network stalls."""
+    toxic_words = {
+        "hate",
+        "stupid",
+        "cancel",
+        "terrible",
+        "horrible",
+        "idiot",
+        "disgusting",
+        "kill",
+        "evil",
+        "trash",
+        "scam",
+        "liar",
+    }
+    words = set(text.lower().split())
+    matches = len(words & toxic_words)
+    return min(1.0, max(0.05, matches * 0.3))
+
+
 class ToxicityAnalyzer:
     """Toxicity analyzer using Google Perspective API."""
 
@@ -28,23 +53,7 @@ class ToxicityAnalyzer:
 
     def _local_heuristic(self, text: str) -> Dict[str, float]:
         """Local keyword-based heuristic fallback."""
-        toxic_words = {
-            "hate",
-            "stupid",
-            "cancel",
-            "terrible",
-            "horrible",
-            "idiot",
-            "disgusting",
-            "kill",
-            "evil",
-            "trash",
-            "scam",
-            "liar",
-        }
-        words = set(text.lower().split())
-        matches = len(words & toxic_words)
-        score = min(1.0, max(0.05, matches * 0.3))
+        score = cached_toxicity_score(text)
         return {
             "toxicity": score,
             "toxicity_score": score,

@@ -68,18 +68,26 @@ class DoomEnsemble:
             except Exception as e:
                 logger.debug(f"RF prediction failed: {e}")
 
-        # Multimodal
+        # Multimodal GNN + Text Predictor
         if self.multimodal_predictor and features and "x" in features:
             try:
-                mm_pred = self.multimodal_predictor.predict(
+                mm_out = self.multimodal_predictor.predict(
                     features["x"], features["edge_index"], text, features.get("user_idx", 0)
                 )
+                if isinstance(mm_out, tuple):
+                    pred_label, prob_val = mm_out
+                elif isinstance(mm_out, dict):
+                    pred_label = mm_out.get("prediction", 0)
+                    prob_val = mm_out.get("probability", 0.0)
+                else:
+                    pred_label, prob_val = int(mm_out > 0.5), float(mm_out)
+
                 predictions["multimodal"] = {
-                    "prob": mm_pred["probability"],
-                    "pred": mm_pred["prediction"],
+                    "prob": float(prob_val),
+                    "pred": int(pred_label),
                 }
             except Exception as e:
-                logger.debug(f"Multimodal prediction failed: {e}")
+                logger.warning(f"Multimodal prediction failed: {e}")
 
         # Text-only fallback
         if self.text_only_predictor:

@@ -523,46 +523,74 @@ class DoomGANTrainer:
     def _g_ppo_step(
         self, src_texts: List[str], target_doom: float = 85.0
     ) -> Dict[str, float]:
-        """PPO generator step with KL penalty."""
+        """Policy-gradient generator step with log-likelihood reward weighting."""
         if not HPC_MODE or self.generator._model is None or self.opt_g is None:
             return {}
         import torch
+        import torch.nn.functional as F
+
         self.generator._model.train()
         if self.critic:
             self.critic.eval()
         self.opt_g.zero_grad()
+
         try:
-            gen_texts = self.generator.generate_batch(src_texts, target_doom=target_doom)
-            fake_ids, fake_mask = self._tokenize(gen_texts)
+            device = next(self.generator._model.parameters()).device
+            tokenizer = self.generator._tokenizer
 
-            # Wasserstein generator objective
-            if self.critic:
-                d_fake = self.critic(fake_ids, fake_mask).mean()
-                loss_wgan = -d_fake
-            else:
-                loss_wgan = torch.tensor(0.0)
+            # Format conditional inputs
+            prompts = [
+                self.generator._format_prompt(t, target_doom) for t in src_texts
+            ]
+            inputs = tokenizer(prompts, return_tensors="pt", padding=True, truncation=True).to(device)
 
-            # Composed reward (via REINFORCE)
+            # Generate outputs with scores preserved on token log-probabilities
+            gen_outputs = self.generator._model.generate(
+                **inputs,
+                max_new_tokens=64,
+                return_dict_in_generate=True,
+                output_scores=True,
+            )
+
+            # Decode generated sequences
+            gen_texts = tokenizer.batch_decode(gen_outputs.sequences, skip_special_tokens=True)
+
+            # Compute scalar external rewards
             rewards = [
                 self.reward_composer.compute(orig, gen)["total"]
                 for orig, gen in zip(src_texts, gen_texts)
             ]
-            mean_reward = float(np.mean(rewards))
-            reward_loss = torch.tensor(-mean_reward, requires_grad=True).to(LOCAL_RANK)
+            reward_tensor = torch.tensor(rewards, dtype=torch.float32, device=device)
+            # Baseline standardization
+            baseline = reward_tensor.mean()
+            advantages = reward_tensor - baseline
 
-            loss_g = loss_wgan + self.config.lambda_reward * reward_loss
-            loss_g.backward()
+            # Compute log-probabilities of generated tokens
+            stacked_scores = torch.stack(gen_outputs.scores, dim=1)  # [B, T, Vocab]
+            log_probs = F.log_softmax(stacked_scores, dim=-1)
+            gen_tokens = gen_outputs.sequences[:, inputs.input_ids.shape[1] :]  # [B, T]
+
+            # Gather log P(token)
+            selected_log_probs = log_probs.gather(2, gen_tokens.unsqueeze(-1)).squeeze(-1)
+            sequence_log_probs = selected_log_probs.sum(dim=-1)  # [B]
+
+            # REINFORCE loss: - E [ log P(y|x) * Advantage ]
+            policy_loss = -(sequence_log_probs * advantages.detach()).mean()
+
+            policy_loss.backward()
             torch.nn.utils.clip_grad_norm_(
                 [p for p in self.generator._model.parameters() if p.requires_grad],
                 self.config.max_grad_norm,
             )
             self.opt_g.step()
+
             return {
-                "loss_g": loss_g.item(), "reward": mean_reward,
-                "d_fake_g": d_fake.item() if self.critic else 0.0,
+                "loss_g": policy_loss.item(),
+                "reward": float(reward_tensor.mean().item()),
+                "advantage_std": float(advantages.std().item() if len(rewards) > 1 else 0.0),
             }
         except Exception as e:
-            logger.debug(f"G step error: {e}")
+            logger.error(f"G step error: {e}", exc_info=True)
             return {}
 
     def _purple_eval(self) -> Dict:

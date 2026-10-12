@@ -164,22 +164,24 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Token bucket rate limiter using Redis."""
+    """Token bucket rate limiter using Redis with dynamic connection resolution."""
 
-    def __init__(
-        self, app, redis_client: aioredis.Redis, max_requests: int = 100, window: int = 60
-    ):
+    def __init__(self, app, max_requests: int = 100, window: int = 60):
         super().__init__(app)
-        self.redis = redis_client
         self.max_requests = max_requests
         self.window = window
 
     async def dispatch(self, request: Request, call_next):
+        # Resolve active client from application state or global client
+        client = getattr(request.app.state, "redis", None) or redis_client
+        if client is None:
+            return await call_next(request)
+
         client_ip = request.client.host if request.client else "unknown"
         key = f"rate_limit:{client_ip}"
 
         try:
-            pipe = self.redis.pipeline()
+            pipe = client.pipeline()
             now = time.time()
             pipe.zremrangebyscore(key, 0, now - self.window)
             pipe.zcard(key)
@@ -448,29 +450,14 @@ async def lifespan(app: FastAPI):
     try:
         redis_client = await aioredis.from_url(config.redis_url, decode_responses=True)
         await redis_client.ping()
-        logger.info("Redis connected")
-
-        # ── Attach RateLimitMiddleware now that redis_client is live ─────────
-        # Must be done here (not at module level) because RateLimitMiddleware
-        # takes redis_client as a constructor argument, which is None until
-        # the startup event fires. Starlette supports dynamic middleware
-        # injection via app.middleware_stack rebuild (or just wrap the ASGI app).
-        # We use the add_middleware approach with a deferred-init wrapper.
-        app.add_middleware(
-            RateLimitMiddleware,
-            redis_client=redis_client,
-            max_requests=(
-                config.rate_limit_per_minute if hasattr(config, "rate_limit_per_minute") else 100
-            ),
-            window=60,
-        )
-        logger.info("RateLimitMiddleware registered (100 req/min per IP)")
-
+        app.state.redis = redis_client
+        logger.info("Redis connected and bound to app.state.redis")
     except Exception as e:
         logger.warning(
             f"Redis unavailable ({e}); running with in-memory caching fallback. Rate limiting DISABLED."
         )
         redis_client = None
+        app.state.redis = None
 
     logger.info("Model and Adversarial Generator verified ready")
 
@@ -495,6 +482,13 @@ app = FastAPI(
 
 # Middleware
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=(
+        config.rate_limit_per_minute if hasattr(config, "rate_limit_per_minute") else 100
+    ),
+    window=60,
+)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 _cors_origins_env = os.environ.get("ALLOWED_ORIGINS", "")
 _cors_origins = [

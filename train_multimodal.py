@@ -21,8 +21,11 @@ import pandas as pd
 import numpy as np
 import torch
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Ensure apps/backend is in sys.path
+root_dir = Path(__file__).resolve().parent
+backend_src = root_dir / "apps" / "backend"
+if str(backend_src) not in sys.path:
+    sys.path.insert(0, str(backend_src))
 
 from src.features.graph_extractor import GraphExtractor
 from src.models.gnn_model import MultimodalDoomPredictor

@@ -1,9 +1,0 @@
-sphinx_rtd_theme
-httpx[socks]
-filetype
-beautifulsoup4
-pyotp
-lxml
-webvtt-py
-m3u8
-Js2Py-3.13

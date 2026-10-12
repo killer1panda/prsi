@@ -11,7 +11,10 @@ venv/
 htmlcov/
 *.log
 logs/
-.DS_Storenode_modules/
+.DS_Store
+.turbo/
+dist/
+**/dist/
 **/node_modules/
 node_modules/
 

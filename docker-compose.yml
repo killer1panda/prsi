@@ -1,0 +1,207 @@
+# =============================================================================
+# PRSI (Doom Index) Unified Full-Stack Cloud-Native Orchestration
+# =============================================================================
+# Architecture:
+#   Presentation:  web (Next.js 14) + dashboard (Streamlit)
+#   Gateway & API: api (FastAPI Async)
+#   Vector & Graph: qdrant (HNSW) + neo4j (GDS Temporal Graph)
+#   Persistence:   mongodb + redis (Caching / PubSub)
+#   Observability: prometheus (Metrics) + grafana (Real-time Dashboards)
+# =============================================================================
+
+services:
+  # ── API Server (FastAPI Production) ──────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: prsi/api:latest
+    container_name: prsi_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://admin:secret_password@mongodb:27017/doom_index?authSource=admin
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=doompassword
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_URL=http://qdrant:6333
+      - TRITON_URL=triton:8001
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8501,http://localhost:3001
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./models:/app/models:ro
+      - ./data:/app/data:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    networks:
+      - prsi_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Web Portal (Next.js 14 SSR Dashboard) ───────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: prsi/web:latest
+    container_name: prsi_web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    networks:
+      - prsi_network
+
+  # ── Operational Dashboard (Streamlit) ───────────────────────────────────────
+  dashboard:
+    build:
+      context: ./apps/backend
+      dockerfile: docker/Dockerfile.dashboard
+    image: prsi/dashboard:latest
+    container_name: prsi_dashboard
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - api
+    networks:
+      - prsi_network
+
+  # ── Qdrant Vector Search Engine (HNSW) ──────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    container_name: prsi_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - prsi_network
+
+  # ── Neo4j Temporal Graph Database (GDS / APOC) ──────────────────────────────
+  neo4j:
+    image: neo4j:5.14-community
+    container_name: prsi_neo4j
+    restart: unless-stopped
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/doompassword
+      - NEO4J_dbms_memory_heap_max__size=2G
+      - NEO4J_dbms_memory_pagecache_size=1G
+      - NEO4J_PLUGINS=["apoc", "gds"]
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+    networks:
+      - prsi_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7474"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7 (Low-Latency Cache & Event Queue) ───────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: prsi_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - prsi_network
+    command: redis-server --appendonly yes
+
+  # ── MongoDB 7 (Document Store) ──────────────────────────────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: prsi_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=secret_password
+      - MONGO_INITDB_DATABASE=doom_index
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - prsi_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Prometheus (Metrics Collection) ─────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: prsi_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - prsi_network
+
+  # ── Grafana (Real-Time Observability & Threat Analytics) ─────────────────────
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: prsi_grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - prsi_network
+
+volumes:
+  mongodb_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:
+  redis_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  prsi_network:
+    driver: bridge

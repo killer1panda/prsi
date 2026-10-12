@@ -26,6 +26,39 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 logger = logging.getLogger(__name__)
 
 
+class GraphSAGEEncoder(nn.Module):
+    """GraphSAGE encoder for inductive node representation learning."""
+
+    def __init__(
+        self,
+        in_channels: int = 16,
+        hidden_channels: int = 32,
+        out_channels: int = 32,
+        num_layers: int = 2,
+    ):
+        super().__init__()
+        self.convs = nn.ModuleList()
+        self.convs.append(nn.Linear(in_channels * 2, hidden_channels))
+        for _ in range(num_layers - 2):
+            self.convs.append(nn.Linear(hidden_channels * 2, hidden_channels))
+        if num_layers > 1:
+            self.convs.append(nn.Linear(hidden_channels * 2, out_channels))
+        else:
+            self.convs = nn.ModuleList([nn.Linear(in_channels * 2, out_channels)])
+
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
+        row, col = edge_index
+        h = x
+        for conv in self.convs:
+            agg = torch.zeros((h.size(0), h.size(1)), device=h.device)
+            agg.index_add_(0, col, h[row])
+            deg = torch.zeros((h.size(0), 1), device=h.device)
+            deg.index_add_(0, col, torch.ones((row.size(0), 1), device=h.device))
+            agg = agg / deg.clamp(min=1.0)
+            h = F.relu(conv(torch.cat([h, agg], dim=-1)))
+        return h
+
+
 class CompGCNEncoder(nn.Module):
     """CompGCN encoder for typed relational edges."""
 

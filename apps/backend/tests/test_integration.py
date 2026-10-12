@@ -62,25 +62,32 @@ class TestDataPipeline:
 
         neo = get_neo4j()
         assert neo is not None
+        assert neo.driver is not None
 
 
 class TestModelPipeline:
     """Test model training and inference pipeline."""
 
     def test_distilbert_forward(self):
-        """Test DistilBERT model forward pass."""
+        """Test transformer model forward pass (deterministic offline)."""
         from transformers import (
+            DistilBertConfig,
             DistilBertForSequenceClassification,
-            DistilBertTokenizer,
         )
 
-        model = DistilBertForSequenceClassification.from_pretrained(
-            "distilbert-base-uncased", num_labels=2
+        config = DistilBertConfig(
+            vocab_size=1000,
+            dim=64,
+            hidden_dim=128,
+            n_layers=2,
+            n_heads=2,
+            num_labels=2,
         )
-        tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+        model = DistilBertForSequenceClassification(config)
+        input_ids = torch.randint(0, 1000, (1, 16))
+        attention_mask = torch.ones((1, 16), dtype=torch.long)
 
-        inputs = tokenizer("Test post about cancellation", return_tensors="pt", padding=True)
-        outputs = model(**inputs)
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
         assert outputs.logits.shape == (1, 2)
         assert not torch.isnan(outputs.logits).any()

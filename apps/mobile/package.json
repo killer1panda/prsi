@@ -12,6 +12,7 @@
     "react-native-web": "^0.21.2"
   },
   "scripts": {
+    "build": "expo export --platform web",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

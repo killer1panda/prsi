@@ -4,7 +4,7 @@
 **Enterprise-Scale Multimodal Outrage Forecasting, Topological Threat Intelligence & Proactive Defense Platform**
 
 [![Build Status](https://img.shields.io/badge/CI%2FCD-Passing-brightgreen.svg?style=for-the-badge&logo=githubactions)](https://github.com/killer1panda/prsi)
-[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg?style=for-the-badge&logo=python)](https://python.org)
+[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.14-blue.svg?style=for-the-badge&logo=python)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.2%2B-EE4C2C.svg?style=for-the-badge&logo=pytorch)](https://pytorch.org)
 [![Mistral-7B](https://img.shields.io/badge/LLM-Mistral--7B--Instruct-ff7000.svg?style=for-the-badge)](https://mistral.ai)
 [![Qwen2-VL](https://img.shields.io/badge/Vision--AI-Qwen2--VL-624AFF.svg?style=for-the-badge)](https://github.com/QwenLM/Qwen2-VL)
@@ -345,25 +345,29 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Launch the Complete Cloud-Native Stack
+### 3. Launch the Unified Full-Stack System
 ```bash
-# Spin up Kafka, Zookeeper, Flink, Neo4j, Redis, and FastAPI Backend
-docker-compose -f docker-compose-production.yml up -d
+# Spin up FastAPI Backend, Next.js Web Portal, Streamlit Dashboard, Qdrant, Neo4j, Redis, MongoDB, Prometheus & Grafana
+docker compose up -d
 
 # Verify cluster health
-curl -s http://localhost:8000/api/v2/health | jq
+curl -s http://localhost:8000/health | jq
 ```
 
-### 4. Launch Client Applications
+### 4. Monorepo Build & Development
 ```bash
-# 1. Next.js 14 Web Dashboard
-cd apps/web && npm install && npm run dev
+# Build all 3 frontend client applications (desktop, mobile, web) via Turborepo
+npm run build
+
+# Or run client applications individually in development mode:
+# 1. Next.js 14 Web Dashboard (http://localhost:3000)
+cd apps/web && npm run dev
 
 # 2. Tauri Desktop Application
-cd apps/desktop && npm install && npm run tauri dev
+cd apps/desktop && npm run tauri dev
 
 # 3. Expo React Native Mobile App
-cd apps/mobile && npm install && npx expo start
+cd apps/mobile && npx expo start
 ```
 
 ---

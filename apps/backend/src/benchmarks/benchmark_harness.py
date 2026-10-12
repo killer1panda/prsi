@@ -23,8 +23,9 @@ class AcademicBenchmarkHarness:
 
     BENCHMARK_NAMES = ["HateXplain", "ToxiGen", "SocialStance", "CancelCulture-HQ"]
 
-    def __init__(self):
-        pass
+    def __init__(self, metrics: Optional[List[str]] = None):
+        self.metrics = metrics or ["macro_f1", "auroc", "ece", "crps"]
+        self.benchmarks = list(self.BENCHMARK_NAMES)
 
     def run_all_benchmarks(self, model_fn=None) -> Dict[str, Any]:
         """

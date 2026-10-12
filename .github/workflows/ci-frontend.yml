@@ -1,6 +1,10 @@
-name: 🌐 Enterprise CI - Frontend & Mobile
+name: 🌐 Enterprise CI - Frontend & Mobile & Desktop
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -37,6 +41,21 @@ jobs:
       - name: Install Dependencies
         working-directory: ./apps/mobile
         run: npm install --legacy-peer-deps
-      - name: Basic Expo Check
+      - name: Expo Web Build Verification
         working-directory: ./apps/mobile
-        run: npx expo export --platform web
+        run: npm run build
+
+  desktop-tauri-ci:
+    name: Tauri Desktop Web CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Dependencies
+        working-directory: ./apps/desktop
+        run: npm install
+      - name: Desktop Build Verification
+        working-directory: ./apps/desktop
+        run: npm run build

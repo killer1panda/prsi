@@ -20,8 +20,14 @@ logger = logging.getLogger(__name__)
 class FeatureEngineer:
     """Feature engineering pipeline."""
 
-    def __init__(self):
-        pass
+    def __init__(self, batch_size: int = 100):
+        self.batch_size = batch_size
+        self.feature_names = [
+            "sentiment_neg",
+            "sentiment_pos",
+            "sentiment_compound",
+            "toxicity_score",
+        ]
 
     def process_dataset(
         self,

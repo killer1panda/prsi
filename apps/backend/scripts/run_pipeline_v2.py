@@ -253,11 +253,13 @@ class CheckpointManager:
 
 
 class DoomTrajectoryForecaster:
-    """Forecast doom score trajectory over time."""
+    """Forecast doom score trajectory over time using continuous 1D Diffusion (DiT) with linear trend baseline."""
 
     def __init__(self, model=None):
         self.model = model
+        self.diffusion_forecaster = None
         self.fitted = False
+        self._historical_y = None
 
     def fit(self, historical_scores: List[Tuple[datetime, float]]):
         """Fit forecasting model on historical doom scores.
@@ -272,16 +274,28 @@ class DoomTrajectoryForecaster:
         # Sort by timestamp
         historical_scores = sorted(historical_scores, key=lambda x: x[0])
 
-        # Simple linear regression for trend
         import numpy as np
         from sklearn.linear_model import LinearRegression
 
         X = np.array([[i] for i in range(len(historical_scores))])
         y = np.array([score for _, score in historical_scores])
+        self._historical_y = y
 
         self.model = LinearRegression()
         self.model.fit(X, y)
         self.fitted = True
+
+        # Initialize continuous score-based diffusion model
+        try:
+            from src.models.diffusion_trajectory import DiffusionTrajectoryForecaster
+
+            self.diffusion_forecaster = DiffusionTrajectoryForecaster(
+                horizon=72, hidden_dim=128, cond_dim=128, num_layers=2
+            )
+            logger.info("Initialized continuous DiffusionTrajectoryForecaster (DiT-1D) for cascade forecasting.")
+        except Exception as e:
+            logger.warning(f"DiffusionTrajectoryForecaster unavailable ({e}); using baseline regression.")
+            self.diffusion_forecaster = None
 
         logger.info(
             f"Fitted trajectory model: slope={self.model.coef_[0]:.3f}, intercept={self.model.intercept_:.3f}"
@@ -304,13 +318,60 @@ class DoomTrajectoryForecaster:
                 "predictions": [],
             }
 
-        # Generate predictions
+        import numpy as np
+
+        # Generate baseline trend predictions
         last_x = len(self.model.predict([[0]]))  # Get last index
         future_x = [[i] for i in range(last_x, last_x + horizon_days)]
-        predictions = self.model.predict(future_x).tolist()
+        trend_predictions = self.model.predict(future_x).tolist()
+        trend_predictions = [max(0.0, min(100.0, p)) for p in trend_predictions]
 
-        # Clip to valid range [0, 100]
-        predictions = [max(0, min(100, p)) for p in predictions]
+        predictions = trend_predictions
+        diffusion_cascade = None
+
+        # Continuous SDE diffusion sampling for stochastic cascade curves
+        if self.diffusion_forecaster is not None:
+            try:
+                import torch
+
+                last_score = (
+                    current_score
+                    if current_score is not None
+                    else (self._historical_y[-1] if self._historical_y is not None and len(self._historical_y) > 0 else 50.0)
+                )
+                slope_val = float(self.model.coef_[0]) if hasattr(self.model, "coef_") else 0.0
+
+                ctx = torch.zeros((1, 128), dtype=torch.float32)
+                ctx[0, 0] = float(last_score) / 100.0
+                ctx[0, 1] = float(slope_val)
+                if self._historical_y is not None and len(self._historical_y) > 0:
+                    ctx[0, 2] = float(np.mean(self._historical_y)) / 100.0
+                    ctx[0, 3] = float(np.std(self._historical_y)) / 50.0
+
+                diff_res = self.diffusion_forecaster.sample_trajectories(
+                    ctx, num_samples=25, device="cpu"
+                )
+                median_hourly = diff_res["median_trajectory"][0].tolist()
+                p05_hourly = diff_res["lower_band_p05"][0].tolist()
+                p95_hourly = diff_res["upper_band_p95"][0].tolist()
+                prob_critical = float(diff_res["prob_critical_cascade"][0])
+
+                step = max(1, len(median_hourly) // horizon_days)
+                diffusion_daily = [
+                    median_hourly[min(i * step, len(median_hourly) - 1)] for i in range(horizon_days)
+                ]
+
+                diffusion_cascade = {
+                    "hourly_horizon": len(median_hourly),
+                    "median_hourly_24h": [round(v, 2) for v in median_hourly[:24]],
+                    "lower_band_p05_24h": [round(v, 2) for v in p05_hourly[:24]],
+                    "upper_band_p95_24h": [round(v, 2) for v in p95_hourly[:24]],
+                    "prob_critical_cascade": round(prob_critical, 4),
+                    "daily_trajectory": [round(v, 2) for v in diffusion_daily],
+                }
+                predictions = [round(v, 2) for v in diffusion_daily]
+            except Exception as e:
+                logger.warning(f"Diffusion trajectory sampling failed ({e}); falling back to linear trend.")
 
         # Find critical threshold crossing
         critical_day = None
@@ -319,7 +380,7 @@ class DoomTrajectoryForecaster:
                 critical_day = i + 1
                 break
 
-        return {
+        result_dict = {
             "current_score": current_score or predictions[0] if predictions else None,
             "predictions": predictions,
             "horizon_days": horizon_days,
@@ -331,6 +392,10 @@ class DoomTrajectoryForecaster:
             ),
             "slope": float(self.model.coef_[0]),
         }
+        if diffusion_cascade is not None:
+            result_dict["diffusion_cascade"] = diffusion_cascade
+
+        return result_dict
 
 
 class PipelineOrchestrator:

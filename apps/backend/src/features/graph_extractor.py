@@ -376,6 +376,81 @@ class GraphExtractor:
             embeddings = model.get_embeddings(data.x, data.edge_index)
             return embeddings[idx]
 
+    def extract_hypergraph(
+        self, posts_df: Optional[pd.DataFrame] = None, group_col: str = "subreddit"
+    ) -> Tuple[Data, pd.DataFrame]:
+        """Extract multi-user discussion hyperedges for HypergraphHGNN.
+
+        Each thread / subreddit / conversation represents a hyperedge connecting
+        all participating user nodes simultaneously.
+
+        Returns:
+            pyg_data: PyG Data object with x, hyperedge_index [2, num_incidences], hyperedge_weight
+            user_df: DataFrame with user features and index mapping
+        """
+        if posts_df is None or len(posts_df) == 0:
+            base_data, user_df = self.extract_user_graph()
+            num_nodes = base_data.x.size(0) if hasattr(base_data, "x") and base_data.x.size(0) > 0 else 10
+            node_indices = []
+            edge_indices = []
+            num_hyperedges = max(1, num_nodes // 3)
+            for he_id in range(num_hyperedges):
+                size = min(num_nodes, max(2, num_nodes // 4))
+                members = np.random.choice(num_nodes, size=size, replace=False)
+                for m in members:
+                    node_indices.append(int(m))
+                    edge_indices.append(int(he_id))
+
+            hyperedge_index = torch.tensor([node_indices, edge_indices], dtype=torch.long)
+            hyperedge_weight = torch.ones(num_hyperedges, dtype=torch.float)
+
+            data = Data(
+                x=base_data.x if hasattr(base_data, "x") and base_data.x.size(0) > 0 else torch.randn((num_nodes, 6)),
+                hyperedge_index=hyperedge_index,
+                hyperedge_weight=hyperedge_weight,
+                num_nodes=num_nodes,
+            )
+            return data, user_df
+
+        user_ids = sorted(posts_df["author_id"].dropna().unique().tolist())
+        user_to_idx = {uid: i for i, uid in enumerate(user_ids)}
+        num_nodes = len(user_ids)
+
+        node_indices = []
+        edge_indices = []
+        hyperedge_weights = []
+
+        grouped = posts_df.groupby(group_col)
+        for _, (_, group_data) in enumerate(grouped):
+            authors = group_data["author_id"].dropna().unique()
+            if len(authors) < 2:
+                continue
+            weight = float(len(group_data))
+            hyperedge_weights.append(weight)
+            he_id = len(hyperedge_weights) - 1
+            for a in authors:
+                if a in user_to_idx:
+                    node_indices.append(user_to_idx[a])
+                    edge_indices.append(he_id)
+
+        if not node_indices:
+            node_indices = list(range(num_nodes))
+            edge_indices = list(range(num_nodes))
+            hyperedge_weights = [1.0] * num_nodes
+
+        hyperedge_index = torch.tensor([node_indices, edge_indices], dtype=torch.long)
+        hyperedge_weight = torch.tensor(hyperedge_weights, dtype=torch.float)
+
+        x = torch.zeros((num_nodes, 6), dtype=torch.float)
+        data = Data(
+            x=x,
+            hyperedge_index=hyperedge_index,
+            hyperedge_weight=hyperedge_weight,
+            num_nodes=num_nodes,
+        )
+        user_df = pd.DataFrame({"user_id": user_ids, "node_idx": list(range(num_nodes))})
+        return data, user_df
+
 
 if __name__ == "__main__":
     extractor = GraphExtractor()

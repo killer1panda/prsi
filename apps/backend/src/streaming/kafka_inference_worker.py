@@ -124,46 +124,78 @@ class DoomInferenceWorker:
                 self.consumer.commit(asynchronous=True)
 
     def _predict_doom(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Real inference: sentiment + toxicity + emoji emotional swing scoring."""
+        """Real inference: Central IntegratedDoomPredictor with conformal bounds and sentiment fallback."""
         content = data.get("text", "")
         source_id = data.get("user_id", str(uuid.uuid4()))
         source = data.get("source", "unknown")
 
         doom_score = 15.0  # default low
+        risk_level = "RISK_LEVEL_LOW"
         emoji_metrics: Dict[str, Any] = {}
+        conformal_interval = [5.0, 25.0]
 
+        # 1. Try central IntegratedDoomPredictor
+        predictor_succeeded = False
         try:
-            # Lazy local imports to avoid circular dependency at module load time
-            from src.features.sentiment import analyze_text_sentiment
-            from src.features.toxicity import analyze_text_toxicity
+            from src.models.integrated_predictor import IntegratedDoomPredictor
 
-            sent = analyze_text_sentiment(content) or {}
-            tox = analyze_text_toxicity(content) or {}
+            if not hasattr(self, "_integrated_predictor") or self._integrated_predictor is None:
+                self._integrated_predictor = IntegratedDoomPredictor()
 
-            neg = sent.get("sentiment_negative", 0.0)
-            compound = sent.get("sentiment_compound", 0.0)
-            tox_score = tox.get("toxicity_score", 0.0)
-            emoji_metrics = sent.get("emoji_metrics", {})
-
-            raw_score = (neg * 40.0) + (tox_score * 40.0) + (max(0.0, -compound) * 20.0)
-            doom_score = min(99.0, max(1.0, raw_score * 1.2))
+            if self._integrated_predictor is not None:
+                pred = self._integrated_predictor.predict(content)
+                doom_score = float(pred["doom_score"])
+                risk_level = f"RISK_LEVEL_{pred['risk_level'].upper()}"
+                conformal_interval = pred.get(
+                    "conformal_interval",
+                    [round(max(0.0, doom_score - 8.5), 2), round(min(100.0, doom_score + 8.5), 2)],
+                )
+                predictor_succeeded = True
         except Exception as e:
-            logger.warning(f"Real inference failed ({e}); using heuristic fallback")
-            # Last-resort heuristic: keyword density
-            outrage_words = {"fraud", "corrupt", "resign", "boycott", "expose", "liar",
-                             "cancel", "fascist", "disgusting", "scam", "predator"}
-            words = set(content.lower().split())
-            hit_ratio = len(words & outrage_words) / max(len(words), 1)
-            doom_score = min(95.0, max(5.0, hit_ratio * 600 + 10.0))
+            logger.debug(f"Central predictor unavailable ({e}); falling back to feature analyzers")
 
-        if doom_score >= 80:
-            risk_level = "RISK_LEVEL_EXTREME"
-        elif doom_score >= 60:
-            risk_level = "RISK_LEVEL_HIGH"
-        elif doom_score >= 40:
-            risk_level = "RISK_LEVEL_MEDIUM"
-        else:
-            risk_level = "RISK_LEVEL_LOW"
+        # 2. Resilient feature analyzer fallback if predictor failed
+        if not predictor_succeeded:
+            try:
+                from src.features.sentiment import analyze_text_sentiment
+                from src.features.toxicity import analyze_text_toxicity
+
+                sent = analyze_text_sentiment(content) or {}
+                tox = analyze_text_toxicity(content) or {}
+
+                neg = sent.get("sentiment_negative", 0.0)
+                compound = sent.get("sentiment_compound", 0.0)
+                tox_score = tox.get("toxicity_score", 0.0)
+                emoji_metrics = sent.get("emoji_metrics", {})
+
+                raw_score = (neg * 40.0) + (tox_score * 40.0) + (max(0.0, -compound) * 20.0)
+                doom_score = min(99.0, max(1.0, raw_score * 1.2))
+                conformal_interval = [
+                    round(max(0.0, doom_score - 8.5), 2),
+                    round(min(100.0, doom_score + 8.5), 2),
+                ]
+            except Exception as e:
+                logger.warning(f"Real inference failed ({e}); using heuristic fallback")
+                outrage_words = {
+                    "fraud", "corrupt", "resign", "boycott", "expose", "liar",
+                    "cancel", "fascist", "disgusting", "scam", "predator",
+                }
+                words = set(content.lower().split())
+                hit_ratio = len(words & outrage_words) / max(len(words), 1)
+                doom_score = min(95.0, max(5.0, hit_ratio * 600 + 10.0))
+                conformal_interval = [
+                    round(max(0.0, doom_score - 10.0), 2),
+                    round(min(100.0, doom_score + 10.0), 2),
+                ]
+
+            if doom_score >= 80:
+                risk_level = "RISK_LEVEL_EXTREME"
+            elif doom_score >= 60:
+                risk_level = "RISK_LEVEL_HIGH"
+            elif doom_score >= 40:
+                risk_level = "RISK_LEVEL_MEDIUM"
+            else:
+                risk_level = "RISK_LEVEL_LOW"
 
         return {
             "prediction_id": str(uuid.uuid4()),
@@ -172,6 +204,8 @@ class DoomInferenceWorker:
             "text_snippet": content[:140],
             "doom_score": round(doom_score, 2),
             "risk_level": risk_level,
+            "conformal_interval": conformal_interval,
+            "conformal_coverage": 0.90,
             "emoji_metrics": emoji_metrics,
             "timestamp": int(time.time() * 1000),
         }

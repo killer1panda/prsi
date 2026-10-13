@@ -1,0 +1,4 @@
+
+## 2024-10-24 - Accessibility improvements for scrollable container and initial render states
+**Learning:** Adding `tabIndex={0}` to custom scrollable elements is essential, but it must be paired with `role="region"` and an `aria-label` to provide context for screen reader users when the region receives focus. Additionally, initializing state within the component rather than synchronously setting it within `useEffect` prevents flashing incorrect states and improves performance by avoiding a cascading render.
+**Action:** When creating custom scrollable areas, always apply `tabIndex={0}`, `role="region"`, `aria-label`, and `focus-visible` styling (paired with `outline-none`) to ensure keyboard-only and screen reader accessibility without degrading mouse UX. Initialize state appropriately to avoid unnecessary initial-render updates via `useEffect`.

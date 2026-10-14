@@ -100,22 +100,26 @@ interface LiveEvent {
   timestamp: number;
 }
 
-const LiveScoreDisplay = ({ score }: { score: number }) => {
+// ⚡ Bolt: Wrapped in React.memo to prevent unnecessary cascading re-renders
+// triggered by the parent's frequent 2-second polling interval updates.
+const LiveScoreDisplay = React.memo(({ score }: { score: number }) => {
   return (
     <div className={`text-7xl font-black tracking-tighter flex items-baseline ${getRiskColor(score)}`}>
       {score.toFixed(1)}
       <span className="text-2xl text-zinc-500 ml-2">/ 100</span>
     </div>
   );
-};
+});
+LiveScoreDisplay.displayName = "LiveScoreDisplay";
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt: Wrapped in React.memo to prevent unnecessary cascading re-renders
+// from parent components, since this component manages its own internal state.
+const LiveFeedPanel = React.memo(() => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +199,12 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
+LiveFeedPanel.displayName = "LiveFeedPanel";
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt: Wrapped in React.memo to prevent unnecessary cascading re-renders
+// from parent components. Takes stable callbacks via useCallback.
+const ThreatAnalyzer = React.memo(({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +344,8 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
+ThreatAnalyzer.displayName = "ThreatAnalyzer";
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);

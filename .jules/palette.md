@@ -1,0 +1,3 @@
+## 2026-10-07 - Adding accessibility to scrollable containers and text areas
+**Learning:** The application utilizes Tailwind CSS alongside `overflow-y-auto` to create custom scrollable containers within card components (e.g. `LiveFeedPanel`). These lack default keyboard focus capability, violating accessibility standards for keyboard users.
+**Action:** When adding `overflow-y-auto` to custom components, proactively add `tabIndex={0}`, `role="region"`, an appropriate `aria-label`, and `focus-visible` styling (e.g. `outline-none focus-visible:ring-2`) to ensure screen reader and keyboard compatibility.

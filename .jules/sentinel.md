@@ -7,3 +7,8 @@
 **Vulnerability:** Found multiple scraper scripts (selenium_login.py, run_twitter_scraper.py, playwright_login.py, playwright_login_v2.py, uc_login.py) that contained hardcoded plain-text developer credentials for Twitter (email, username, password) which would be exposed in the repository.
 **Learning:** Hardcoded credentials are often copied across multiple similar scripts as different approaches are attempted (e.g., trying different scraping tools like Selenium, Playwright, or Twikit). Finding one hardcoded secret likely means others exist in sibling scripts.
 **Prevention:** All scripts, even one-off helper or test scripts, should retrieve credentials using environment variables (`os.environ.get()` or a centralized config manager) instead of hardcoding them. Establish a pre-commit hook to scan for sensitive tokens.
+
+## 2025-03-09 - Authentication Bypass via Empty Environment Variable Split
+**Vulnerability:** The API key validation used `os.environ.get("API_KEYS", "").split(",")` which evaluates to `['']` when empty. This allowed an attacker to bypass authentication by sending an empty string as the credentials, as `secrets.compare_digest("", "")` returns `True`.
+**Learning:** Using string splitting on empty strings yields a list with an empty string, not an empty list. When this is used in credential validation, it can unintentionally create an authentication bypass.
+**Prevention:** Always filter out empty strings when parsing environment variables for security tokens (e.g., `[k for k in env_var.split(",") if k]`). Also ensure that provided credentials are not empty before comparing them.

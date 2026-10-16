@@ -1,0 +1,4 @@
+
+## 2024-05-30 - Scrollable Container Keyboard Accessibility & React State Anti-Pattern
+**Learning:** Found a common pattern where scrollable areas (`overflow-y-auto`) lacked keyboard accessibility. Also identified a React performance anti-pattern where initial state setup (like SSE "connecting" status) was being synchronously set inside a `useEffect`, causing unnecessary cascading renders and violating React strict mode best practices.
+**Action:** When working with custom scrollable areas, always verify they have `tabIndex={0}`, `role="region"`, and an `aria-label` along with keyboard-only focus styles (`focus-visible:outline-none focus-visible:ring-*`). For state initialization, define the starting state directly in `useState` instead of deferring it to a mount effect to prevent performance hits and split-second UI flashes.

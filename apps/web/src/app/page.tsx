@@ -6,10 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Activity,
   Network,
-  Image as ImageIcon,
-  MessageSquare,
   ShieldAlert,
-  Terminal,
   Zap,
   BrainCircuit,
   DatabaseZap,
@@ -111,11 +108,10 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
 
 const LiveFeedPanel = () => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -169,7 +165,12 @@ const LiveFeedPanel = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 max-h-[280px] overflow-y-auto">
+      <CardContent
+        className="p-0 max-h-[280px] overflow-y-auto outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+        tabIndex={0}
+        role="region"
+        aria-label="Live Threat Feed Events"
+      >
         {events.length === 0 ? (
           <div className="p-6 text-center text-zinc-600 text-xs">
             {sseStatus === "connecting" ? "Connecting to live feed..." : "No events yet. API offline."}
@@ -241,6 +242,7 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardHeader>
       <CardContent className="space-y-3">
         <textarea
+          aria-label="Text to analyze"
           className="w-full h-24 bg-zinc-800 border border-zinc-700 rounded p-3 text-sm text-zinc-200 font-mono resize-none focus:outline-none focus:border-rose-500/60 placeholder:text-zinc-600"
           placeholder="Paste social media text, tweet, or post to analyze..."
           value={inputText}

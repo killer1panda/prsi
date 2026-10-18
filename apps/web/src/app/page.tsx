@@ -115,6 +115,7 @@ const LiveFeedPanel = () => {
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
@@ -169,7 +170,12 @@ const LiveFeedPanel = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 max-h-[280px] overflow-y-auto">
+      <CardContent
+        className="p-0 max-h-[280px] overflow-y-auto outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+        tabIndex={0}
+        role="region"
+        aria-label="Live Social Threat Feed events"
+      >
         {events.length === 0 ? (
           <div className="p-6 text-center text-zinc-600 text-xs">
             {sseStatus === "connecting" ? "Connecting to live feed..." : "No events yet. API offline."}

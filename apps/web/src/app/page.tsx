@@ -6,10 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Activity,
   Network,
-  Image as ImageIcon,
-  MessageSquare,
   ShieldAlert,
-  Terminal,
   Zap,
   BrainCircuit,
   DatabaseZap,
@@ -109,13 +106,12 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
   );
 };
 
-const LiveFeedPanel = () => {
+const LiveFeedPanel = React.memo(function LiveFeedPanel() {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +191,9 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+const ThreatAnalyzer = React.memo(function ThreatAnalyzer({ onResult }: { onResult: (r: AnalysisResult) => void }) {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +333,7 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);

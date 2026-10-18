@@ -7,3 +7,8 @@
 **Vulnerability:** Found multiple scraper scripts (selenium_login.py, run_twitter_scraper.py, playwright_login.py, playwright_login_v2.py, uc_login.py) that contained hardcoded plain-text developer credentials for Twitter (email, username, password) which would be exposed in the repository.
 **Learning:** Hardcoded credentials are often copied across multiple similar scripts as different approaches are attempted (e.g., trying different scraping tools like Selenium, Playwright, or Twikit). Finding one hardcoded secret likely means others exist in sibling scripts.
 **Prevention:** All scripts, even one-off helper or test scripts, should retrieve credentials using environment variables (`os.environ.get()` or a centralized config manager) instead of hardcoding them. Establish a pre-commit hook to scan for sensitive tokens.
+
+## 2024-11-20 - Hardcoded API Key in Frontend
+**Vulnerability:** A fallback API key `doom_dev_key` was hardcoded in `apps/web/src/app/page.tsx` for use when `NEXT_PUBLIC_API_KEY` was missing. This triggers secret scanners and could expose a development key if the code is deployed or the repository is public.
+**Learning:** Even placeholder or development API keys hardcoded in frontend files will trigger GitHub Advanced Security.
+**Prevention:** Use an empty string `""` or throw an error for missing environment variables instead of hardcoding realistic dummy secrets.

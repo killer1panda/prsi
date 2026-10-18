@@ -1,3 +1,7 @@
 ## 2025-03-07 - Optimization in temporal edge extraction nested loop
 **Learning:** In Neo4j graph production builds (`extract_temporal_edges`), calculating user interactions within a timeframe used an $O(N^2)$ nested loop despite the users list already being sorted by timestamp. This is a common anti-pattern in temporal aggregations.
 **Action:** Always check if loops iterating over sorted data (like timestamps) can be short-circuited with an early `break` condition (e.g., breaking once the `time_diff` exceeds the window) to reduce the algorithm's actual time complexity.
+
+## 2024-03-24 - [React Component Re-render Jitter Optimization]
+**Learning:** The ThreatIntelligenceDashboard used an idle random jitter `setInterval` updating a global state every 2 seconds. This caused its complex, heavyweight child components (`LiveFeedPanel` and `ThreatAnalyzer`) to re-render constantly even when they received no new props and their internal states didn't change.
+**Action:** Always investigate the rendering tree of parent components that contain periodic, jitter-like state updates. Wrap complex, independent sub-components in `React.memo()` to block these cascading re-renders. When wrapping components in `React.memo()`, ensure they have proper display names to avoid linting errors (`eslint-plugin-react/display-name`) and verify any dependencies like `onResult` are stable (wrapped in `useCallback` by the parent).

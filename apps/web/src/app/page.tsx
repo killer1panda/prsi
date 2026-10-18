@@ -100,22 +100,26 @@ interface LiveEvent {
   timestamp: number;
 }
 
-const LiveScoreDisplay = ({ score }: { score: number }) => {
+// ⚡ Bolt Optimization: Added React.memo to prevent unnecessary re-renders during the 2-second global jitter interval in the parent dashboard.
+// Impact: Eliminates re-renders for this component unless the global score actually changes.
+const LiveScoreDisplay = React.memo(({ score }: { score: number }) => {
   return (
     <div className={`text-7xl font-black tracking-tighter flex items-baseline ${getRiskColor(score)}`}>
       {score.toFixed(1)}
       <span className="text-2xl text-zinc-500 ml-2">/ 100</span>
     </div>
   );
-};
+});
+LiveScoreDisplay.displayName = "LiveScoreDisplay";
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt Optimization: Added React.memo and moved initial "connecting" state to useState to avoid an immediate synchronous re-render on mount.
+// Impact: Reduces initial mount re-renders and isolates the frequent SSE state updates from the global dashboard jitter.
+const LiveFeedPanel = React.memo(() => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +199,12 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
+LiveFeedPanel.displayName = "LiveFeedPanel";
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt Optimization: Added React.memo to prevent unnecessary re-renders. Takes advantage of the already memoized parent `handleAnalysisResult` (via useCallback).
+// Impact: Prevents form state and text area from re-rendering every 2 seconds when global jitter occurs.
+const ThreatAnalyzer = React.memo(({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +344,8 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
+ThreatAnalyzer.displayName = "ThreatAnalyzer";
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);

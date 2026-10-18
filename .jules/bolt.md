@@ -1,3 +1,6 @@
 ## 2025-03-07 - Optimization in temporal edge extraction nested loop
 **Learning:** In Neo4j graph production builds (`extract_temporal_edges`), calculating user interactions within a timeframe used an $O(N^2)$ nested loop despite the users list already being sorted by timestamp. This is a common anti-pattern in temporal aggregations.
 **Action:** Always check if loops iterating over sorted data (like timestamps) can be short-circuited with an early `break` condition (e.g., breaking once the `time_diff` exceeds the window) to reduce the algorithm's actual time complexity.
+## 2024-10-02 - Prevent Cascading Re-renders from Parent Polling
+**Learning:** In the Next.js frontend (`apps/web`), top-level dashboard components (e.g., `ThreatIntelligenceDashboard`) sometimes use fast polling intervals for updating simple aggregate values (like `globalScore` using 2-second jitter). This pattern causes frequent, unnecessary cascading re-renders down to all child components if they aren't optimized.
+**Action:** Always wrap heavy, state-independent child components (like `LiveFeedPanel`, `ThreatAnalyzer`) with `React.memo()` in top-level dashboard layouts to prevent severe cascading performance degradation caused by root-level polling state changes. Remember to assign the `.displayName` property to aid debugging and fix linter warnings.

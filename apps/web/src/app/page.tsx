@@ -109,13 +109,13 @@ const LiveScoreDisplay = ({ score }: { score: number }) => {
   );
 };
 
-const LiveFeedPanel = () => {
+// ⚡ Bolt: Wrapped with React.memo to prevent unnecessary cascading re-renders from ThreatIntelligenceDashboard's polling interval.
+const LiveFeedPanel = React.memo(() => {
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    setSseStatus("connecting");
     const es = new EventSource(`${API_BASE}/events`);
     esRef.current = es;
 
@@ -195,9 +195,11 @@ const LiveFeedPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
+LiveFeedPanel.displayName = "LiveFeedPanel";
 
-const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
+// ⚡ Bolt: Wrapped with React.memo to prevent unnecessary cascading re-renders from ThreatIntelligenceDashboard's polling interval.
+const ThreatAnalyzer = React.memo(({ onResult }: { onResult: (r: AnalysisResult) => void }) => {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -337,7 +339,8 @@ const ThreatAnalyzer = ({ onResult }: { onResult: (r: AnalysisResult) => void })
       </CardContent>
     </Card>
   );
-};
+});
+ThreatAnalyzer.displayName = "ThreatAnalyzer";
 
 export default function ThreatIntelligenceDashboard() {
   const [globalScore, setGlobalScore] = useState(47.3);

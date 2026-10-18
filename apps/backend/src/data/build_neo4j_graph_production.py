@@ -38,7 +38,7 @@ class GraphBuildConfig:
 
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
-    neo4j_password: str = "password"
+    neo4j_password: str = os.getenv("NEO4J_PASSWORD")
     database: str = "neo4j"
 
     # Edge types to construct

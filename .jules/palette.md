@@ -1,0 +1,3 @@
+## 2024-05-24 - Accessible Custom Scrollable Containers
+**Learning:** Custom scrollable containers (like those using `overflow-y-auto` to create inner scrolling areas) are often inaccessible to keyboard and screen reader users by default. Without a `tabIndex`, they cannot be scrolled using the keyboard. Without a `role` and `aria-label`, screen readers may not announce them correctly or allow users to easily navigate inside them.
+**Action:** When implementing custom scrollable containers, always ensure they have `tabIndex={0}`, an appropriate role (e.g., `role="region"`), a descriptive `aria-label`, and clear focus indicators (e.g., `focus-visible:ring-1`) so they are navigable and usable by all users without degrading mouse interactions.

@@ -192,6 +192,67 @@ PRSI replaces shallow classifiers with a calibrated multi-model inference ensemb
 
 ---
 
+## 🔬 Mathematical Foundations & Advanced Data Science Architecture
+
+PRSI was engineered from foundational principles in statistical learning theory, temporal graph geometry, and causal inference. Below are the theoretical formulations governing the platform's analytical core:
+
+### 1. Inductive Conformal Prediction (Finite-Sample Error Bounds)
+To move beyond uncalibrated heuristic probabilities that degrade under distribution shifts, PRSI employs **Inductive Conformal Prediction (ICP)** to produce mathematically guaranteed prediction sets $\mathcal{C}(X_{n+1})$:
+- Given an exchangeable calibration set $\mathcal{D}_{\text{cal}} = \{(X_i, Y_i)\}_{i=1}^n$, non-conformity scores are computed via inverted model softmax probabilities:
+  $$s_i = 1 - \hat{P}(Y_i \mid X_i)$$
+- The calibrated empirical critical quantile $\hat{q}$ for user-specified significance level $\alpha = 0.10$ is derived as:
+  $$\hat{q} = \text{Quantile}\left(\frac{\lceil (n + 1)(1 - \alpha) \rceil}{n}; \{s_1, s_2, \dots, s_n\}\right)$$
+- The guaranteed prediction set for unobserved social event $X_{n+1}$ satisfies:
+  $$\mathcal{C}(X_{n+1}) = \left\{ y \in \mathcal{Y} : 1 - \hat{P}(Y = y \mid X_{n+1}) \le \hat{q} \right\}$$
+  $$\mathbb{P}\left(Y_{n+1} \in \mathcal{C}(X_{n+1})\right) \ge 1 - \alpha$$
+  *(Guaranteed by exchangeability without requiring asymptotic normal distribution assumptions).*
+
+---
+
+### 2. Causal Outrage Discovery & Pearl's Structural Causal Models (SCM)
+Social networks exhibit severe confounding between organic moral outrage and coordinated synthetic astroturfing. PRSI models interaction dynamics through a **Structural Causal Model**:
+```text
+      (Topic Polarization: Z)
+            /        \
+           v          v
+   (Amplification: T) -> (Cascade Volume: Y)
+```
+- **Confounder Adjustment**: Using Inverse Probability of Treatment Weighting (IPTW), the unconfounded Average Treatment Effect (ATE) of platform engagement amplification is isolated:
+  $$\mathbb{E}[Y \mid \text{do}(T = t)] = \sum_{z} \mathbb{E}[Y \mid T = t, Z = z] \cdot P(Z = z)$$
+- Disentangles whether virality is organically fueled by moral convictions or artificially steered by coordinated bot networks.
+
+---
+
+### 3. Hypergraph Attention & Temporal Cascade Dynamics (`PyG GATv2`)
+Pairwise graph edges miss higher-order conversational dynamics (e.g. multi-user quote-tweet storms, shared meme threads). PRSI implements **Hypergraph Convolutional Layers**:
+- **Incidence Matrix Representation**: $\mathbf{H} \in \{0, 1\}^{|V| \times |E|}$, where vertices $V$ represent social actors and hyperedges $E$ represent conversational cohorts.
+- **Hypergraph Propagation Rule**:
+  $$\mathbf{X}^{(l+1)} = \sigma\left(\mathbf{D}_v^{-1/2} \mathbf{H} \mathbf{W} \mathbf{D}_e^{-1} \mathbf{H}^\top \mathbf{D}_v^{-1/2} \mathbf{X}^{(l)} \mathbf{\Theta}\right)$$
+- Temporal edge attention weights dynamically weight early retweeters based on historical topological influence, predicting cascade velocity $V(t) = \frac{d}{dt}[\text{Cascade}(t)]$ up to 6 hours ahead.
+
+---
+
+### 4. Self-Supervised Multimodal Contrastive Alignment
+Meme toxicity often relies on sarcastic dissonance between image and text. PRSI pretrains a cross-modal alignment layer using a symmetric **InfoNCE Objective**:
+$$\mathcal{L}_{\text{InfoNCE}} = -\frac{1}{2B} \sum_{i=1}^B \left( \log \frac{\exp(\mathbf{u}_i^\top \mathbf{v}_i / \tau)}{\sum_{j=1}^B \exp(\mathbf{u}_i^\top \mathbf{v}_j / \tau)} + \log \frac{\exp(\mathbf{v}_i^\top \mathbf{u}_i / \tau)}{\sum_{j=1}^B \exp(\mathbf{v}_i^\top \mathbf{u}_j / \tau)} \right)$$
+where $\mathbf{u}_i = \text{Proj}_{\text{text}}(\text{Mistral}(T_i))$ and $\mathbf{v}_i = \text{Proj}_{\text{vision}}(\text{Qwen2-VL}(I_i))$ scaled by learnable temperature $\tau$.
+
+---
+
+### 5. Concept Drift Detection & Statistical Calibration
+Real-time social feeds exhibit non-stationary distribution shifts ($P_t(X, Y) \neq P_{t+1}(X, Y)$):
+- **Drift Monitoring**: Continuous sliding-window two-sample Kolmogorov-Smirnov (K-S) and 1-Wasserstein distance tests monitor latent feature shift:
+  $$\mathcal{W}_1(P_t, P_{t+k}) = \int_{-\infty}^\infty |F_{P_t}(x) - F_{P_{t+k}}(x)| \, dx$$
+- When $\mathcal{W}_1$ exceeds calibration threshold $\epsilon = 0.05$, PRSI automatically triggers temperature scaling recalibration and active learning triage.
+
+---
+
+### 6. Interpretability & Algorithmic Fairness Audits
+- **GNNExplainer & Saliency**: Explains threat triggers by maximizing Mutual Information $\max_{G_s} \text{MI}(Y, G_s) = H(Y) - H(Y \mid G = G_s)$, isolating the minimal explanatory interaction subgraph.
+- **Fairness Governance**: Enforces Equalized Odds and Disparate Impact Ratio $\frac{P(\hat{Y}=1 \mid A=0)}{P(\hat{Y}=1 \mid A=1)} \ge 0.80$ to prevent demographic bias in automated hate-speech flags.
+
+---
+
 ## 📡 API Documentation
 
 PRSI exposes RESTful OpenAPI v3 endpoints and real-time WebSocket streams over `http://localhost:8000/api/v2`. All requests require `Authorization: Bearer <token>`.
